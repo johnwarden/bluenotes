@@ -179,6 +179,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
   const {openComposer} = useOpenComposer()
   const {currentAccount, hasSession} = useSession()
   const feedFeedback = useFeedFeedback(postSource?.feed, hasSession)
+  const rkey = useMemo(() => new AtUri(postShadow.uri).rkey, [postShadow.uri])
 
   const post = postShadow
   const record = item.value.post.record
@@ -298,6 +299,12 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
     }
   }
 
+  // const [isReplyToOpen, setIsReplyToOpen] = useState(false)
+
+  // const onBeforePress = useCallback(() => {
+  //   onPressReply()
+  // }, [onPressReply])
+
   return (
     <>
       <ThreadItemAnchorParentReplyLine isRoot={isRoot} />
@@ -404,6 +411,17 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               </View>
             )}
           </ContentHider>
+          <Link
+            to={`/profile/${post.author.handle}/post/${rkey}/community-notes`}
+            label={_(msg`Rate proposed community notes`)}
+            style={[t.atoms.bg_contrast_25, a.mt_md, a.p_md, a.rounded_md]}>
+            <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
+              <Trans>Rate proposed community notes</Trans>
+            </Text>
+            <Text style={[a.pt_xs, t.atoms.text_contrast_medium]}>
+              <Trans>Help choose which notes are most helpful to others.</Trans>
+            </Text>
+          </Link>
           <ExpandedPostDetails
             post={item.value.post}
             isThreadAuthor={isThreadAuthor}
@@ -424,7 +442,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
                 t.atoms.border_contrast_low,
               ]}>
               {post.repostCount != null && post.repostCount !== 0 ? (
-                <Link to={repostsHref} label={_(msg`Reposts of this post`)}>
+                <Link to={repostsHref} label={_(msg`Reposts`)}>
                   <Text
                     testID="repostCount-expanded"
                     style={[a.text_md, t.atoms.text_contrast_medium]}>
@@ -442,7 +460,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               {post.quoteCount != null &&
               post.quoteCount !== 0 &&
               !post.viewer?.embeddingDisabled ? (
-                <Link to={quotesHref} label={_(msg`Quotes of this post`)}>
+                <Link to={quotesHref} label={_(msg`Quotes`)}>
                   <Text
                     testID="quoteCount-expanded"
                     style={[a.text_md, t.atoms.text_contrast_medium]}>
@@ -458,7 +476,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
                 </Link>
               ) : null}
               {post.likeCount != null && post.likeCount !== 0 ? (
-                <Link to={likesHref} label={_(msg`Likes on this post`)}>
+                <Link to={likesHref} label={_(msg`Likes`)}>
                   <Text
                     testID="likeCount-expanded"
                     style={[a.text_md, t.atoms.text_contrast_medium]}>
