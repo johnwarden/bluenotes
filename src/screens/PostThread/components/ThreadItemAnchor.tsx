@@ -44,6 +44,8 @@ import {atoms as a, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
+import {Group3_Stroke2_Corner0_Rounded as CommunityIcon} from '#/components/icons/Group'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {InlineLinkText, Link} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -414,13 +416,39 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
           <Link
             to={`/profile/${post.author.handle}/post/${rkey}/community-notes`}
             label={_(msg`Rate proposed community notes`)}
-            style={[t.atoms.bg_contrast_25, a.mt_md, a.p_md, a.rounded_md]}>
-            <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
-              <Trans>Rate proposed community notes</Trans>
-            </Text>
-            <Text style={[a.pt_xs, t.atoms.text_contrast_medium]}>
-              <Trans>Help choose which notes are most helpful to others.</Trans>
-            </Text>
+            style={[
+              a.mt_md,
+              a.rounded_md,
+              a.border,
+              {
+                paddingTop: 12,
+                paddingBottom: 12,
+                paddingLeft: 16,
+                paddingRight: 16,
+                backgroundColor: 'rgb(235, 245, 255)',
+                borderColor: 'rgb(179, 215, 255)',
+              },
+            ]}>
+            <View
+              style={[a.flex_row, a.align_center, a.justify_between, a.gap_md]}>
+              <View style={[a.flex_row, a.align_center, {gap: 12}]}>
+                <CommunityIcon
+                  size="lg"
+                  style={{color: 'rgb(29, 155, 240)'}}
+                />
+                <Text
+                  style={[
+                    a.font_bold,
+                    {color: 'rgb(29, 155, 240)', fontSize: 15},
+                  ]}>
+                  <Trans>Rate proposed Community Notes</Trans>
+                </Text>
+              </View>
+              <ChevronRightIcon
+                size="lg"
+                style={{color: 'rgb(29, 155, 240)'}}
+              />
+            </View>
           </Link>
           <ExpandedPostDetails
             post={item.value.post}
