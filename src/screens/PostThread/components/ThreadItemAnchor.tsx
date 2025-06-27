@@ -418,11 +418,11 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
             label={_(msg`Rate proposed community notes`)}
             style={[
               a.mt_md,
-              a.rounded_md,
+              a.rounded_lg,
               a.border,
               {
-                paddingTop: 12,
-                paddingBottom: 12,
+                paddingTop: 10,
+                paddingBottom: 10,
                 paddingLeft: 16,
                 paddingRight: 16,
                 backgroundColor: '#f0f0f0',
@@ -430,16 +430,24 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               },
             ]}>
             <View
-              style={[a.flex_row, a.align_center, a.justify_between, a.gap_md]}>
-              <View style={[a.flex_row, a.align_center]}>
-                <View style={[a.flex_1, a.flex_row, a.align_center, {gap: 12}]}>
-                  <CommunityIcon size="lg" style={{color: '#0085ff'}} />
-                  <Text style={[a.font_bold, {color: 'black', fontSize: 15}]}>
-                    <Trans>Rate proposed Community Notes</Trans>
-                  </Text>
-                </View>
-                <ArrowRightIcon size="md" style={{color: 'black'}} />
+              style={[
+                a.w_full,
+                a.flex_row,
+                a.align_center,
+                a.justify_between,
+                a.gap_md,
+              ]}>
+              <View style={[a.flex_row, a.align_center, {gap: 12}]}>
+                <CommunityIcon
+                  width={18.5}
+                  height={14.06}
+                  style={{color: '#0085ff'}}
+                />
+                <Text style={[a.font_bold, {color: '#000000', fontSize: 15}]}>
+                  <Trans>Rate proposed Community Notes</Trans>
+                </Text>
               </View>
+              <ArrowRightIcon size="md" style={{color: '#000000'}} />
             </View>
           </Link>
           <ExpandedPostDetails
