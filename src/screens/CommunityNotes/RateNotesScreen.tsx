@@ -11,6 +11,7 @@ import {s} from '#/lib/styles'
 import {usePostQuery} from '#/state/queries/post'
 import {Post} from '#/view/com/post/Post'
 import {NoteCard} from '#/components/CommunityNotes/NoteCard'
+import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import * as Layout from '#/components/Layout'
 
 type RateNotesScreenParams = {
@@ -63,12 +64,9 @@ export function RateNotesScreen() {
       <Layout.Center>
         <Layout.Header.Outer>
           <Layout.Header.BackButton />
-          <Layout.Header.TitleText>Posts with notes</Layout.Header.TitleText>
+          <Layout.Header.TitleText>Post with notes</Layout.Header.TitleText>
           <Layout.Header.Slot />
         </Layout.Header.Outer>
-        <Text style={[pal.text, styles.title]}>
-          Help build a better source of context on posts.
-        </Text>
         {isLoadingPost || isLoadingNotes ? (
           <ActivityIndicator style={styles.loading} />
         ) : postError ? (
@@ -82,8 +80,16 @@ export function RateNotesScreen() {
             keyExtractor={item => item.contributorId}
             ListHeaderComponent={
               post ? (
-                <View style={{paddingBottom: 20}}>
-                  <Post post={post} />
+                <View>
+                  <View style={{paddingBottom: 20}}>
+                    <Post post={post} />
+                  </View>
+                  <View style={[pal.border, styles.header]}>
+                    <Layout.Header.TitleText>
+                      Notes suggesting context to be shown with the post
+                    </Layout.Header.TitleText>
+                    <InfoIcon size="sm" style={pal.text} />
+                  </View>
                 </View>
               ) : undefined
             }
@@ -102,5 +108,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 20,
     paddingVertical: 10,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+    borderTopWidth: 1,
   },
 })

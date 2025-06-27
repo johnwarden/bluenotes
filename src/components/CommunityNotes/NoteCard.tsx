@@ -7,8 +7,11 @@ import {useLingui} from '@lingui/react'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {type CommunityNote, submitVote} from '#/lib/mock-data/community-notes'
+import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import {Button, ButtonText} from '#/components/Button'
 import * as Toggle from '#/components/forms/Toggle'
+import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
+import {Link} from '#/components/Link'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 
@@ -150,35 +153,64 @@ export function NoteCard({note}: {note: CommunityNote}) {
 
   return (
     <View style={[pal.view, styles.card]}>
+      <View style={styles.statusLine}>
+        <Text style={pal.textLight}>
+          <Trans>Needs more ratings</Trans>
+        </Text>
+        <TimeElapsed timestamp={note.createdAt}>
+          {({timeElapsed}) => (
+            <Text style={pal.textLight} title={timeElapsed}>
+              {timeElapsed}
+            </Text>
+          )}
+        </TimeElapsed>
+        <Link to="#" label={_(msg`View Details`)}>
+          <Text style={pal.link}>
+            <Trans>View details</Trans>
+          </Text>
+        </Link>
+        <View
+          style={{flex: 1, flexDirection: 'row', justifyContent: 'flex-end'}}>
+          <EyeSlashIcon size="sm" style={pal.textLight} />
+          <Text style={pal.textLight}>
+            <Trans>Not shown on Bluesky</Trans>
+          </Text>
+        </View>
+      </View>
+
       <RichText value={richText} style={[pal.text]} />
+
       <View style={styles.actions}>
         <Text style={[pal.text, styles.question]}>Is this note helpful?</Text>
         <Button
           variant="ghost"
-          color="primary"
           label={_(msg`Rate as helpful`)}
           onPress={() => handleSelectVote('helpful')}
           style={[styles.button, voted === 'helpful' && styles.selected]}>
-          <ButtonText>{_(msg`Yes`)}</ButtonText>
+          <ButtonText style={voted === 'helpful' && {color: 'white'}}>
+            {_(msg`Yes`)}
+          </ButtonText>
         </Button>
         <Button
           variant="ghost"
-          color="primary"
           label={_(msg`Rate as somewhat helpful`)}
           onPress={() => handleSelectVote('somewhat_helpful')}
           style={[
             styles.button,
             voted === 'somewhat_helpful' && styles.selected,
           ]}>
-          <ButtonText>{_(msg`Somewhat`)}</ButtonText>
+          <ButtonText style={voted === 'somewhat_helpful' && {color: 'white'}}>
+            {_(msg`Somewhat`)}
+          </ButtonText>
         </Button>
         <Button
           variant="ghost"
-          color="primary"
           label={_(msg`Rate as not helpful`)}
           onPress={() => handleSelectVote('not_helpful')}
           style={[styles.button, voted === 'not_helpful' && styles.selected]}>
-          <ButtonText>{_(msg`No`)}</ButtonText>
+          <ButtonText style={voted === 'not_helpful' && {color: 'white'}}>
+            {_(msg`No`)}
+          </ButtonText>
         </Button>
       </View>
       {voted && renderReasons()}
@@ -204,6 +236,8 @@ const styles = StyleSheet.create({
     marginRight: 'auto',
   },
   button: {
+    borderWidth: 1,
+    borderColor: 'gray',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -211,8 +245,14 @@ const styles = StyleSheet.create({
   },
   selected: {
     backgroundColor: '#0085ff',
+    borderColor: '#0085ff',
   },
   reasonsContainer: {
     marginTop: 10,
+  },
+  statusLine: {
+    flexDirection: 'row',
+    gap: 4,
+    paddingBottom: 4,
   },
 })
