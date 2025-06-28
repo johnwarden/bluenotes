@@ -95,15 +95,17 @@ export function NoteCard({note}: {note: CommunityNote}) {
   }
 
   const SubmitButton = () => (
-    <Button
-      label={_(msg`Submit`)}
-      onPress={handleSubmit}
-      variant="solid"
-      color="primary">
-      <ButtonText>
-        <Trans>Submit</Trans>
-      </ButtonText>
-    </Button>
+    <View style={styles.submitButtonContainer}>
+      <Button
+        label={_(msg`Submit`)}
+        onPress={handleSubmit}
+        variant="ghost"
+        style={styles.submitButton}>
+        <ButtonText style={styles.submitButtonText}>
+          <Trans>Submit</Trans>
+        </ButtonText>
+      </Button>
+    </View>
   )
 
   const ReasonsGroup = ({
@@ -113,8 +115,8 @@ export function NoteCard({note}: {note: CommunityNote}) {
     title: string
     reasons: {key: string; label: MessageDescriptor}[]
   }) => (
-    <View style={styles.reasonsContainer}>
-      <Text style={pal.text}>{title}</Text>
+    <View style={styles.reasonsGroup}>
+      <Text style={styles.reasonsGroupTitle}>{title}</Text>
       <Toggle.Group
         type="checkbox"
         values={reasons}
@@ -124,9 +126,13 @@ export function NoteCard({note}: {note: CommunityNote}) {
           <Toggle.Item
             key={reason.key}
             name={reason.key}
-            label={_(reason.label)}>
+            label={_(reason.label)}
+            style={styles.reasonItem}
+            reverse>
             <Toggle.Checkbox />
-            <Toggle.LabelText>{_(reason.label)}</Toggle.LabelText>
+            <Toggle.LabelText style={{fontSize: 15, fontWeight: 'normal'}}>
+              {_(reason.label)}
+            </Toggle.LabelText>
           </Toggle.Item>
         ))}
       </Toggle.Group>
@@ -142,7 +148,7 @@ export function NoteCard({note}: {note: CommunityNote}) {
 
   if (finalVoted) {
     return (
-      <View style={[pal.view, styles.card]}>
+      <View style={[pal.view, styles.card, pal.border]}>
         <RichText value={richText} style={[pal.text]} />
         <Text style={pal.textLight}>
           <Trans>You rated this note as {getVoteText(finalVoted)}.</Trans>
@@ -152,10 +158,10 @@ export function NoteCard({note}: {note: CommunityNote}) {
   }
 
   return (
-    <View style={[pal.view, styles.card]}>
-      <View style={styles.statusLine}>
-        <Text style={pal.textLight}>
-          <Trans>Needs more ratings</Trans>
+    <View style={[pal.view, styles.card, pal.border]}>
+      <View style={styles.statusLineTop}>
+        <Text style={[pal.text, styles.needsRatingText]}>
+          <Trans>• Needs more ratings</Trans>
         </Text>
         <TimeElapsed timestamp={note.createdAt}>
           {({timeElapsed}) => (
@@ -164,56 +170,73 @@ export function NoteCard({note}: {note: CommunityNote}) {
             </Text>
           )}
         </TimeElapsed>
+        <Text style={pal.textLight}>·</Text>
         <Link to="#" label={_(msg`View Details`)}>
           <Text style={pal.link}>
             <Trans>View details</Trans>
           </Text>
         </Link>
-        <View
-          style={{flex: 1, flexDirection: 'row', justifyContent: 'flex-end'}}>
-          <EyeSlashIcon size="sm" style={pal.textLight} />
-          <Text style={pal.textLight}>
-            <Trans>Not shown on Bluesky</Trans>
-          </Text>
+      </View>
+      <View style={styles.statusLineBottom}>
+        <EyeSlashIcon size="sm" style={pal.textLight} />
+        <Text style={pal.textLight}>
+          <Trans>Not shown on Bluesky</Trans>
+        </Text>
+      </View>
+
+      <RichText value={richText} style={[pal.text, {paddingTop: 4}]} />
+
+      <View style={styles.actionsBox}>
+        <View style={styles.actions}>
+          <Text style={styles.question}>Is this note helpful?</Text>
+          <Button
+            variant="ghost"
+            label={_(msg`Rate as helpful`)}
+            onPress={() => handleSelectVote('helpful')}
+            style={[styles.button, voted === 'helpful' && styles.selected]}>
+            <ButtonText
+              style={
+                voted === 'helpful'
+                  ? styles.selectedButtonText
+                  : styles.unselectedButtonText
+              }>
+              {_(msg`Yes`)}
+            </ButtonText>
+          </Button>
+          <Button
+            variant="ghost"
+            label={_(msg`Rate as somewhat helpful`)}
+            onPress={() => handleSelectVote('somewhat_helpful')}
+            style={[
+              styles.button,
+              voted === 'somewhat_helpful' && styles.selected,
+            ]}>
+            <ButtonText
+              style={
+                voted === 'somewhat_helpful'
+                  ? styles.selectedButtonText
+                  : styles.unselectedButtonText
+              }>
+              {_(msg`Somewhat`)}
+            </ButtonText>
+          </Button>
+          <Button
+            variant="ghost"
+            label={_(msg`Rate as not helpful`)}
+            onPress={() => handleSelectVote('not_helpful')}
+            style={[styles.button, voted === 'not_helpful' && styles.selected]}>
+            <ButtonText
+              style={
+                voted === 'not_helpful'
+                  ? styles.selectedButtonText
+                  : styles.unselectedButtonText
+              }>
+              {_(msg`No`)}
+            </ButtonText>
+          </Button>
         </View>
+        {voted && renderReasons()}
       </View>
-
-      <RichText value={richText} style={[pal.text]} />
-
-      <View style={styles.actions}>
-        <Text style={[pal.text, styles.question]}>Is this note helpful?</Text>
-        <Button
-          variant="ghost"
-          label={_(msg`Rate as helpful`)}
-          onPress={() => handleSelectVote('helpful')}
-          style={[styles.button, voted === 'helpful' && styles.selected]}>
-          <ButtonText style={voted === 'helpful' && {color: 'white'}}>
-            {_(msg`Yes`)}
-          </ButtonText>
-        </Button>
-        <Button
-          variant="ghost"
-          label={_(msg`Rate as somewhat helpful`)}
-          onPress={() => handleSelectVote('somewhat_helpful')}
-          style={[
-            styles.button,
-            voted === 'somewhat_helpful' && styles.selected,
-          ]}>
-          <ButtonText style={voted === 'somewhat_helpful' && {color: 'white'}}>
-            {_(msg`Somewhat`)}
-          </ButtonText>
-        </Button>
-        <Button
-          variant="ghost"
-          label={_(msg`Rate as not helpful`)}
-          onPress={() => handleSelectVote('not_helpful')}
-          style={[styles.button, voted === 'not_helpful' && styles.selected]}>
-          <ButtonText style={voted === 'not_helpful' && {color: 'white'}}>
-            {_(msg`No`)}
-          </ButtonText>
-        </Button>
-      </View>
-      {voted && renderReasons()}
     </View>
   )
 }
@@ -222,7 +245,6 @@ const styles = StyleSheet.create({
   card: {
     padding: 10,
     borderTopWidth: 1,
-    borderColor: 'gray',
   },
   text: {
     marginBottom: 10,
@@ -230,14 +252,16 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingBottom: 10,
   },
   question: {
     marginRight: 'auto',
+    color: 'rgb(15, 20, 25)',
+    fontSize: 15,
+    fontWeight: 'bold',
   },
   button: {
     borderWidth: 1,
-    borderColor: 'gray',
+    borderColor: '#e0e0e0',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -247,12 +271,63 @@ const styles = StyleSheet.create({
     backgroundColor: '#0085ff',
     borderColor: '#0085ff',
   },
+  selectedButtonText: {
+    color: 'white',
+  },
+  unselectedButtonText: {
+    color: '#0085ff',
+  },
   reasonsContainer: {
     marginTop: 10,
   },
-  statusLine: {
+  statusLineTop: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
+  },
+  needsRatingText: {
+    fontWeight: 'bold',
+    color: 'rgb(15, 20, 25)',
+  },
+  statusLineBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingTop: 4,
     paddingBottom: 4,
+  },
+  actionsBox: {
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    borderRadius: 8,
+  },
+  reasonsGroup: {
+    paddingTop: 12,
+  },
+  reasonsGroupTitle: {
+    color: 'rgb(15, 20, 25)',
+    fontSize: 15,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  reasonItem: {
+    paddingVertical: 8,
+    justifyContent: 'space-between',
+  },
+  submitButtonContainer: {
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitButton: {
+    backgroundColor: '#0085ff',
+    borderColor: '#0085ff',
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  submitButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 })

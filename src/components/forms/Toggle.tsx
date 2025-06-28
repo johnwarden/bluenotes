@@ -1,5 +1,5 @@
 import React from 'react'
-import {Pressable, View, ViewStyle} from 'react-native'
+import {Pressable, View, type ViewStyle} from 'react-native'
 import Animated, {LinearTransition} from 'react-native-reanimated'
 
 import {HITSLOP_10} from '#/lib/constants'
@@ -8,9 +8,9 @@ import {
   atoms as a,
   flatten,
   native,
-  TextStyleProp,
+  type TextStyleProp,
   useTheme,
-  ViewStyleProp,
+  type ViewStyleProp,
 } from '#/alf'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {CheckThick_Stroke2_Corner0_Rounded as Checkmark} from '#/components/icons/Check'
@@ -67,6 +67,7 @@ export type ItemProps = ViewStyleProp & {
   disabled?: boolean
   onChange?: (selected: boolean) => void
   isInvalid?: boolean
+  reverse?: boolean
   children: ((props: ItemState) => React.ReactNode) | React.ReactNode
 }
 
@@ -159,6 +160,7 @@ export function Item({
   style,
   type = 'checkbox',
   label,
+  reverse,
   ...rest
 }: ItemProps) {
   const {
@@ -230,7 +232,11 @@ export function Item({
         onFocus={onFocus}
         onBlur={onBlur}
         style={[a.flex_row, a.align_center, a.gap_sm, flatten(style)]}>
-        {typeof children === 'function' ? children(state) : children}
+        {typeof children === 'function'
+          ? children(state)
+          : reverse
+            ? React.Children.toArray(children).reverse()
+            : children}
       </Pressable>
     </ItemContext.Provider>
   )
@@ -333,31 +339,38 @@ export function createSharedToggleStyles({
 
 export function Checkbox() {
   const t = useTheme()
-  const {selected, hovered, focused, disabled, isInvalid} = useItemContext()
-  const {baseStyles, baseHoverStyles} = createSharedToggleStyles({
-    theme: t,
-    hovered,
-    focused,
-    selected,
-    disabled,
-    isInvalid,
-  })
+  const {selected, disabled} = useItemContext()
+
+  const styles: ViewStyle[] = [
+    a.justify_center,
+    a.align_center,
+    {
+      width: 20,
+      height: 20,
+      borderRadius: 4,
+      borderWidth: 2,
+    },
+  ]
+
+  if (disabled) {
+    styles.push({
+      backgroundColor: t.palette.contrast_100,
+      borderColor: t.palette.contrast_400,
+    })
+  } else if (selected) {
+    styles.push({
+      backgroundColor: t.palette.primary_500,
+      borderColor: t.palette.primary_500,
+    })
+  } else {
+    styles.push({
+      borderColor: 'rgb(83, 100, 113)',
+    })
+  }
+
   return (
-    <View
-      style={[
-        a.justify_center,
-        a.align_center,
-        a.rounded_xs,
-        t.atoms.border_contrast_high,
-        {
-          borderWidth: 1,
-          height: 24,
-          width: 24,
-        },
-        baseStyles,
-        hovered ? baseHoverStyles : {},
-      ]}>
-      {selected ? <Checkmark size="xs" fill={t.palette.primary_500} /> : null}
+    <View style={styles}>
+      {selected ? <Checkmark size="sm" fill="#fff" /> : null}
     </View>
   )
 }
