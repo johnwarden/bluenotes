@@ -11,6 +11,7 @@ import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import {Button, ButtonText} from '#/components/Button'
 import * as Toggle from '#/components/forms/Toggle'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
+import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
 import {Link} from '#/components/Link'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
@@ -146,17 +147,6 @@ export function NoteCard({note}: {note: CommunityNote}) {
     return ''
   }
 
-  if (finalVoted) {
-    return (
-      <View style={[pal.view, styles.card, pal.border]}>
-        <RichText value={richText} style={[pal.text]} />
-        <Text style={pal.textLight}>
-          <Trans>You rated this note as {getVoteText(finalVoted)}.</Trans>
-        </Text>
-      </View>
-    )
-  }
-
   return (
     <View style={[pal.view, styles.card, pal.border]}>
       <View style={styles.statusLineTop}>
@@ -186,57 +176,74 @@ export function NoteCard({note}: {note: CommunityNote}) {
 
       <RichText value={richText} style={[pal.text, {paddingTop: 4}]} />
 
-      <View style={styles.actionsBox}>
-        <View style={styles.actions}>
-          <Text style={styles.question}>Is this note helpful?</Text>
-          <Button
-            variant="ghost"
-            label={_(msg`Rate as helpful`)}
-            onPress={() => handleSelectVote('helpful')}
-            style={[styles.button, voted === 'helpful' && styles.selected]}>
-            <ButtonText
-              style={
-                voted === 'helpful'
-                  ? styles.selectedButtonText
-                  : styles.unselectedButtonText
-              }>
-              {_(msg`Yes`)}
-            </ButtonText>
-          </Button>
-          <Button
-            variant="ghost"
-            label={_(msg`Rate as somewhat helpful`)}
-            onPress={() => handleSelectVote('somewhat_helpful')}
-            style={[
-              styles.button,
-              voted === 'somewhat_helpful' && styles.selected,
-            ]}>
-            <ButtonText
-              style={
-                voted === 'somewhat_helpful'
-                  ? styles.selectedButtonText
-                  : styles.unselectedButtonText
-              }>
-              {_(msg`Somewhat`)}
-            </ButtonText>
-          </Button>
-          <Button
-            variant="ghost"
-            label={_(msg`Rate as not helpful`)}
-            onPress={() => handleSelectVote('not_helpful')}
-            style={[styles.button, voted === 'not_helpful' && styles.selected]}>
-            <ButtonText
-              style={
-                voted === 'not_helpful'
-                  ? styles.selectedButtonText
-                  : styles.unselectedButtonText
-              }>
-              {_(msg`No`)}
-            </ButtonText>
-          </Button>
+      {finalVoted ? (
+        <View style={styles.votedContainer}>
+          <RatedCheckmark
+            width={16.2}
+            height={16.2}
+            style={styles.votedCheckmark}
+          />
+          <Text style={styles.votedText}>
+            <Trans>You rated this note as</Trans>{' '}
+            <Text style={styles.votedTextBold}>{getVoteText(finalVoted)}</Text>.
+          </Text>
         </View>
-        {voted && renderReasons()}
-      </View>
+      ) : (
+        <View style={styles.actionsBox}>
+          <View style={styles.actions}>
+            <Text style={styles.question}>Is this note helpful?</Text>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as helpful`)}
+              onPress={() => handleSelectVote('helpful')}
+              style={[styles.button, voted === 'helpful' && styles.selected]}>
+              <ButtonText
+                style={
+                  voted === 'helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`Yes`)}
+              </ButtonText>
+            </Button>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as somewhat helpful`)}
+              onPress={() => handleSelectVote('somewhat_helpful')}
+              style={[
+                styles.button,
+                voted === 'somewhat_helpful' && styles.selected,
+              ]}>
+              <ButtonText
+                style={
+                  voted === 'somewhat_helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`Somewhat`)}
+              </ButtonText>
+            </Button>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as not helpful`)}
+              onPress={() => handleSelectVote('not_helpful')}
+              style={[
+                styles.button,
+                voted === 'not_helpful' && styles.selected,
+              ]}>
+              <ButtonText
+                style={
+                  voted === 'not_helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`No`)}
+              </ButtonText>
+            </Button>
+          </View>
+          {voted && renderReasons()}
+        </View>
+      )}
     </View>
   )
 }
@@ -328,6 +335,26 @@ const styles = StyleSheet.create({
   },
   submitButtonText: {
     color: 'white',
+    fontWeight: 'bold',
+  },
+  votedContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e6f5ee',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  votedCheckmark: {
+    marginRight: 12,
+  },
+  votedText: {
+    flex: 1,
+    color: 'rgb(15, 20, 25)',
+    fontSize: 15,
+  },
+  votedTextBold: {
     fontWeight: 'bold',
   },
 })
