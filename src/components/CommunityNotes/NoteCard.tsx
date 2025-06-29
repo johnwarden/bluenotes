@@ -11,8 +11,12 @@ import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import {Button, ButtonText} from '#/components/Button'
 import * as Toggle from '#/components/forms/Toggle'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
+import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
+import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {Link} from '#/components/Link'
+import * as Menu from '#/components/Menu'
+import {MenuTriggerButton} from '#/components/Menu/MenuTriggerButton'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 
@@ -177,17 +181,50 @@ export function NoteCard({note}: {note: CommunityNote}) {
       <RichText value={richText} style={[pal.text, {paddingTop: 4}]} />
 
       {finalVoted ? (
-        <View style={styles.votedContainer}>
-          <RatedCheckmark
-            width={16.2}
-            height={16.2}
-            style={styles.votedCheckmark}
-          />
-          <Text style={styles.votedText}>
-            <Trans>You rated this note as</Trans>{' '}
-            <Text style={styles.votedTextBold}>{getVoteText(finalVoted)}</Text>.
-          </Text>
-        </View>
+        <Menu.Root>
+          <View style={styles.votedContainer}>
+            <RatedCheckmark
+              width={16.2}
+              height={16.2}
+              style={styles.votedCheckmark}
+            />
+            <Text style={styles.votedText}>
+              <Trans>You rated this note as</Trans>{' '}
+              <Text style={styles.votedTextBold}>
+                {getVoteText(finalVoted)}
+              </Text>
+              .
+            </Text>
+            <MenuTriggerButton label={_(msg`Rated note options menu`)} />
+          </View>
+          <Menu.Outer>
+            <Menu.Group>
+              <Menu.Item
+                key="delete"
+                label={_(msg`Delete rating`)}
+                onPress={() => {
+                  setVoted(null)
+                  setFinalVoted(null)
+                }}
+                style={styles.menuItem}>
+                <TrashIcon size="sm" style={styles.menuItemIconDelete} />
+                <Menu.ItemText style={styles.menuItemTitleDelete}>
+                  <Trans>Delete</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+              <Menu.Item
+                key="edit"
+                label={_(msg`Edit rating`)}
+                onPress={() => setFinalVoted(null)}
+                style={styles.menuItem}>
+                <PencilIcon size="sm" style={styles.menuItemIcon} />
+                <Menu.ItemText style={styles.menuItemTitle}>
+                  <Trans>Edit</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+            </Menu.Group>
+          </Menu.Outer>
+        </Menu.Root>
       ) : (
         <View style={styles.actionsBox}>
           <View style={styles.actions}>
@@ -356,5 +393,31 @@ const styles = StyleSheet.create({
   },
   votedTextBold: {
     fontWeight: 'bold',
+  },
+  menuItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  menuItemIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+    color: '#000000',
+  },
+  menuItemIconDelete: {
+    width: 20,
+    height: 20,
+    marginRight: 12,
+    color: '#cc0000',
+  },
+  menuItemTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
+  menuItemTitleDelete: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#cc0000',
   },
 })
