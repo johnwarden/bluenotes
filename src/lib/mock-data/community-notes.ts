@@ -5,6 +5,13 @@ export interface CommunityNoteSubjectRef {
   cid?: string
 }
 
+export interface NoteAuthor {
+  pseudonym: string
+  writingImpact: number
+  ratingImpact: number
+  profileUrl: string
+}
+
 export interface CommunityNote {
   $type: 'org.opencommunitynotes.label'
   subject: CommunityNoteSubjectRef
@@ -12,6 +19,10 @@ export interface CommunityNote {
   text: string
   contributorId: string
   createdAt: string
+  noteId: string
+  status: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
+  sourceUrl: string
+  author: NoteAuthor
 }
 
 export const mockNote: CommunityNote = {
@@ -24,6 +35,15 @@ export const mockNote: CommunityNote = {
   text: 'This post contains an incorrect statistic. The actual number is 42%, not 52%. Source: [https://example.com/stats](https://example.com/stats)',
   contributorId: 'anon:ab34fec9de56',
   createdAt: new Date().toISOString(),
+  noteId: '1939063431312875687',
+  status: 'needs_more_ratings',
+  sourceUrl: 'https://en.wikipedia.org/wiki/Jeff_Bezos',
+  author: {
+    pseudonym: 'Respectful Cave Falcon',
+    writingImpact: 3,
+    ratingImpact: 98,
+    profileUrl: '#',
+  },
 }
 
 export async function fetchNotes(_postId: string): Promise<CommunityNote[]> {

@@ -1,5 +1,5 @@
 import {useMemo, useState} from 'react'
-import {StyleSheet, View} from 'react-native'
+import {Pressable, StyleSheet, View} from 'react-native'
 import {RichText as RichTextAPI} from '@atproto/api'
 import {type MessageDescriptor} from '@lingui/core'
 import {msg, Trans} from '@lingui/macro'
@@ -9,12 +9,13 @@ import {usePalette} from '#/lib/hooks/usePalette'
 import {type CommunityNote, submitVote} from '#/lib/mock-data/community-notes'
 import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import {Button, ButtonText} from '#/components/Button'
+import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
+import * as Dialog from '#/components/Dialog'
 import * as Toggle from '#/components/forms/Toggle'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
-import {Link} from '#/components/Link'
 import * as Menu from '#/components/Menu'
 import {MenuTriggerButton} from '#/components/Menu/MenuTriggerButton'
 import {RichText} from '#/components/RichText'
@@ -59,6 +60,7 @@ export function NoteCard({note}: {note: CommunityNote}) {
   const [voted, setVoted] = useState<Vote | null>(null)
   const [finalVoted, setFinalVoted] = useState<Vote | null>(null)
   const [reasons, setReasons] = useState<string[]>([])
+  const noteDetailsControl = Dialog.useDialogControl()
 
   const richText = useMemo(
     () =>
@@ -165,11 +167,14 @@ export function NoteCard({note}: {note: CommunityNote}) {
           )}
         </TimeElapsed>
         <Text style={pal.textLight}>·</Text>
-        <Link to="#" label={_(msg`View Details`)}>
+        <Pressable
+          onPress={() => noteDetailsControl.open()}
+          accessibilityLabel={_(msg`View Details`)}
+          accessibilityHint="">
           <Text style={pal.link}>
             <Trans>View details</Trans>
           </Text>
-        </Link>
+        </Pressable>
       </View>
       <View style={styles.statusLineBottom}>
         <EyeSlashIcon size="sm" style={pal.textLight} />
@@ -281,14 +286,15 @@ export function NoteCard({note}: {note: CommunityNote}) {
           {voted && renderReasons()}
         </View>
       )}
+      <NoteDetailsDialog control={noteDetailsControl} note={note} />
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   card: {
-    padding: 10,
-    borderTopWidth: 1,
+    padding: 0,
+    margin: 12,
   },
   text: {
     marginBottom: 10,
