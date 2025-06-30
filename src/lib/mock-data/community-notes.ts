@@ -21,7 +21,7 @@ export interface CommunityNote {
   createdAt: string
   noteId: string
   status: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
-  sourceUrl: string
+  uri: string
   author: NoteAuthor
 }
 
@@ -37,7 +37,7 @@ export const mockNote: CommunityNote = {
   createdAt: new Date().toISOString(),
   noteId: '1939063431312875687',
   status: 'needs_more_ratings',
-  sourceUrl: 'https://en.wikipedia.org/wiki/Jeff_Bezos',
+  uri: 'https://en.wikipedia.org/wiki/Jeff_Bezos',
   author: {
     pseudonym: 'Respectful Cave Falcon',
     writingImpact: 3,
