@@ -229,6 +229,7 @@
     "@babel/preset-env": "^7.26.0",
     "@babel/runtime": "^7.26.0",
     "@expo/config-plugins": "~10.0.2",
+    "@faker-js/faker": "^9.8.0",
     "@lingui/cli": "^4.14.1",
     "@lingui/macro": "^4.14.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
