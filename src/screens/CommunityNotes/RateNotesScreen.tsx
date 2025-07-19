@@ -6,8 +6,9 @@ import {type RouteProp, useRoute} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
-import {type CommunityNote, fetchNotes} from '#/lib/mock-data/community-notes'
+import {fetchNotes} from '#/lib/mock-data/community-notes'
 import {s} from '#/lib/styles'
+import {type CommunityNoteView} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {Post} from '#/view/com/post/Post'
 import {NoteCard} from '#/components/CommunityNotes/NoteCard'
@@ -36,7 +37,7 @@ export function RateNotesScreen() {
     error: postError,
   } = usePostQuery(uri)
 
-  const [notes, setNotes] = useState<CommunityNote[]>([])
+  const [notes, setNotes] = useState<CommunityNoteView[]>([])
   const [isLoadingNotes, setIsLoadingNotes] = useState(true)
   const [notesError, setNotesError] = useState<string | null>(null)
 
@@ -57,7 +58,9 @@ export function RateNotesScreen() {
     loadNotes()
   }, [uri])
 
-  const renderItem = ({item}: {item: CommunityNote}) => <NoteCard note={item} />
+  const renderItem = ({item}: {item: CommunityNoteView}) => (
+    <NoteCard note={item} />
+  )
 
   return (
     <Layout.Screen>
@@ -77,7 +80,7 @@ export function RateNotesScreen() {
           <FlatList
             data={notes}
             renderItem={renderItem}
-            keyExtractor={item => item.contributorId}
+            keyExtractor={item => item.author.aid}
             ListHeaderComponent={
               post ? (
                 <View>

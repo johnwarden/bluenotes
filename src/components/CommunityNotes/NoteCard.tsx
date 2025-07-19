@@ -1,13 +1,20 @@
-import {useMemo, useState} from 'react'
-import {Pressable, StyleSheet, View} from 'react-native'
+import {useEffect, useMemo, useState} from 'react'
+import {ActivityIndicator, Pressable, StyleSheet, View} from 'react-native'
 import {RichText as RichTextAPI} from '@atproto/api'
 import {type MessageDescriptor} from '@lingui/core'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {usePalette} from '#/lib/hooks/usePalette'
-import {type CommunityNote, submitVote} from '#/lib/mock-data/community-notes'
+import {
+  type CommunityNoteView,
+  useCreateNoteRatingMutation,
+  useDeleteNoteRatingMutation,
+  useUpdateNoteRatingMutation,
+} from '#/state/queries/community-notes'
+import {useRequireAuth} from '#/state/session'
 import {TimeElapsed} from '#/view/com/util/TimeElapsed'
+import * as Toast from '#/view/com/util/Toast'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
@@ -54,13 +61,34 @@ const NOT_HELPFUL_REASONS = [
 
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
-export function NoteCard({note}: {note: CommunityNote}) {
+export function NoteCard({note}: {note: CommunityNoteView}) {
   const pal = usePalette('default')
   const {_} = useLingui()
+  const requireAuth = useRequireAuth()
   const [voted, setVoted] = useState<Vote | null>(null)
   const [finalVoted, setFinalVoted] = useState<Vote | null>(null)
   const [reasons, setReasons] = useState<string[]>([])
+  const [ratingUri, setRatingUri] = useState<string | undefined>(undefined)
   const noteDetailsControl = Dialog.useDialogControl()
+
+  const {
+    mutate: createRating,
+    isPending: isCreating,
+    error: createError,
+  } = useCreateNoteRatingMutation()
+  const {
+    mutate: updateRating,
+    isPending: isUpdating,
+    error: updateError,
+  } = useUpdateNoteRatingMutation()
+  const {
+    mutate: deleteRating,
+    isPending: isDeleting,
+    error: deleteError,
+  } = useDeleteNoteRatingMutation()
+
+  const isProcessing = isCreating || isUpdating || isDeleting
+  const error = createError || updateError || deleteError
 
   const richText = useMemo(
     () =>
@@ -70,15 +98,60 @@ export function NoteCard({note}: {note: CommunityNote}) {
     [note.text],
   )
 
+  useEffect(() => {
+    if (error) {
+      Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+    }
+  }, [error, _])
+
   const handleSelectVote = (vote: Vote) => {
     setVoted(vote)
   }
 
-  const handleSubmit = async () => {
-    if (!voted) return
-    // using contributorId as a note ID for now
-    await submitVote(note.contributorId, voted, reasons)
-    setFinalVoted(voted)
+  const handleSubmit = () => {
+    requireAuth(async () => {
+      if (!voted) return
+
+      const mutationNote = {uri: note.uri, cid: note.subject.cid}
+
+      if (ratingUri) {
+        // This is an update
+        updateRating(
+          {ratingUri, note: mutationNote, value: voted, reasons},
+          {
+            onSuccess: () => {
+              setFinalVoted(voted)
+            },
+          },
+        )
+      } else {
+        // This is a new rating
+        createRating(
+          {note: mutationNote, value: voted, reasons},
+          {
+            onSuccess: data => {
+              setRatingUri(data.uri)
+              setFinalVoted(voted)
+            },
+          },
+        )
+      }
+    })
+  }
+
+  const handleDelete = () => {
+    if (!ratingUri) return
+    deleteRating(
+      {ratingUri, noteUri: note.uri},
+      {
+        onSuccess: () => {
+          setVoted(null)
+          setFinalVoted(null)
+          setRatingUri(undefined)
+          setReasons([])
+        },
+      },
+    )
   }
 
   const renderReasons = () => {
@@ -107,10 +180,15 @@ export function NoteCard({note}: {note: CommunityNote}) {
         label={_(msg`Submit`)}
         onPress={handleSubmit}
         variant="ghost"
+        disabled={isProcessing}
         style={styles.submitButton}>
-        <ButtonText style={styles.submitButtonText}>
-          <Trans>Submit</Trans>
-        </ButtonText>
+        {isProcessing ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <ButtonText style={styles.submitButtonText}>
+            <Trans>Submit</Trans>
+          </ButtonText>
+        )}
       </Button>
     </View>
   )
@@ -207,10 +285,8 @@ export function NoteCard({note}: {note: CommunityNote}) {
               <Menu.Item
                 key="delete"
                 label={_(msg`Delete rating`)}
-                onPress={() => {
-                  setVoted(null)
-                  setFinalVoted(null)
-                }}
+                onPress={handleDelete}
+                disabled={isProcessing}
                 style={styles.menuItem}>
                 <TrashIcon size="sm" style={styles.menuItemIconDelete} />
                 <Menu.ItemText style={styles.menuItemTitleDelete}>
@@ -221,6 +297,7 @@ export function NoteCard({note}: {note: CommunityNote}) {
                 key="edit"
                 label={_(msg`Edit rating`)}
                 onPress={() => setFinalVoted(null)}
+                disabled={isProcessing}
                 style={styles.menuItem}>
                 <PencilIcon size="sm" style={styles.menuItemIcon} />
                 <Menu.ItemText style={styles.menuItemTitle}>

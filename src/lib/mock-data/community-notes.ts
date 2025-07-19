@@ -6,6 +6,7 @@ export interface CommunityNoteSubjectRef {
 }
 
 export interface NoteAuthor {
+  aid: string
   pseudonym: string
   writingImpact: number
   ratingImpact: number
@@ -17,7 +18,6 @@ export interface CommunityNote {
   subject: CommunityNoteSubjectRef
   label: string
   text: string
-  contributorId: string
   createdAt: string
   noteId: string
   status: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
@@ -33,12 +33,12 @@ export const mockNote: CommunityNote = {
   },
   label: 'context.factual_error',
   text: 'This post contains an incorrect statistic. The actual number is 42%, not 52%. Source: [https://example.com/stats](https://example.com/stats)',
-  contributorId: 'anon:ab34fec9de56',
   createdAt: new Date().toISOString(),
   noteId: '1939063431312875687',
   status: 'needs_more_ratings',
   uri: 'https://en.wikipedia.org/wiki/Jeff_Bezos',
   author: {
+    aid: 'anon:ab34fec9de56',
     pseudonym: 'Respectful Cave Falcon',
     writingImpact: 3,
     ratingImpact: 98,
@@ -54,10 +54,13 @@ export async function fetchNotes(_postId: string): Promise<CommunityNote[]> {
       resolve(
         Array.from({length: 5}, () => ({
           ...mockNote,
+          author: {
+            ...mockNote.author,
+            aid: `anon:${faker.string.hexadecimal({
+              length: 12,
+            })}`,
+          },
           text: faker.lorem.paragraph(),
-          contributorId: `anon:${faker.string.hexadecimal({
-            length: 12,
-          })}`,
           createdAt: faker.date.recent().toISOString(),
         })),
       )
