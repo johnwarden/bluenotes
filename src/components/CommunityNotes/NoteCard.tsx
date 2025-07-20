@@ -132,7 +132,7 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
           {note: mutationNote, value: voted, reasons},
           {
             onSuccess: data => {
-              setRatingUri(data.uri)
+              setRatingUri(data.data.uri)
               setFinalVoted(voted)
             },
           },
