@@ -23,6 +23,7 @@ export type CommonNavigatorParams = {
   ProfileList: {name: string; rkey: string}
   PostThread: {name: string; rkey: string}
   PostLikedBy: {name: string; rkey: string}
+  CommunityNotesRating: {name: string; rkey: string}
   PostRepostedBy: {name: string; rkey: string}
   PostQuotes: {name: string; rkey: string}
   ProfileFeed: {
@@ -125,18 +126,7 @@ export type FlatNavigatorParams = CommonNavigatorParams & {
   Messages: {pushToConversation?: string; animation?: 'push' | 'pop'}
 }
 
-export type AllNavigatorParams = CommonNavigatorParams & {
-  HomeTab: undefined
-  Home: undefined
-  SearchTab: undefined
-  Search: {q?: string}
-  Feeds: undefined
-  NotificationsTab: undefined
-  Notifications: undefined
-  MyProfileTab: undefined
-  MessagesTab: undefined
-  Messages: {animation?: 'push' | 'pop'}
-}
+export type AllNavigatorParams = BottomTabNavigatorParams & FlatNavigatorParams
 
 // NOTE
 // this isn't strictly correct but it should be close enough
