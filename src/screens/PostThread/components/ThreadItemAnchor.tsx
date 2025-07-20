@@ -42,6 +42,7 @@ import {
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
+import {RateCommunityNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateCommunityNotesPrompt'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {InlineLinkText, Link} from '#/components/Link'
@@ -411,6 +412,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               </View>
             )}
           </ContentHider>
+          <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}
             isThreadAuthor={isThreadAuthor}
