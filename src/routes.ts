@@ -31,6 +31,7 @@ export const router = new Router<AllNavigatableRoutes>({
   ProfileList: '/profile/:name/lists/:rkey',
   PostThread: '/profile/:name/post/:rkey',
   PostLikedBy: '/profile/:name/post/:rkey/liked-by',
+  CommunityNotesRating: '/profile/:name/post/:rkey/community-notes',
   PostRepostedBy: '/profile/:name/post/:rkey/reposted-by',
   PostQuotes: '/profile/:name/post/:rkey/quotes',
   ProfileFeed: '/profile/:name/feed/:rkey',
