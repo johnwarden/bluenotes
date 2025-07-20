@@ -218,7 +218,7 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
             <Toggle.LabelText style={{fontSize: 15, fontWeight: 'normal'}}>
               {_(reason.label)}
             </Toggle.LabelText>
-            <View style={{transform: [{scale: 0.83}]}}>
+            <View style={styles.checkboxWrapper}>
               <Toggle.Checkbox />
             </View>
           </Toggle.Item>
@@ -369,6 +369,14 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
       fontWeight: 'bold',
       color: t.palette.negative_500,
     },
+    // Mobile-optimized checkbox wrapper
+    checkboxWrapper: {
+      transform: [{scale: 0.83}],
+      minWidth: 24, // Ensure minimum touch target of ~20pt after scale
+      minHeight: 24,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
   })
 
   return (
@@ -406,11 +414,7 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
       {finalVoted ? (
         <Menu.Root>
           <View style={styles.votedContainer}>
-            <RatedCheckmark
-              width={16.2}
-              height={16.2}
-              style={styles.votedCheckmark}
-            />
+            <RatedCheckmark size="sm" style={styles.votedCheckmark} />
             <Text style={styles.votedText}>
               <Trans>You rated this note as</Trans>{' '}
               <Text style={styles.votedTextBold}>
@@ -507,4 +511,3 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
     </View>
   )
 }
-
