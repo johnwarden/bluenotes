@@ -1,0 +1,510 @@
+import {useEffect, useMemo, useState} from 'react'
+import {ActivityIndicator, Pressable, StyleSheet, View} from 'react-native'
+import {RichText as RichTextAPI} from '@atproto/api'
+import {type MessageDescriptor} from '@lingui/core'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
+
+import {usePalette} from '#/lib/hooks/usePalette'
+import {
+  type CommunityNoteView,
+  useCreateNoteRatingMutation,
+  useDeleteNoteRatingMutation,
+  useUpdateNoteRatingMutation,
+} from '#/state/queries/community-notes'
+import {useRequireAuth} from '#/state/session'
+import {TimeElapsed} from '#/view/com/util/TimeElapsed'
+import * as Toast from '#/view/com/util/Toast'
+import {useTheme} from '#/alf'
+import {Button, ButtonText} from '#/components/Button'
+import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
+import * as Dialog from '#/components/Dialog'
+import * as Toggle from '#/components/forms/Toggle'
+import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
+import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
+import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
+import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
+import * as Menu from '#/components/Menu'
+import {MenuTriggerButton} from '#/components/Menu/MenuTriggerButton'
+import {RichText} from '#/components/RichText'
+import {Text} from '#/components/Typography'
+
+const HELPFUL_REASONS = [
+  {key: 'cites_good_sources', label: msg`Cites high-quality sources`},
+  {key: 'is_clear', label: msg`Easy to understand`},
+  {key: 'addresses_claim', label: msg`Directly addresses the post's claim`},
+  {key: 'provides_important_context', label: msg`Provides important context`},
+  {key: 'is_unbiased', label: msg`Neutral or unbiased language`},
+  {key: 'other', label: msg`Other`},
+]
+
+const NOT_HELPFUL_REASONS = [
+  {
+    key: 'sources_missing_or_unreliable',
+    label: msg`Sources not included or unreliable`,
+  },
+  {key: 'sources_dont_support_note', label: msg`Sources do not support note`},
+  {key: 'is_incorrect', label: msg`Incorrect information`},
+  {key: 'is_opinion_or_speculation', label: msg`Opinion or speculation`},
+  {key: 'is_hard_to_understand', label: msg`Typos or unclear language`},
+  {
+    key: 'is_off_topic_or_irrelevant',
+    label: msg`Misses key points or irrelevant`,
+  },
+  {
+    key: 'is_argumentative_or_biased',
+    label: msg`Argumentative or biased language`,
+  },
+  {key: 'note_not_needed', label: msg`Note not needed on this post`},
+  {key: 'is_spam_harassment_or_abuse', label: msg`Spam, harassment, or abuse`},
+  {key: 'other', label: msg`Other`},
+]
+
+type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
+
+export function NoteCard({note}: {note: CommunityNoteView}) {
+  const pal = usePalette('default')
+  const t = useTheme()
+  const {_} = useLingui()
+  const requireAuth = useRequireAuth()
+  const [voted, setVoted] = useState<Vote | null>(null)
+  const [finalVoted, setFinalVoted] = useState<Vote | null>(null)
+  const [reasons, setReasons] = useState<string[]>([])
+  const [ratingUri, setRatingUri] = useState<string | undefined>(undefined)
+  const noteDetailsControl = Dialog.useDialogControl()
+
+  const {
+    mutate: createRating,
+    isPending: isCreating,
+    error: createError,
+  } = useCreateNoteRatingMutation()
+  const {
+    mutate: updateRating,
+    isPending: isUpdating,
+    error: updateError,
+  } = useUpdateNoteRatingMutation()
+  const {
+    mutate: deleteRating,
+    isPending: isDeleting,
+    error: deleteError,
+  } = useDeleteNoteRatingMutation()
+
+  const isProcessing = isCreating || isUpdating || isDeleting
+  const error = createError || updateError || deleteError
+
+  const richText = useMemo(
+    () =>
+      new RichTextAPI({
+        text: note.text,
+      }),
+    [note.text],
+  )
+
+  useEffect(() => {
+    if (error) {
+      Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+    }
+  }, [error, _])
+
+  const handleSelectVote = (vote: Vote) => {
+    setVoted(vote)
+  }
+
+  const handleSubmit = () => {
+    requireAuth(async () => {
+      if (!voted) return
+
+      const mutationNote = {uri: note.uri, cid: note.subject.cid}
+
+      if (ratingUri) {
+        // This is an update
+        updateRating(
+          {ratingUri, note: mutationNote, value: voted, reasons},
+          {
+            onSuccess: () => {
+              setFinalVoted(voted)
+            },
+          },
+        )
+      } else {
+        // This is a new rating
+        createRating(
+          {note: mutationNote, value: voted, reasons},
+          {
+            onSuccess: data => {
+              setRatingUri(data.uri)
+              setFinalVoted(voted)
+            },
+          },
+        )
+      }
+    })
+  }
+
+  const handleDelete = () => {
+    if (!ratingUri) return
+    deleteRating(
+      {ratingUri, noteUri: note.uri},
+      {
+        onSuccess: () => {
+          setVoted(null)
+          setFinalVoted(null)
+          setRatingUri(undefined)
+          setReasons([])
+        },
+      },
+    )
+  }
+
+  const renderReasons = () => {
+    return (
+      <View style={styles.reasonsContainer}>
+        {(voted === 'helpful' || voted === 'somewhat_helpful') && (
+          <ReasonsGroup
+            title={_(msg`What was helpful about it?`)}
+            reasons={HELPFUL_REASONS}
+          />
+        )}
+        {(voted === 'not_helpful' || voted === 'somewhat_helpful') && (
+          <ReasonsGroup
+            title={_(msg`What was unhelpful about it?`)}
+            reasons={NOT_HELPFUL_REASONS}
+          />
+        )}
+        <SubmitButton />
+      </View>
+    )
+  }
+
+  const SubmitButton = () => (
+    <View style={styles.submitButtonContainer}>
+      <Button
+        label={_(msg`Submit`)}
+        onPress={handleSubmit}
+        variant="ghost"
+        disabled={isProcessing}
+        style={styles.submitButton}>
+        {isProcessing ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <ButtonText style={styles.submitButtonText}>
+            <Trans>Submit</Trans>
+          </ButtonText>
+        )}
+      </Button>
+    </View>
+  )
+
+  const ReasonsGroup = ({
+    title,
+    reasons: reasonSet,
+  }: {
+    title: string
+    reasons: {key: string; label: MessageDescriptor}[]
+  }) => (
+    <View style={styles.reasonsGroup}>
+      <Text style={styles.reasonsGroupTitle}>{title}</Text>
+      <Toggle.Group
+        type="checkbox"
+        values={reasons}
+        onChange={setReasons}
+        label={title}>
+        {reasonSet.map(reason => (
+          <Toggle.Item
+            key={reason.key}
+            name={reason.key}
+            label={_(reason.label)}
+            style={styles.reasonItem}>
+            <Toggle.LabelText style={{fontSize: 15, fontWeight: 'normal'}}>
+              {_(reason.label)}
+            </Toggle.LabelText>
+            <View style={{transform: [{scale: 0.83}]}}>
+              <Toggle.Checkbox />
+            </View>
+          </Toggle.Item>
+        ))}
+      </Toggle.Group>
+    </View>
+  )
+
+  const getVoteText = (vote: Vote | null) => {
+    if (vote === 'helpful') return _(msg`Helpful`)
+    if (vote === 'somewhat_helpful') return _(msg`Somewhat Helpful`)
+    if (vote === 'not_helpful') return _(msg`Not Helpful`)
+    return ''
+  }
+
+  const styles = StyleSheet.create({
+    card: {
+      padding: 0,
+      margin: 12,
+    },
+    text: {
+      marginBottom: 10,
+    },
+    actions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    question: {
+      marginRight: 'auto',
+      color: t.palette.contrast_950,
+      fontSize: 15,
+      fontWeight: 'bold',
+    },
+    button: {
+      borderWidth: 1,
+      borderColor: t.palette.contrast_200,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 20,
+      marginLeft: 10,
+    },
+    selected: {
+      backgroundColor: t.palette.primary_500,
+      borderColor: t.palette.primary_500,
+    },
+    selectedButtonText: {
+      color: t.palette.white,
+    },
+    unselectedButtonText: {
+      color: t.palette.primary_500,
+    },
+    reasonsContainer: {
+      marginTop: 10,
+    },
+    statusLineTop: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    needsRatingText: {
+      fontWeight: 'bold',
+      color: t.palette.contrast_950,
+    },
+    statusLineBottom: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
+    actionsBox: {
+      backgroundColor: t.palette.contrast_25,
+      padding: 16,
+      borderRadius: 8,
+    },
+    reasonsGroup: {
+      paddingTop: 12,
+    },
+    reasonsGroupTitle: {
+      color: t.palette.contrast_950,
+      fontSize: 15,
+      fontWeight: 'bold',
+      marginBottom: 4,
+    },
+    reasonItem: {
+      paddingVertical: 8,
+      justifyContent: 'space-between',
+    },
+    submitButtonContainer: {
+      alignItems: 'center',
+      marginTop: 20,
+    },
+    submitButton: {
+      backgroundColor: t.palette.primary_500,
+      borderColor: t.palette.primary_500,
+      borderWidth: 1,
+      borderRadius: 20,
+      paddingVertical: 10,
+      paddingHorizontal: 20,
+    },
+    submitButtonText: {
+      color: t.palette.white,
+      fontWeight: 'bold',
+    },
+    votedContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: t.palette.positive_25,
+      borderRadius: 8,
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      marginTop: 10,
+    },
+    votedCheckmark: {
+      marginRight: 12,
+    },
+    votedText: {
+      flex: 1,
+      color: t.palette.contrast_950,
+      fontSize: 15,
+    },
+    votedTextBold: {
+      fontWeight: 'bold',
+    },
+    menuItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 12,
+    },
+    menuItemIcon: {
+      width: 20,
+      height: 20,
+      marginRight: 12,
+      color: t.palette.contrast_700,
+    },
+    menuItemIconDelete: {
+      width: 20,
+      height: 20,
+      marginRight: 12,
+      color: t.palette.negative_500,
+    },
+    menuItemTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: t.palette.contrast_700,
+    },
+    menuItemTitleDelete: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: t.palette.negative_500,
+    },
+  })
+
+  return (
+    <View style={[pal.view, styles.card, pal.border]}>
+      <View style={styles.statusLineTop}>
+        <Text style={[pal.text, styles.needsRatingText]}>
+          <Trans>• Needs more ratings</Trans>
+        </Text>
+        <TimeElapsed timestamp={note.createdAt}>
+          {({timeElapsed}) => (
+            <Text style={pal.textLight} title={timeElapsed}>
+              {timeElapsed}
+            </Text>
+          )}
+        </TimeElapsed>
+        <Text style={pal.textLight}>·</Text>
+        <Pressable
+          onPress={() => noteDetailsControl.open()}
+          accessibilityLabel={_(msg`View Details`)}
+          accessibilityHint="">
+          <Text style={pal.link}>
+            <Trans>View details</Trans>
+          </Text>
+        </Pressable>
+      </View>
+      <View style={styles.statusLineBottom}>
+        <EyeSlashIcon size="sm" style={pal.textLight} />
+        <Text style={pal.textLight}>
+          <Trans>Not shown on Bluesky</Trans>
+        </Text>
+      </View>
+
+      <RichText value={richText} style={[pal.text, {paddingTop: 4}]} />
+
+      {finalVoted ? (
+        <Menu.Root>
+          <View style={styles.votedContainer}>
+            <RatedCheckmark
+              width={16.2}
+              height={16.2}
+              style={styles.votedCheckmark}
+            />
+            <Text style={styles.votedText}>
+              <Trans>You rated this note as</Trans>{' '}
+              <Text style={styles.votedTextBold}>
+                {getVoteText(finalVoted)}
+              </Text>
+              .
+            </Text>
+            <MenuTriggerButton label={_(msg`Rated note options menu`)} />
+          </View>
+          <Menu.Outer>
+            <Menu.Group>
+              <Menu.Item
+                key="delete"
+                label={_(msg`Delete rating`)}
+                onPress={handleDelete}
+                disabled={isProcessing}
+                style={styles.menuItem}>
+                <TrashIcon size="sm" style={styles.menuItemIconDelete} />
+                <Menu.ItemText style={styles.menuItemTitleDelete}>
+                  <Trans>Delete</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+              <Menu.Item
+                key="edit"
+                label={_(msg`Edit rating`)}
+                onPress={() => setFinalVoted(null)}
+                disabled={isProcessing}
+                style={styles.menuItem}>
+                <PencilIcon size="sm" style={styles.menuItemIcon} />
+                <Menu.ItemText style={styles.menuItemTitle}>
+                  <Trans>Edit</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+            </Menu.Group>
+          </Menu.Outer>
+        </Menu.Root>
+      ) : (
+        <View style={styles.actionsBox}>
+          <View style={styles.actions}>
+            <Text style={styles.question}>Is this note helpful?</Text>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as helpful`)}
+              onPress={() => handleSelectVote('helpful')}
+              style={[styles.button, voted === 'helpful' && styles.selected]}>
+              <ButtonText
+                style={
+                  voted === 'helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`Yes`)}
+              </ButtonText>
+            </Button>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as somewhat helpful`)}
+              onPress={() => handleSelectVote('somewhat_helpful')}
+              style={[
+                styles.button,
+                voted === 'somewhat_helpful' && styles.selected,
+              ]}>
+              <ButtonText
+                style={
+                  voted === 'somewhat_helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`Somewhat`)}
+              </ButtonText>
+            </Button>
+            <Button
+              variant="ghost"
+              label={_(msg`Rate as not helpful`)}
+              onPress={() => handleSelectVote('not_helpful')}
+              style={[
+                styles.button,
+                voted === 'not_helpful' && styles.selected,
+              ]}>
+              <ButtonText
+                style={
+                  voted === 'not_helpful'
+                    ? styles.selectedButtonText
+                    : styles.unselectedButtonText
+                }>
+                {_(msg`No`)}
+              </ButtonText>
+            </Button>
+          </View>
+          {voted && renderReasons()}
+        </View>
+      )}
+      <NoteDetailsDialog control={noteDetailsControl} note={note} />
+    </View>
+  )
+}
+
