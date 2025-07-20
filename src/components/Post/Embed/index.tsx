@@ -19,6 +19,7 @@ import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {atoms as a, useTheme} from '#/alf'
+import {RateCommunityNotesPromptEmbedded} from '#/components/CommunityNotes/RateCommunityNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import {RichText} from '#/components/RichText'
@@ -274,12 +275,12 @@ export function QuoteEmbed({
   const [hover, setHover] = React.useState(false)
   return (
     <View
-      style={[a.mt_sm]}
+      style={[a.mt_sm, a.border, t.atoms.border_contrast_low, a.rounded_md]}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}>
       <ContentHider
         modui={moderation?.ui('contentList')}
-        style={[a.rounded_md, a.border, t.atoms.border_contrast_low, style]}
+        style={[a.p_md, style]}
         activeStyle={[a.p_md, a.pt_sm]}
         childContainerStyle={[a.pt_sm]}>
         {({active}) => (
@@ -329,6 +330,8 @@ export function QuoteEmbed({
           </>
         )}
       </ContentHider>
+      <View style={[a.border_t, t.atoms.border_contrast_low]} />
+      <RateCommunityNotesPromptEmbedded post={quote} />
     </View>
   )
 }
