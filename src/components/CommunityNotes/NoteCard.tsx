@@ -5,7 +5,6 @@ import {type MessageDescriptor} from '@lingui/core'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {usePalette} from '#/lib/hooks/usePalette'
 import {
   type CommunityNoteView,
   useCreateNoteRatingMutation,
@@ -63,7 +62,6 @@ const NOT_HELPFUL_REASONS = [
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
 export function NoteCard({note}: {note: CommunityNoteView}) {
-  const pal = usePalette('default')
   const t = useTheme()
   const {_} = useLingui()
   const requireAuth = useRequireAuth()
@@ -370,36 +368,36 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
   })
 
   return (
-    <View style={[pal.view, styles.card, pal.border]}>
+    <View style={[t.atoms.bg, styles.card, t.atoms.border_contrast_low]}>
       <View style={styles.statusLineTop}>
-        <Text style={[pal.text, styles.needsRatingText]}>
+        <Text style={[t.atoms.text, styles.needsRatingText]}>
           <Trans>• Needs more ratings</Trans>
         </Text>
         <TimeElapsed timestamp={note.createdAt}>
           {({timeElapsed}) => (
-            <Text style={pal.textLight} title={timeElapsed}>
+            <Text style={t.atoms.text_contrast_low} title={timeElapsed}>
               {timeElapsed}
             </Text>
           )}
         </TimeElapsed>
-        <Text style={pal.textLight}>·</Text>
+        <Text style={t.atoms.text_contrast_low}>·</Text>
         <Pressable
           onPress={() => noteDetailsControl.open()}
           accessibilityLabel={_(msg`View Details`)}
           accessibilityHint="">
-          <Text style={pal.link}>
+          <Text style={t.atoms.text_contrast_high}>
             <Trans>View details</Trans>
           </Text>
         </Pressable>
       </View>
       <View style={styles.statusLineBottom}>
-        <EyeSlashIcon size="sm" style={pal.textLight} />
-        <Text style={pal.textLight}>
+        <EyeSlashIcon size="sm" style={t.atoms.text_contrast_low} />
+        <Text style={t.atoms.text_contrast_low}>
           <Trans>Not shown on Bluesky</Trans>
         </Text>
       </View>
 
-      <RichText value={richText} style={[pal.text, {paddingTop: 4}]} />
+      <RichText value={richText} style={[t.atoms.text, {paddingTop: 4}]} />
 
       {finalVoted ? (
         <Menu.Root>
