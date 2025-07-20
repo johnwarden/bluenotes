@@ -1,5 +1,4 @@
-check:
-	yarn typecheck
+lint:
 	yarn lint --quiet
 
 web:
