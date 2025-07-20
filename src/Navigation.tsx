@@ -70,6 +70,7 @@ import {TermsOfServiceScreen} from '#/view/screens/TermsOfService'
 import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
 import {BookmarksScreen} from '#/screens/Bookmarks'
+import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
 import HashtagScreen from '#/screens/Hashtag'
 import {LogScreen} from '#/screens/Log'
@@ -608,6 +609,13 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
           title: title(msg`Saved Posts`),
           requireAuth: true,
         }}
+      />
+      <Stack.Screen
+        name="CommunityNotesRating"
+        getComponent={() => RateNotesScreen}
+        options={({route}) => ({
+          title: title(msg`Post by @${route.params.name}`),
+        })}
       />
     </>
   )
