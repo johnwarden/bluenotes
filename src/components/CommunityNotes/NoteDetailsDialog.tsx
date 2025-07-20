@@ -2,7 +2,6 @@ import {StyleSheet, Text, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {usePalette} from '#/lib/hooks/usePalette'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {niceDate} from '#/lib/strings/time'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
@@ -17,7 +16,6 @@ export function NoteDetailsDialog({
   control: Dialog.DialogControlProps
   note: CommunityNote
 }) {
-  const pal = usePalette('default')
   const t = useTheme()
   const {i18n, _} = useLingui()
 
@@ -101,7 +99,7 @@ export function NoteDetailsDialog({
             <Link
               to="https://communitynotes.x.com/guide/en/contributing/notes-on-twitter"
               label={_(msg`Learn more about community notes`)}>
-              <Text style={pal.link}>
+              <Text style={t.atoms.text_contrast_high}>
                 <Trans>Learn more</Trans>
               </Text>
             </Link>
@@ -122,19 +120,21 @@ export function NoteDetailsDialog({
             {/* <Link
               to={note.author.profileUrl}
               label={_(msg`View profile of ${note.author.pseudonym}`)}>
-              <Text style={pal.link}>
+              <Text style={t.palette.link}>
                 <Trans>View profile</Trans>
               </Text>
             </Link> */}
           </View>
 
-          <View style={[pal.border, styles.footer]}>
+          <View style={[t.atoms.border_contrast_low, styles.footer]}>
             <Text style={styles.footerText}>
               Note submitted {niceDate(i18n, new Date(note.createdAt))} • Note
               ID {note.noteId}
             </Text>
             <Link to={note.uri} label={_(msg`View source`)}>
-              <Text style={[pal.link, styles.footerText]}>{note.uri}</Text>
+              <Text style={[t.atoms.text_contrast_high, styles.footerText]}>
+                {note.uri}
+              </Text>
             </Link>
           </View>
         </View>
