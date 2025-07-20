@@ -11,10 +11,10 @@ import {Text} from '#/components/Typography'
 
 function _RateCommunityNotesPromptContent() {
   const t = useTheme()
-  
+
   return (
     <View style={[a.flex_row, a.align_center, a.gap_md]}>
-      <CommunityIcon width={18.5} height={14.06} style={{color: t.palette.primary_500}} />
+      <CommunityIcon size="sm" style={{color: t.palette.primary_500}} />
       <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
         <Trans>Rate proposed Community Notes</Trans>
       </Text>
@@ -74,11 +74,7 @@ export function RateCommunityNotesPromptEmbedded({
         .split('/')
         .pop()}/community-notes`}
       label={_(msg`Rate proposed community notes`)}
-      style={[
-        a.py_md,
-        a.px_lg,
-        t.atoms.bg_contrast_25,
-      ]}>
+      style={[a.py_md, a.px_lg, t.atoms.bg_contrast_25]}>
       <View
         style={[
           a.w_full,
