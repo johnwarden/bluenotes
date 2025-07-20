@@ -218,9 +218,7 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
             <Toggle.LabelText style={{fontSize: 15, fontWeight: 'normal'}}>
               {_(reason.label)}
             </Toggle.LabelText>
-            <View style={styles.checkboxWrapper}>
-              <Toggle.Checkbox />
-            </View>
+            <Toggle.Checkbox />
           </Toggle.Item>
         ))}
       </Toggle.Group>
@@ -368,14 +366,6 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
       fontSize: 16,
       fontWeight: 'bold',
       color: t.palette.negative_500,
-    },
-    // Mobile-optimized checkbox wrapper
-    checkboxWrapper: {
-      transform: [{scale: 0.83}],
-      minWidth: 24, // Ensure minimum touch target of ~20pt after scale
-      minHeight: 24,
-      alignItems: 'center',
-      justifyContent: 'center',
     },
   })
 
