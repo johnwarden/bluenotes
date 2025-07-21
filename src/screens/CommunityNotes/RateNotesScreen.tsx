@@ -1,12 +1,11 @@
-import {useEffect, useState} from 'react'
 import {ActivityIndicator, FlatList, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type RouteProp, useRoute} from '@react-navigation/native'
 
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
-import {fetchNotes} from '#/lib/mock-data/community-notes'
-import {type CommunityNoteView} from '#/state/queries/community-notes'
+import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {useNotesQuery} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
@@ -37,30 +36,15 @@ export function RateNotesScreen() {
     error: postError,
   } = usePostQuery(uri)
 
-  const [notes, setNotes] = useState<CommunityNoteView[]>([])
-  const [isLoadingNotes, setIsLoadingNotes] = useState(true)
-  const [notesError, setNotesError] = useState<string | null>(null)
+  const {
+    data: notes,
+    isLoading: isLoadingNotes,
+    error: notesError,
+  } = useNotesQuery(uri)
 
   useSetTitle(_(msg`Rate notes`))
 
-  useEffect(() => {
-    async function loadNotes() {
-      setIsLoadingNotes(true)
-      try {
-        const res = await fetchNotes(uri)
-        setNotes(res)
-      } catch (e: any) {
-        setNotesError(e.toString())
-      } finally {
-        setIsLoadingNotes(false)
-      }
-    }
-    loadNotes()
-  }, [uri])
-
-  const renderItem = ({item}: {item: CommunityNoteView}) => (
-    <NoteCard note={item} />
-  )
+  const renderItem = ({item}: {item: CommunityNote}) => <NoteCard note={item} />
 
   return (
     <Layout.Screen>
@@ -78,11 +62,11 @@ export function RateNotesScreen() {
           </Text>
         ) : notesError ? (
           <Text style={[t.atoms.text_contrast_medium, a.p_xl]}>
-            {notesError}
+            {notesError.toString()}
           </Text>
         ) : (
           <FlatList
-            data={notes}
+            data={notes || []}
             renderItem={renderItem}
             keyExtractor={item => item.author.aid}
             ListHeaderComponent={
@@ -91,16 +75,17 @@ export function RateNotesScreen() {
                   <View style={[a.pb_xl]}>
                     <Post post={post} />
                   </View>
-                  <View style={[
-                    a.flex_row,
-                    a.align_center,
-                    a.gap_xs,
-                    a.px_lg,
-                    a.py_md,
-                    a.border_t,
-                    a.border_b,
-                    t.atoms.border_contrast_low,
-                  ]}>
+                  <View
+                    style={[
+                      a.flex_row,
+                      a.align_center,
+                      a.gap_xs,
+                      a.px_lg,
+                      a.py_md,
+                      a.border_t,
+                      a.border_b,
+                      t.atoms.border_contrast_low,
+                    ]}>
                     <Layout.Header.TitleText>
                       Notes suggesting context to be shown with the post
                     </Layout.Header.TitleText>

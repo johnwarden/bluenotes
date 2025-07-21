@@ -5,12 +5,12 @@ import {type MessageDescriptor} from '@lingui/core'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
+import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {
-  type CommunityNoteView,
-  useCreateNoteRatingMutation,
-  useDeleteNoteRatingMutation,
-  useUpdateNoteRatingMutation,
-} from '#/state/queries/community-notes'
+  type NoteRatingState,
+  useNoteShadow,
+} from '#/state/cache/community-notes-shadow'
+import {useNoteRatingMutationQueue} from '#/state/queries/community-notes'
 import {useRequireAuth} from '#/state/session'
 import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import * as Toast from '#/view/com/util/Toast'
@@ -61,34 +61,23 @@ const NOT_HELPFUL_REASONS = [
 
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
-export function NoteCard({note}: {note: CommunityNoteView}) {
+export function NoteCard({note}: {note: CommunityNote}) {
   const t = useTheme()
   const {_} = useLingui()
   const requireAuth = useRequireAuth()
+  const noteWithShadow = useNoteShadow(note)
+  const submitRating = useNoteRatingMutationQueue(note)
+
+  // Local UI state for rating selection (before submission)
   const [voted, setVoted] = useState<Vote | null>(null)
-  const [finalVoted, setFinalVoted] = useState<Vote | null>(null)
   const [reasons, setReasons] = useState<string[]>([])
-  const [ratingUri, setRatingUri] = useState<string | undefined>(undefined)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const noteDetailsControl = Dialog.useDialogControl()
 
-  const {
-    mutate: createRating,
-    isPending: isCreating,
-    error: createError,
-  } = useCreateNoteRatingMutation()
-  const {
-    mutate: updateRating,
-    isPending: isUpdating,
-    error: updateError,
-  } = useUpdateNoteRatingMutation()
-  const {
-    mutate: deleteRating,
-    isPending: isDeleting,
-    error: deleteError,
-  } = useDeleteNoteRatingMutation()
-
-  const isProcessing = isCreating || isUpdating || isDeleting
-  const error = createError || updateError || deleteError
+  // Get the current rating state from the shadow cache
+  const currentRating = noteWithShadow.viewer?.rating
+  const hasSubmittedRating = currentRating && currentRating.val !== null
 
   const richText = useMemo(
     () =>
@@ -98,11 +87,13 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
     [note.text],
   )
 
+  // Only populate form when explicitly editing
   useEffect(() => {
-    if (error) {
-      Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+    if (isEditing && currentRating) {
+      setVoted(currentRating.val as Vote)
+      setReasons(currentRating.reasons || [])
     }
-  }, [error, _])
+  }, [isEditing, currentRating])
 
   const handleSelectVote = (vote: Vote) => {
     setVoted(vote)
@@ -112,47 +103,64 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
     requireAuth(async () => {
       if (!voted) return
 
-      const mutationNote = {uri: note.uri, cid: note.subject.cid}
+      setIsSubmitting(true)
+      try {
+        const newRatingState: NoteRatingState = {
+          uri: currentRating?.uri, // Preserve existing URI for updates
+          val: voted,
+          reasons: reasons,
+        }
 
-      if (ratingUri) {
-        // This is an update
-        updateRating(
-          {ratingUri, note: mutationNote, value: voted, reasons},
-          {
-            onSuccess: () => {
-              setFinalVoted(voted)
-            },
-          },
-        )
-      } else {
-        // This is a new rating
-        createRating(
-          {note: mutationNote, value: voted, reasons},
-          {
-            onSuccess: data => {
-              setRatingUri(data.data.uri)
-              setFinalVoted(voted)
-            },
-          },
-        )
+        await submitRating(newRatingState)
+
+        // Clear the local UI state after successful submission
+        setVoted(null)
+        setReasons([])
+        setIsEditing(false)
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') {
+          Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+        }
+      } finally {
+        setIsSubmitting(false)
       }
     })
   }
 
   const handleDelete = () => {
-    if (!ratingUri) return
-    deleteRating(
-      {ratingUri, noteUri: note.uri},
-      {
-        onSuccess: () => {
-          setVoted(null)
-          setFinalVoted(null)
-          setRatingUri(undefined)
-          setReasons([])
-        },
-      },
-    )
+    requireAuth(async () => {
+      setIsSubmitting(true)
+      try {
+        const deleteRatingState: NoteRatingState = {
+          uri: currentRating?.uri,
+          val: null,
+          reasons: [],
+        }
+
+        await submitRating(deleteRatingState)
+
+        // Clear local state
+        setVoted(null)
+        setReasons([])
+        setIsEditing(false)
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') {
+          Toast.show(_(msg`Failed to delete your rating. Please try again.`))
+        }
+      } finally {
+        setIsSubmitting(false)
+      }
+    })
   }
+
+  const handleEdit = () => {
+    // Enter editing mode
+    setIsEditing(true)
+  }
+
+  // Determine what UI to show
+  const shouldShowRatingForm =
+    !hasSubmittedRating || isEditing || voted !== null
 
   const renderReasons = () => {
     return (
@@ -180,9 +188,9 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
         label={_(msg`Submit`)}
         onPress={handleSubmit}
         variant="ghost"
-        disabled={isProcessing}
+        disabled={isSubmitting}
         style={styles.submitButton}>
-        {isProcessing ? (
+        {isSubmitting ? (
           <ActivityIndicator color="white" />
         ) : (
           <ButtonText style={styles.submitButtonText}>
@@ -400,47 +408,7 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
 
       <RichText value={richText} style={[t.atoms.text, {paddingTop: 4}]} />
 
-      {finalVoted ? (
-        <Menu.Root>
-          <View style={styles.votedContainer}>
-            <RatedCheckmark size="sm" style={styles.votedCheckmark} />
-            <Text style={styles.votedText}>
-              <Trans>You rated this note as</Trans>{' '}
-              <Text style={styles.votedTextBold}>
-                {getVoteText(finalVoted)}
-              </Text>
-              .
-            </Text>
-            <MenuTriggerButton label={_(msg`Rated note options menu`)} />
-          </View>
-          <Menu.Outer>
-            <Menu.Group>
-              <Menu.Item
-                key="delete"
-                label={_(msg`Delete rating`)}
-                onPress={handleDelete}
-                disabled={isProcessing}
-                style={styles.menuItem}>
-                <TrashIcon size="sm" style={styles.menuItemIconDelete} />
-                <Menu.ItemText style={styles.menuItemTitleDelete}>
-                  <Trans>Delete</Trans>
-                </Menu.ItemText>
-              </Menu.Item>
-              <Menu.Item
-                key="edit"
-                label={_(msg`Edit rating`)}
-                onPress={() => setFinalVoted(null)}
-                disabled={isProcessing}
-                style={styles.menuItem}>
-                <PencilIcon size="sm" style={styles.menuItemIcon} />
-                <Menu.ItemText style={styles.menuItemTitle}>
-                  <Trans>Edit</Trans>
-                </Menu.ItemText>
-              </Menu.Item>
-            </Menu.Group>
-          </Menu.Outer>
-        </Menu.Root>
-      ) : (
+      {shouldShowRatingForm ? (
         <View style={styles.actionsBox}>
           <View style={styles.actions}>
             <Text style={styles.question}>Is this note helpful?</Text>
@@ -495,6 +463,46 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
           </View>
           {voted && renderReasons()}
         </View>
+      ) : (
+        <Menu.Root>
+          <View style={styles.votedContainer}>
+            <RatedCheckmark size="sm" style={styles.votedCheckmark} />
+            <Text style={styles.votedText}>
+              <Trans>You rated this note as</Trans>{' '}
+              <Text style={styles.votedTextBold}>
+                {getVoteText(currentRating.val as Vote)}
+              </Text>
+              .
+            </Text>
+            <MenuTriggerButton label={_(msg`Rated note options menu`)} />
+          </View>
+          <Menu.Outer>
+            <Menu.Group>
+              <Menu.Item
+                key="delete"
+                label={_(msg`Delete rating`)}
+                onPress={handleDelete}
+                disabled={isSubmitting}
+                style={styles.menuItem}>
+                <TrashIcon size="sm" style={styles.menuItemIconDelete} />
+                <Menu.ItemText style={styles.menuItemTitleDelete}>
+                  <Trans>Delete</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+              <Menu.Item
+                key="edit"
+                label={_(msg`Edit rating`)}
+                onPress={handleEdit}
+                disabled={isSubmitting}
+                style={styles.menuItem}>
+                <PencilIcon size="sm" style={styles.menuItemIcon} />
+                <Menu.ItemText style={styles.menuItemTitle}>
+                  <Trans>Edit</Trans>
+                </Menu.ItemText>
+              </Menu.Item>
+            </Menu.Group>
+          </Menu.Outer>
+        </Menu.Root>
       )}
       <NoteDetailsDialog control={noteDetailsControl} note={note} />
     </View>

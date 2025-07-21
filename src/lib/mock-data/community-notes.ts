@@ -52,8 +52,10 @@ export async function fetchNotes(_postId: string): Promise<CommunityNote[]> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(
-        Array.from({length: 5}, () => ({
+        Array.from({length: 5}, (_, index) => ({
           ...mockNote,
+          uri: `${mockNote.uri}/${index}`,
+          noteId: `${mockNote.noteId}${index}`,
           author: {
             ...mockNote.author,
             aid: `anon:${faker.string.hexadecimal({
