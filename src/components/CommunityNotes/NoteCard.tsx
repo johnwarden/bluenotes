@@ -287,8 +287,9 @@ export function NoteCard({note}: {note: CommunityNoteView}) {
     },
     actionsBox: {
       backgroundColor: t.palette.contrast_25,
-      padding: 16,
+      padding: 12,
       borderRadius: 8,
+      marginTop: 12,
     },
     reasonsGroup: {
       paddingTop: 12,
