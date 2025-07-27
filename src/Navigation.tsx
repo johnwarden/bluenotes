@@ -606,6 +606,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         getComponent={() => RateNotesScreen}
         options={({route}) => ({
           title: title(msg`Post by @${route.params.name}`),
+          requireAuth: true,
         })}
       />
     </>
