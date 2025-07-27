@@ -14,7 +14,8 @@ export interface NoteAuthor {
 }
 
 export interface CommunityNote {
-  $type: 'org.opencommunitynotes.label'
+  $type: 'org.opencommunitynotes.proposal'
+  typ: 'post_label'
   subject: CommunityNoteSubjectRef
   label: string
   text: string
@@ -26,7 +27,8 @@ export interface CommunityNote {
 }
 
 export const mockNote: CommunityNote = {
-  $type: 'org.opencommunitynotes.label',
+  $type: 'org.opencommunitynotes.proposal',
+  typ: 'post_label',
   subject: {
     uri: 'at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/3kabc123xyz',
     cid: 'bafyreibxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -36,7 +38,7 @@ export const mockNote: CommunityNote = {
   createdAt: new Date().toISOString(),
   noteId: '1939063431312875687',
   status: 'needs_more_ratings',
-  uri: 'https://en.wikipedia.org/wiki/Jeff_Bezos',
+  uri: 'at://did:plc:xxxxxxxxxxxx/org.opencommunitynotes.proposal/3kprop123abc',
   author: {
     aid: 'anon:ab34fec9de56',
     pseudonym: 'Respectful Cave Falcon',
@@ -54,8 +56,8 @@ export async function fetchNotes(_postId: string): Promise<CommunityNote[]> {
       resolve(
         Array.from({length: 5}, (_, index) => ({
           ...mockNote,
-          uri: `${mockNote.uri}/${index}`,
-          noteId: `${mockNote.noteId}${index}`,
+          uri: `${mockNote.uri.slice(0, -1)}${index}`, // Make each note have a unique URI
+          noteId: `${mockNote.noteId}${index}`, // Also make noteId unique for good measure
           author: {
             ...mockNote.author,
             aid: `anon:${faker.string.hexadecimal({
