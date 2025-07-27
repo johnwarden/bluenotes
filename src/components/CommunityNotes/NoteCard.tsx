@@ -11,7 +11,6 @@ import {
   useNoteShadow,
 } from '#/state/cache/community-notes-shadow'
 import {useNoteRatingMutationQueue} from '#/state/queries/community-notes'
-import {useRequireAuth} from '#/state/session'
 import {TimeElapsed} from '#/view/com/util/TimeElapsed'
 import * as Toast from '#/view/com/util/Toast'
 import {useTheme} from '#/alf'
@@ -64,7 +63,6 @@ type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 export function NoteCard({note}: {note: CommunityNote}) {
   const t = useTheme()
   const {_} = useLingui()
-  const requireAuth = useRequireAuth()
   const noteWithShadow = useNoteShadow(note)
   const submitRating = useNoteRatingMutationQueue(note)
 
@@ -99,58 +97,54 @@ export function NoteCard({note}: {note: CommunityNote}) {
     setVoted(vote)
   }
 
-  const handleSubmit = () => {
-    requireAuth(async () => {
-      if (!voted) return
+  const handleSubmit = async () => {
+    if (!voted) return
 
-      setIsSubmitting(true)
-      try {
-        const newRatingState: NoteRatingState = {
-          uri: currentRating?.uri, // Preserve existing URI for updates
-          val: voted,
-          reasons: reasons,
-        }
-
-        await submitRating(newRatingState)
-
-        // Clear the local UI state after successful submission
-        setVoted(null)
-        setReasons([])
-        setIsEditing(false)
-      } catch (e: any) {
-        if (e?.name !== 'AbortError') {
-          Toast.show(_(msg`Failed to submit your rating. Please try again.`))
-        }
-      } finally {
-        setIsSubmitting(false)
+    setIsSubmitting(true)
+    try {
+      const newRatingState: NoteRatingState = {
+        uri: currentRating?.uri, // Preserve existing URI for updates
+        val: voted,
+        reasons: reasons,
       }
-    })
+
+      await submitRating(newRatingState)
+
+      // Clear the local UI state after successful submission
+      setVoted(null)
+      setReasons([])
+      setIsEditing(false)
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
-  const handleDelete = () => {
-    requireAuth(async () => {
-      setIsSubmitting(true)
-      try {
-        const deleteRatingState: NoteRatingState = {
-          uri: currentRating?.uri,
-          val: null,
-          reasons: [],
-        }
-
-        await submitRating(deleteRatingState)
-
-        // Clear local state
-        setVoted(null)
-        setReasons([])
-        setIsEditing(false)
-      } catch (e: any) {
-        if (e?.name !== 'AbortError') {
-          Toast.show(_(msg`Failed to delete your rating. Please try again.`))
-        }
-      } finally {
-        setIsSubmitting(false)
+  const handleDelete = async () => {
+    setIsSubmitting(true)
+    try {
+      const deleteRatingState: NoteRatingState = {
+        uri: currentRating?.uri,
+        val: null,
+        reasons: [],
       }
-    })
+
+      await submitRating(deleteRatingState)
+
+      // Clear local state
+      setVoted(null)
+      setReasons([])
+      setIsEditing(false)
+    } catch (e: any) {
+      if (e?.name !== 'AbortError') {
+        Toast.show(_(msg`Failed to delete your rating. Please try again.`))
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleEdit = () => {
