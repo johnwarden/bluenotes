@@ -1,12 +1,13 @@
-import {useCallback} from 'react'
+import {useCallback, useEffect} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 
 import * as apilib from '#/lib/api/community-notes'
 import {useComplexMutationQueue} from '#/lib/hooks/useComplexMutationQueue'
-import {type CommunityNote, fetchNotes} from '#/lib/mock-data/community-notes'
+import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {
   type NoteRatingState,
   updateNoteShadow,
+  useNoteShadow,
 } from '#/state/cache/community-notes-shadow'
 import {useAgent} from '#/state/session'
 
@@ -20,15 +21,88 @@ export interface CommunityNoteView extends CommunityNote {
 }
 
 export function useNotesQuery(subjectUri: string) {
-  return useQuery<CommunityNote[]>({
+  const agent = useAgent()
+  const queryClient = useQueryClient()
+
+  console.log('🔍 Debug: useNotesQuery called', {subjectUri, hasAgent: !!agent})
+
+  const query = useQuery<CommunityNote[]>({
     queryKey: RQKEY(subjectUri),
     queryFn: async () => {
-      // Currently using mock data
-      // TODO: Replace with real AppView API call when available
-      return await fetchNotes(subjectUri)
+      console.log('🔍 Debug: queryFn executing')
+      try {
+        const response = await apilib.getNotesForSubject(agent, subjectUri)
+        console.log('🔍 Debug: API response', response)
+        console.log(
+          '🔍 Debug: First note viewer rating:',
+          response.notes[0]?.viewer?.rating,
+        )
+
+        // Just map the response to notes first, don't update shadow cache yet
+        const notes = response.notes.map(apiNote => {
+          console.log('🔍 Debug: Processing API note', {
+            uri: apiNote.uri,
+            hasViewer: !!apiNote.viewer,
+            viewerRating: apiNote.viewer?.rating,
+          })
+          return apilib.mapApiResponseToCommunityNote(apiNote)
+        })
+
+        // Store the rating data for later processing
+        const viewerRatings = response.notes.map(apiNote => ({
+          noteUri: apiNote.uri,
+          viewerRating: apiNote.viewer?.rating,
+        }))
+        console.log('🔍 Debug: Viewer ratings to store', viewerRatings)
+        ;(notes as any)._viewerRatings = viewerRatings
+
+        return notes
+      } catch (error) {
+        console.error('Failed to fetch notes:', error)
+        // Fallback to empty array for now
+        // TODO: Implement proper error handling
+        return []
+      }
     },
     enabled: !!subjectUri,
   })
+
+  // Update shadow cache after the query has succeeded and cache is populated
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      const viewerRatings = (query.data as any)._viewerRatings
+      if (viewerRatings) {
+        console.log('🔍 Debug: Processing viewer ratings after cache update')
+        console.log('🔍 Debug: Viewer ratings from cache', viewerRatings)
+        for (const ratingData of viewerRatings) {
+          console.log('🔍 Debug: Checking rating data', ratingData)
+          if (ratingData.viewerRating) {
+            console.log('🔍 Debug: Found viewer rating data', ratingData)
+            const ratingState = apilib.mapApiRatingToNoteRatingState(
+              ratingData.viewerRating,
+            )
+            console.log('🔍 Debug: Mapped rating state', ratingState)
+            if (ratingState) {
+              updateNoteShadow(queryClient, ratingData.noteUri, {
+                rating: ratingState,
+              })
+              console.log(
+                '🔍 Debug: Updated shadow cache for note',
+                ratingData.noteUri,
+              )
+            }
+          } else {
+            console.log('🔍 Debug: No viewer rating for note', {
+              noteUri: ratingData.noteUri,
+              hasViewerRating: !!ratingData.viewerRating,
+            })
+          }
+        }
+      }
+    }
+  }, [query.isSuccess, query.data, queryClient])
+
+  return query
 }
 
 export function useNoteRatingMutationQueue(
@@ -38,13 +112,19 @@ export function useNoteRatingMutationQueue(
   const queryClient = useQueryClient()
   const agent = useAgent()
   const noteUri = note.uri
+  const noteWithShadow = useNoteShadow(note)
 
   // Get the initial state from the shadow cache or default to null
-  const initialState: NoteRatingState = {
+  const initialState: NoteRatingState = noteWithShadow.viewer?.rating || {
     uri: undefined,
     val: null,
     reasons: [],
   }
+
+  console.log('🔍 Debug: Mutation queue initialState', {
+    noteUri,
+    initialState,
+  })
 
   const queueRating = useComplexMutationQueue<NoteRatingState>({
     initialState,
@@ -52,46 +132,68 @@ export function useNoteRatingMutationQueue(
       prevState: NoteRatingState,
       nextState: NoteRatingState,
     ) => {
+      console.log('🔍 Debug: runMutation called', {
+        noteUri,
+        prevState,
+        nextState,
+      })
+
       if (prevState.val === null && nextState.val !== null) {
         // Case 1: Create
-        const response = await apilib.createNoteRating(
+        console.log('🔍 Debug: Mutation case 1 - CREATE')
+        const response = await apilib.rateNote(
           agent,
-          {uri: noteUri, cid: note.subject.cid},
+          noteUri,
           nextState.val,
           nextState.reasons,
         )
         return {
           ...nextState,
-          uri: response.uri,
+          uri: response.rating.uri,
         }
       } else if (prevState.val !== null && nextState.val !== null) {
-        // Case 2: Update
-        if (!prevState.uri) {
-          throw new Error('Cannot update rating without URI')
-        }
-        await apilib.updateNoteRating(
-          agent,
-          prevState.uri,
-          {uri: noteUri, cid: note.subject.cid},
-          nextState.val,
-          nextState.reasons,
-        )
-        return {
-          ...nextState,
-          uri: prevState.uri,
+        // Check if the rating actually changed
+        const valChanged = prevState.val !== nextState.val
+        const reasonsChanged =
+          JSON.stringify(prevState.reasons.sort()) !==
+          JSON.stringify(nextState.reasons.sort())
+
+        if (valChanged || reasonsChanged) {
+          // Case 2: Update
+          console.log('🔍 Debug: Mutation case 2 - UPDATE', {
+            valChanged,
+            reasonsChanged,
+            prevVal: prevState.val,
+            nextVal: nextState.val,
+            prevReasons: prevState.reasons,
+            nextReasons: nextState.reasons,
+          })
+          const response = await apilib.rateNote(
+            agent,
+            noteUri,
+            nextState.val,
+            nextState.reasons,
+          )
+          return {
+            ...nextState,
+            uri: response.rating.uri,
+          }
+        } else {
+          // No actual change - skip API call
+          console.log('🔍 Debug: Mutation case - NO CHANGE (same rating)')
+          return prevState // Return prevState to preserve URI
         }
       } else if (prevState.val !== null && nextState.val === null) {
         // Case 3: Delete
-        if (!prevState.uri) {
-          throw new Error('Cannot delete rating without URI')
-        }
-        await apilib.deleteNoteRating(agent, prevState.uri)
+        console.log('🔍 Debug: Mutation case 3 - DELETE')
+        await apilib.deleteNoteRating(agent, noteUri)
         return {
           ...nextState,
           uri: undefined,
         }
       }
       // No change needed
+      console.log('🔍 Debug: Mutation case - NO CHANGE (both null)')
       return nextState
     },
     onSuccess(finalState) {
@@ -99,28 +201,21 @@ export function useNoteRatingMutationQueue(
       updateNoteShadow(queryClient, noteUri, {
         rating: finalState,
       })
-
-      // Invalidate queries to refetch data
-      queryClient.invalidateQueries({
-        queryKey: RQKEY(note.subject.uri),
-      })
     },
   })
 
-  const submitRating = useCallback(
-    (ratingState: NoteRatingState) => {
-      // Optimistically update the shadow cache
-      updateNoteShadow(queryClient, noteUri, {
-        rating: ratingState,
+  const queueRatingWrap = useCallback(
+    (newState: NoteRatingState) => {
+      console.log('🔍 Debug: queueRatingWrap called', {
+        noteUri,
+        newState,
       })
-
-      // Queue the mutation
-      return queueRating(ratingState)
+      return queueRating(newState)
     },
-    [queryClient, noteUri, queueRating],
+    [queueRating, noteUri],
   )
 
-  return submitRating
+  return queueRatingWrap
 }
 
 // Legacy hooks for backward compatibility - these will be removed later
