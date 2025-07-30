@@ -1,6 +1,9 @@
 lint:
 	yarn lint --quiet
 
+typecheck:
+	npm run typecheck
+
 web:
 	yarn web
 
