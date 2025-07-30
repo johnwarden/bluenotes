@@ -11,6 +11,23 @@ export const BSKY_SERVICE = 'https://bsky.social'
 export const BSKY_SERVICE_DID = 'did:web:bsky.social'
 export const PUBLIC_BSKY_SERVICE = 'https://public.api.bsky.app'
 export const DEFAULT_SERVICE = BSKY_SERVICE
+
+// Community Notes service URLs
+export const LOCAL_DEV_COMMUNITY_NOTES_SERVICE =
+  Platform.OS === 'android' ? 'http://10.0.2.2:2595' : 'http://localhost:2595'
+export const STAGING_COMMUNITY_NOTES_SERVICE =
+  'https://community-notes.staging.bsky.dev'
+export const PROD_COMMUNITY_NOTES_SERVICE = 'https://community-notes.bsky.app'
+
+export function COMMUNITY_NOTES_SERVICE(serviceUrl: string) {
+  if (IS_PROD_SERVICE(serviceUrl)) {
+    return PROD_COMMUNITY_NOTES_SERVICE
+  }
+  if (serviceUrl === STAGING_SERVICE) {
+    return STAGING_COMMUNITY_NOTES_SERVICE
+  }
+  return LOCAL_DEV_COMMUNITY_NOTES_SERVICE
+}
 const HELP_DESK_LANG = 'en-us'
 export const HELP_DESK_URL = `https://blueskyweb.zendesk.com/hc/${HELP_DESK_LANG}`
 export const EMBED_SERVICE = 'https://embed.bsky.app'
