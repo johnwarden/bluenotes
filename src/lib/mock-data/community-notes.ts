@@ -26,7 +26,7 @@ export interface CommunityNote {
   author: NoteAuthor
 }
 
-export const mockNote: CommunityNote = {
+const mockNote: CommunityNote = {
   $type: 'org.opencommunitynotes.proposal',
   typ: 'post_label',
   subject: {
@@ -51,6 +51,11 @@ export const mockNote: CommunityNote = {
 export async function fetchNotes(_postId: string): Promise<CommunityNote[]> {
   // In a real implementation, this would fetch notes from the Community Notes PDS
   // For now, we return a list of mock notes.
+  // Convert post ID to a deterministic seed by summing char codes
+  const seed = _postId
+    .split('')
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+  faker.seed(seed)
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(

@@ -77,6 +77,14 @@ export function NoteCard({note}: {note: CommunityNote}) {
   const currentRating = noteWithShadow.viewer?.rating
   const hasSubmittedRating = currentRating && currentRating.val !== null
 
+  // Debug logging
+  console.log('🔍 Debug: NoteCard render', {
+    noteUri: note.uri,
+    noteWithShadow: noteWithShadow.viewer,
+    currentRating,
+    hasSubmittedRating,
+  })
+
   const richText = useMemo(
     () =>
       new RichTextAPI({
@@ -124,6 +132,10 @@ export function NoteCard({note}: {note: CommunityNote}) {
   }
 
   const handleDelete = async () => {
+    console.log('🔍 Debug: handleDelete called', {
+      currentRating,
+      noteUri: note.uri,
+    })
     setIsSubmitting(true)
     try {
       const deleteRatingState: NoteRatingState = {
@@ -131,6 +143,7 @@ export function NoteCard({note}: {note: CommunityNote}) {
         val: null,
         reasons: [],
       }
+      console.log('🔍 Debug: handleDelete deleteRatingState', deleteRatingState)
 
       await submitRating(deleteRatingState)
 
