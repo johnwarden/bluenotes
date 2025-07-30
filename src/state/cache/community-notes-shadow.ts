@@ -37,7 +37,12 @@ export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
 
   useEffect(() => {
     function onUpdate() {
-      setShadow(shadows.get(note))
+      const newShadow = shadows.get(note)
+      console.log('🔍 Debug: useNoteShadow onUpdate', {
+        noteUri: note.uri,
+        newShadow,
+      })
+      setShadow(newShadow)
     }
     emitter.addListener(note.uri, onUpdate)
     return () => {
@@ -45,13 +50,19 @@ export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
     }
   }, [note, setShadow])
 
-  return useMemo(() => {
+  const result = useMemo(() => {
     if (shadow) {
+      console.log('🔍 Debug: useNoteShadow applying shadow', {
+        noteUri: note.uri,
+        shadow,
+      })
       return mergeShadow(note, shadow)
     } else {
       return castAsShadow(note as CommunityNoteView)
     }
   }, [note, shadow])
+
+  return result
 }
 
 function mergeShadow(
@@ -71,8 +82,11 @@ export function updateNoteShadow(
   noteUri: string,
   value: Partial<NoteShadow>,
 ) {
-  const cachedNotes = findNotesInCache(queryClient, noteUri)
+  console.log('🔍 Debug: updateNoteShadow called', {noteUri, value})
+  const cachedNotes = Array.from(findNotesInCache(queryClient, noteUri))
+  console.log('🔍 Debug: Found cached notes', cachedNotes.length)
   for (let note of cachedNotes) {
+    console.log('🔍 Debug: Setting shadow for note', note.uri)
     shadows.set(note, {...shadows.get(note), ...value})
   }
   batchedUpdates(() => {
