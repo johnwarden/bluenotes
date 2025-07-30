@@ -10,6 +10,7 @@ import {usePostQuery} from '#/state/queries/post'
 import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
 import {NoteCard} from '#/components/CommunityNotes/NoteCard'
+import {WriteANotePrompt} from '#/components/CommunityNotes/WriteANotePrompt'
 import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
@@ -94,6 +95,7 @@ export function RateNotesScreen() {
                 </View>
               ) : undefined
             }
+            ListFooterComponent={<WriteANotePrompt showRatingWarning />}
           />
         )}
       </Layout.Center>
