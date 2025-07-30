@@ -101,7 +101,7 @@ export function mapApiResponseToCommunityNote(
 }
 
 export function mapApiRatingToNoteRatingState(
-  viewerRating?: CommunityNoteAPIResponse['viewer']['rating'],
+  viewerRating?: NonNullable<CommunityNoteAPIResponse['viewer']>['rating'],
 ): NoteRatingState | undefined {
   if (!viewerRating) return undefined
 
