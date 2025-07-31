@@ -4,16 +4,22 @@ import {useLingui} from '@lingui/react'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
-import {Button, ButtonText} from '#/components/Button'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
+import {WriteNoteDialog} from '#/components/CommunityNotes/WriteNoteDialog'
+import * as Dialog from '#/components/Dialog'
+import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {Text} from '#/components/Typography'
 
 export function WriteANotePrompt({
   showRatingWarning,
+  postUri,
 }: {
   showRatingWarning?: boolean
+  postUri: string
 }) {
   const t = useTheme()
   const {_} = useLingui()
+  const writeNoteControl = Dialog.useDialogControl()
 
   return (
     <View
@@ -24,6 +30,9 @@ export function WriteANotePrompt({
         a.border_t,
         t.atoms.border_contrast_low,
       ]}>
+      <Text style={[t.atoms.text, a.font_bold, a.pb_lg, {fontSize: 15}]}>
+        See anything you’d like to improve?
+      </Text>
       {showRatingWarning && (
         <View style={[a.w_full, a.mb_lg]}>
           <Admonition type="warning">
@@ -34,9 +43,6 @@ export function WriteANotePrompt({
           </Admonition>
         </View>
       )}
-      <Text style={[t.atoms.text, a.font_bold, a.pb_lg, {fontSize: 15}]}>
-        See anything you’d like to improve?
-      </Text>
       <Button
         variant="solid"
         color="primary"
@@ -48,11 +54,12 @@ export function WriteANotePrompt({
             paddingHorizontal: 20,
           },
         ]}
-        onPress={() => {
-          // TODO: open note writing modal
-        }}>
+        onPress={() => writeNoteControl.open()}>
+        <ButtonIcon icon={PencilIcon} position="left" />
         <ButtonText>Write a note</ButtonText>
       </Button>
+
+      <WriteNoteDialog control={writeNoteControl} postUri={postUri} />
     </View>
   )
 }
