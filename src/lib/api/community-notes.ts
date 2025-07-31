@@ -73,6 +73,20 @@ export interface RateNoteResponse {
   }
 }
 
+export interface CreateNoteRequest {
+  typ: 'post_label'
+  uri: string // target post URI
+  val: 'needs-context'
+  note: string
+  reasons: string[]
+}
+
+export interface CreateNoteResponse {
+  uri: string
+  cid: string
+  proposal: CommunityNoteAPIResponse
+}
+
 // Mapping functions
 export function mapApiResponseToCommunityNote(
   apiNote: CommunityNoteAPIResponse,
@@ -171,6 +185,76 @@ export async function rateNote(
       throw error
     }
     throw new Error(`Network error while rating note: ${error}`)
+  }
+}
+
+export async function createNote(
+  agent: BskyAgent,
+  targetUri: string,
+  noteText: string,
+  reasons: string[],
+): Promise<CreateNoteResponse> {
+  if (!agent.session) {
+    throw new Error('Must be logged in to create a note')
+  }
+
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
+    agent.service.toString(),
+  )
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.createNote`
+
+  const requestBody: CreateNoteRequest = {
+    typ: 'post_label',
+    uri: targetUri,
+    val: 'needs-context',
+    note: noteText,
+    reasons: reasons,
+  }
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${agent.session.accessJwt}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    })
+
+    if (!response.ok) {
+      let errorMessage = `HTTP ${response.status}`
+      try {
+        const errorData = await response.json()
+        if (errorData.error === 'DuplicateNote') {
+          throw new Error('You have already created a note for this post')
+        }
+        errorMessage = errorData.message || errorData.error || errorMessage
+      } catch (parseError) {
+        if (
+          parseError instanceof Error &&
+          parseError.message.includes('already created')
+        ) {
+          throw parseError // Re-throw our custom duplicate note error
+        }
+        const errorText = await response.text()
+        errorMessage = errorText || errorMessage
+      }
+
+      if (response.status === 401) {
+        throw new Error('Authentication required. Please log in again.')
+      } else if (response.status === 403) {
+        throw new Error('You do not have permission to create notes.')
+      }
+
+      throw new Error(`Failed to create note: ${errorMessage}`)
+    }
+
+    return await response.json()
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error
+    }
+    throw new Error(`Network error while creating note: ${error}`)
   }
 }
 
