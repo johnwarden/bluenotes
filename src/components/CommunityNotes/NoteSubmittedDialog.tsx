@@ -10,11 +10,13 @@ import {Text} from '#/components/Typography'
 interface NoteSubmittedDialogProps {
   control: Dialog.DialogOuterProps['control']
   onSeeNote?: () => void
+  noteUri?: string
 }
 
 export function NoteSubmittedDialog({
   control,
   onSeeNote,
+  noteUri,
 }: NoteSubmittedDialogProps) {
   const t = useTheme()
   const {_} = useLingui()
@@ -43,6 +45,29 @@ export function NoteSubmittedDialog({
           <Text style={[a.text_md, a.font_bold, a.mb_lg, t.atoms.text]}>
             <Trans>Other contributors can now rate your note</Trans>
           </Text>
+
+          {/* Debug Section - Show Note URI */}
+          {noteUri && (
+            <View
+              style={[
+                a.mb_lg,
+                a.p_md,
+                a.rounded_md,
+                {backgroundColor: t.palette.contrast_50},
+              ]}>
+              <Text style={[a.text_sm, a.font_bold, a.mb_xs, t.atoms.text]}>
+                Debug - Note URI:
+              </Text>
+              <Text
+                style={[
+                  a.text_xs,
+                  {fontFamily: 'monospace'},
+                  t.atoms.text_contrast_medium,
+                ]}>
+                {noteUri}
+              </Text>
+            </View>
+          )}
 
           {/* Information Sections */}
           <View style={[a.mb_2xl]}>

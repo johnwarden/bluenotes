@@ -1,9 +1,11 @@
 import {useState} from 'react'
-import {ScrollView, TextInput, View} from 'react-native'
+import {ActivityIndicator, ScrollView, TextInput, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
+import * as apilib from '#/lib/api/community-notes'
 import {usePostQuery} from '#/state/queries/post'
+import {useAgent} from '#/state/session'
 import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
@@ -53,28 +55,56 @@ interface WriteNoteDialogProps {
 export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const t = useTheme()
   const {_} = useLingui()
+  const agent = useAgent()
   const [selectedReasons, setSelectedReasons] = useState<string[]>([])
   const [noteText, setNoteText] = useState('')
   const [hasReliableSources, setHasReliableSources] = useState<
     'yes' | 'no' | null
   >(null)
-  const [submissionError, _setSubmissionError] = useState<string>(
-    'There was an error submitting your note. Please try again later.',
-  )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submissionError, setSubmissionError] = useState<string>('')
+  const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
 
-  const handleSubmit = () => {
-    // TODO: Implement note submission
-    console.log('Submitting note:', {
-      postUri,
-      reasons: selectedReasons,
-      noteText,
-      hasReliableSources,
-    })
-    control.close()
-    submittedDialogControl.open()
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+
+    setIsSubmitting(true)
+    setSubmissionError('')
+
+    try {
+      const response = await apilib.createNote(
+        agent,
+        postUri,
+        noteText,
+        selectedReasons,
+      )
+
+      console.log('Note created successfully:', response)
+
+      // Store the note URI for the success dialog
+      setSubmittedNoteUri(response.uri)
+
+      // Clear form and close dialog
+      setSelectedReasons([])
+      setNoteText('')
+      setHasReliableSources(null)
+      control.close()
+
+      // Open success dialog with note URI
+      submittedDialogControl.open()
+    } catch (error) {
+      console.error('Failed to create note:', error)
+      if (error instanceof Error) {
+        setSubmissionError(error.message)
+      } else {
+        setSubmissionError('Failed to submit note. Please try again.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -256,6 +286,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                 variant="solid"
                 color="primary"
                 label={_(msg`Submit note`)}
+                disabled={isSubmitting}
                 style={[
                   a.w_full,
                   {
@@ -264,7 +295,11 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                   },
                 ]}
                 onPress={handleSubmit}>
-                <ButtonText>Submit</ButtonText>
+                {isSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <ButtonText>Submit</ButtonText>
+                )}
               </Button>
             </ScrollView>
           </View>
@@ -273,9 +308,10 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
       <NoteSubmittedDialog
         control={submittedDialogControl}
+        noteUri={submittedNoteUri}
         onSeeNote={() => {
           // TODO: Navigate to the submitted note
-          console.log('Navigate to submitted note')
+          console.log('Navigate to submitted note:', submittedNoteUri)
         }}
       />
     </>
