@@ -2,8 +2,10 @@ import {useState} from 'react'
 import {ActivityIndicator, ScrollView, TextInput, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {useQueryClient} from '@tanstack/react-query'
 
 import * as apilib from '#/lib/api/community-notes'
+import {RQKEY} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {useAgent} from '#/state/session'
 import {Post} from '#/view/com/post/Post'
@@ -56,6 +58,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const t = useTheme()
   const {_} = useLingui()
   const agent = useAgent()
+  const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<string[]>([])
   const [noteText, setNoteText] = useState('')
   const [hasReliableSources, setHasReliableSources] = useState<
@@ -64,9 +67,17 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionError, setSubmissionError] = useState<string>('')
   const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
+  const [submittedNote, setSubmittedNote] = useState<any>(null)
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
+
+  const handleRefresh = () => {
+    // Invalidate the notes query to refresh the list
+    queryClient.invalidateQueries({
+      queryKey: RQKEY(postUri),
+    })
+  }
 
   const handleSubmit = async () => {
     if (isSubmitting) return
@@ -84,8 +95,10 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
       console.log('Note created successfully:', response)
 
-      // Store the note URI for the success dialog
+      // Store the note URI and create note object for the success dialog
       setSubmittedNoteUri(response.uri)
+      const noteObj = apilib.mapApiResponseToCommunityNote(response.proposal)
+      setSubmittedNote(noteObj)
 
       // Clear form and close dialog
       setSelectedReasons([])
@@ -262,13 +275,11 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                 ]}>
                 <View style={[a.flex_row, a.align_center, a.mb_xs]}>
                   <PersonIcon size="sm" style={[a.mr_sm]} />
-                  <Text style={[a.font_bold]}>
-                    Writing as Jovial Elm Seagull
-                  </Text>
+                  <Text style={[a.font_bold]}>Note Authors are Anonymous</Text>
                 </View>
                 <Text style={[{fontSize: 13, color: t.palette.contrast_600}]}>
                   Your note will be published using your Community Notes alias,
-                  without connections to your X profile.
+                  without connections to your Bluesky profile.
                 </Text>
               </View>
 
@@ -309,10 +320,8 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       <NoteSubmittedDialog
         control={submittedDialogControl}
         noteUri={submittedNoteUri}
-        onSeeNote={() => {
-          // TODO: Navigate to the submitted note
-          console.log('Navigate to submitted note:', submittedNoteUri)
-        }}
+        note={submittedNote}
+        onRefresh={handleRefresh}
       />
     </>
   )
