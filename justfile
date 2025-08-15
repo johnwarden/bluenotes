@@ -12,3 +12,7 @@ ios-simulator:
 
 ios:
 	npx expo run:ios
+
+deps:
+	yarn install --frozen-lockfile
+	cd bskyembed && yarn install --frozen-lockfile
