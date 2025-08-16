@@ -3,6 +3,7 @@ import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
+import {hasProposedNotes} from '#/lib/community-notes/labels'
 import {atoms as a, useTheme} from '#/alf'
 import {ArrowRight_Stroke2_Corner0_Rounded as ArrowRightIcon} from '#/components/icons/Arrow'
 import {CommunityNotes as CommunityIcon} from '#/components/icons/CommunityNotes'
@@ -29,6 +30,11 @@ export function RateCommunityNotesPromptDefault({
 }) {
   const {_} = useLingui()
   const t = useTheme()
+
+  // Only show prompt if post has proposed notes that need rating
+  if (!hasProposedNotes(post)) {
+    return null
+  }
 
   return (
     <Link
@@ -67,6 +73,11 @@ export function RateCommunityNotesPromptEmbedded({
 }) {
   const {_} = useLingui()
   const t = useTheme()
+
+  // Only show prompt if post has proposed notes that need rating
+  if (!hasProposedNotes(post)) {
+    return null
+  }
 
   return (
     <Link
