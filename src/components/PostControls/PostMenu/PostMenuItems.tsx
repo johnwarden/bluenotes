@@ -55,6 +55,7 @@ import {
 import {useRequireAuth, useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
 import * as Toast from '#/view/com/util/Toast'
+import {WriteNoteDialog} from '#/components/CommunityNotes/WriteNoteDialog'
 import {useDialogControl} from '#/components/Dialog'
 import {useGlobalDialogsControlContext} from '#/components/dialogs/Context'
 import {
@@ -64,6 +65,7 @@ import {
 import {Atom_Stroke2_Corner0_Rounded as AtomIcon} from '#/components/icons/Atom'
 import {BubbleQuestion_Stroke2_Corner0_Rounded as Translate} from '#/components/icons/Bubble'
 import {Clipboard_Stroke2_Corner2_Rounded as ClipboardIcon} from '#/components/icons/Clipboard'
+import {CommunityNotes} from '#/components/icons/CommunityNotes'
 import {
   EmojiSad_Stroke2_Corner0_Rounded as EmojiSad,
   EmojiSmile_Stroke2_Corner0_Rounded as EmojiSmile,
@@ -128,6 +130,7 @@ let PostMenuItems = ({
   const {mutedWordsDialogControl} = useGlobalDialogsControlContext()
   const blockPromptControl = useDialogControl()
   const reportDialogControl = useReportDialogControl()
+  const writeNoteDialogControl = useDialogControl()
   const deletePromptControl = useDialogControl()
   const hidePromptControl = useDialogControl()
   const postInteractionSettingsDialogControl = useDialogControl()
@@ -688,6 +691,16 @@ let PostMenuItems = ({
                     <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
                     <Menu.ItemIcon icon={Warning} position="right" />
                   </Menu.Item>
+
+                  <Menu.Item
+                    testID="postDropdownWriteNoteBtn"
+                    label={_(msg`Write a Community note`)}
+                    onPress={() => writeNoteDialogControl.open()}>
+                    <Menu.ItemText>
+                      {_(msg`Write a Community note`)}
+                    </Menu.ItemText>
+                    <Menu.ItemIcon icon={CommunityNotes} position="right" />
+                  </Menu.Item>
                 </>
               )}
 
@@ -754,6 +767,8 @@ let PostMenuItems = ({
           $type: 'app.bsky.feed.defs#postView',
         }}
       />
+
+      <WriteNoteDialog control={writeNoteDialogControl} postUri={post.uri} />
 
       <PostInteractionSettingsDialog
         control={postInteractionSettingsDialogControl}
