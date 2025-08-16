@@ -1,20 +1,24 @@
-import {useState} from 'react'
-import {ActivityIndicator, ScrollView, TextInput, View} from 'react-native'
+import {useMemo, useState} from 'react'
+import {ActivityIndicator, ScrollView, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
+import Graphemer from 'graphemer'
 
 import * as apilib from '#/lib/api/community-notes'
 import {RQKEY} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {useAgent} from '#/state/session'
+import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
 import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteSubmittedDialog} from '#/components/CommunityNotes/NoteSubmittedDialog'
 import * as Dialog from '#/components/Dialog'
+import * as TextField from '#/components/forms/TextField'
 import * as Toggle from '#/components/forms/Toggle'
+import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import {Person_Stroke2_Corner0_Rounded as PersonIcon} from '#/components/icons/Person'
 import {Text} from '#/components/Typography'
 
@@ -49,6 +53,62 @@ const REASONS = [
   },
 ]
 
+// Community Notes constants (matching X/Twitter)
+const COMMUNITY_NOTES_MAX_LENGTH = 280
+const URL_LENGTH = 23 // Twitter's standard URL length
+
+// URL detection utility
+const COMPLETE_URL_REGEX = /https?:\/\/[^\s]+/gi
+const URL_START_REGEX = /https?:\/\/\S*/gi
+
+function hasValidUrls(text: string): boolean {
+  const urls = text.match(COMPLETE_URL_REGEX)
+  return urls !== null && urls.length > 0
+}
+
+// Calculate character count with URLs counted as 23 characters each
+function calculateNoteLength(text: string): number {
+  const graphemer = new Graphemer()
+
+  // Find all URL-like patterns (including incomplete ones like "https://")
+  const urlMatches = text.match(URL_START_REGEX) || []
+
+  // Replace each URL pattern with a placeholder of URL_LENGTH characters
+  let processedText = text
+  urlMatches.forEach(url => {
+    processedText = processedText.replace(url, 'x'.repeat(URL_LENGTH))
+  })
+
+  return graphemer.countGraphemes(processedText)
+}
+
+// Validation warning component
+function ValidationWarning({message}: {message: string}) {
+  const t = useTheme()
+  return (
+    <View
+      style={[
+        a.flex_row,
+        a.align_center,
+        a.gap_sm,
+        a.px_md,
+        a.py_sm,
+        a.mt_sm,
+        a.rounded_md,
+        {
+          backgroundColor: t.palette.warning_25,
+          borderWidth: 1,
+          borderColor: t.palette.warning_200,
+        },
+      ]}>
+      <InfoIcon size="sm" style={[{color: t.palette.warning_700}]} />
+      <Text style={[a.flex_1, {color: t.palette.warning_700, fontSize: 14}]}>
+        {message}
+      </Text>
+    </View>
+  )
+}
+
 interface WriteNoteDialogProps {
   control: Dialog.DialogOuterProps['control']
   postUri: string
@@ -68,9 +128,49 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const [submissionError, setSubmissionError] = useState<string>('')
   const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
   const [submittedNote, setSubmittedNote] = useState<any>(null)
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
+
+  // Character counting with URL handling
+  const noteTextLength = useMemo(
+    () => calculateNoteLength(noteText),
+    [noteText],
+  )
+
+  // Validation logic
+  const validationErrors = useMemo(() => {
+    const errors: string[] = []
+
+    // Check if at least one reason is selected
+    if (selectedReasons.length === 0) {
+      errors.push('Select at least one')
+    }
+
+    // Check if explanation is provided
+    if (noteText.trim().length === 0) {
+      errors.push('Enter an explanation')
+    } else if (noteTextLength > COMMUNITY_NOTES_MAX_LENGTH) {
+      errors.push('Note is too long')
+    } else if (!hasValidUrls(noteText)) {
+      // Only check for sources if there's text but no URLs
+      errors.push("Your note doesn't include a source")
+    }
+
+    // Check if source trustworthiness is selected
+    if (hasReliableSources === null) {
+      errors.push('Select one')
+    }
+
+    return errors
+  }, [selectedReasons, noteText, noteTextLength, hasReliableSources])
+
+  const isFormValid = validationErrors.length === 0
+
+  const handleClose = () => {
+    setHasAttemptedSubmit(false)
+  }
 
   const handleRefresh = () => {
     // Invalidate the notes query to refresh the list
@@ -81,6 +181,13 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
   const handleSubmit = async () => {
     if (isSubmitting) return
+
+    setHasAttemptedSubmit(true)
+
+    // If form is invalid, don't proceed with submission
+    if (!isFormValid) {
+      return
+    }
 
     setIsSubmitting(true)
     setSubmissionError('')
@@ -104,6 +211,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       setSelectedReasons([])
       setNoteText('')
       setHasReliableSources(null)
+      setHasAttemptedSubmit(false)
       control.close()
 
       // Open success dialog with note URI
@@ -122,7 +230,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
   return (
     <>
-      <Dialog.Outer control={control}>
+      <Dialog.Outer control={control} onClose={handleClose}>
         <Dialog.Handle />
         <Dialog.ScrollableInner label={_(msg`Add a note`)}>
           <Dialog.Close />
@@ -179,6 +287,9 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                     </Toggle.Item>
                   ))}
                 </Toggle.Group>
+                {hasAttemptedSubmit && selectedReasons.length === 0 && (
+                  <ValidationWarning message="Select at least one" />
+                )}
               </View>
 
               {/* Note Writing Section */}
@@ -199,29 +310,37 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                     See examples
                   </ButtonText>
                 </Button>
-                <TextInput
-                  style={[
-                    a.border,
-                    a.rounded_md,
-                    a.p_md,
-                    {
-                      borderColor: t.palette.contrast_200,
-                      backgroundColor: t.palette.white,
-                      minHeight: 120,
-                      textAlignVertical: 'top',
-                      fontSize: 15,
-                      color: t.palette.contrast_950,
-                    },
-                  ]}
-                  placeholder="Your explanation"
-                  placeholderTextColor={t.palette.contrast_400}
-                  value={noteText}
-                  onChangeText={setNoteText}
-                  multiline
-                  numberOfLines={6}
-                  accessibilityLabel="Note text input"
-                  accessibilityHint="Enter your explanation for why this post needs context"
-                />
+
+                <View style={[a.relative]}>
+                  <TextField.Root
+                    isInvalid={
+                      hasAttemptedSubmit &&
+                      (noteText.trim().length === 0 ||
+                        noteTextLength > COMMUNITY_NOTES_MAX_LENGTH ||
+                        (noteText.trim().length > 0 && !hasValidUrls(noteText)))
+                    }>
+                    <TextField.Input
+                      label="Your explanation"
+                      placeholder="Your explanation"
+                      value={noteText}
+                      onChangeText={setNoteText}
+                      multiline
+                      style={[{minHeight: 120}]}
+                      accessibilityLabel="Note text input"
+                      accessibilityHint="Enter your explanation for why this post needs context"
+                    />
+                  </TextField.Root>
+
+                  {/* Character counter in top-right */}
+                  <View style={[a.absolute, {top: 8, right: 12}]}>
+                    <CharProgress
+                      count={noteTextLength}
+                      max={COMMUNITY_NOTES_MAX_LENGTH}
+                      size={20}
+                    />
+                  </View>
+                </View>
+
                 <Text
                   style={[
                     a.mt_sm,
@@ -229,6 +348,19 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                   ]}>
                   Be precise — providing links to outside sources is required.
                 </Text>
+                {hasAttemptedSubmit && noteText.trim().length === 0 && (
+                  <ValidationWarning message="Enter an explanation" />
+                )}
+                {hasAttemptedSubmit &&
+                  noteTextLength > COMMUNITY_NOTES_MAX_LENGTH && (
+                    <ValidationWarning message="Note is too long" />
+                  )}
+                {hasAttemptedSubmit &&
+                  noteText.trim().length > 0 &&
+                  noteTextLength <= COMMUNITY_NOTES_MAX_LENGTH &&
+                  !hasValidUrls(noteText) && (
+                    <ValidationWarning message="Your note doesn't include a source" />
+                  )}
               </View>
 
               {/* Source Verification Section */}
@@ -263,6 +395,9 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                     <Toggle.Radio />
                   </Toggle.Item>
                 </Toggle.Group>
+                {hasAttemptedSubmit && hasReliableSources === null && (
+                  <ValidationWarning message="Select one" />
+                )}
               </View>
 
               {/* Author Attribution Section */}
