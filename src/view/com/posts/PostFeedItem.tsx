@@ -375,6 +375,7 @@ let FeedItemInner = ({
               />
             )}
           <LabelsOnMyPost post={post} />
+          <DebugLabels post={post} />
           <PostContent
             moderation={moderation}
             richText={richText}
@@ -493,7 +494,6 @@ let PostContent = ({
       ) : null}
       {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
       <RateCommunityNotesPrompt post={post} />
-      <DebugLabels post={post} />
     </ContentHider>
   )
 }
