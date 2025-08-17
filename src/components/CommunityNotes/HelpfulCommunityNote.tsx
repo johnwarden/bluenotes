@@ -28,7 +28,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
   const {data: notes, isLoading, error} = useNotesQuery(post.uri)
 
   // Don't show helpful notes on the community notes rating page
-  if (route.name === 'CommunityNotes') {
+  if (route.name === 'CommunityNotesRating') {
     return null
   }
 

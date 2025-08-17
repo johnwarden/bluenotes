@@ -7,12 +7,12 @@ import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
-import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
 import {NoteCard} from '#/components/CommunityNotes/NoteCard'
 import {WriteANotePrompt} from '#/components/CommunityNotes/WriteANotePrompt'
 import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import * as Layout from '#/components/Layout'
+import {QuoteEmbed} from '#/components/Post/Embed'
 import {Text} from '#/components/Typography'
 
 type RateNotesScreenParams = {
@@ -73,8 +73,25 @@ export function RateNotesScreen() {
             ListHeaderComponent={
               post ? (
                 <View>
-                  <View style={[a.pb_xl]}>
-                    <Post post={post} />
+                  <View style={[a.pb_xl, a.px_lg]}>
+                    <QuoteEmbed
+                      embed={{
+                        type: 'post',
+                        view: {
+                          uri: post.uri,
+                          cid: post.cid,
+                          author: post.author,
+                          value: post.record,
+                          labels: post.labels,
+                          likeCount: post.likeCount,
+                          repostCount: post.repostCount,
+                          replyCount: post.replyCount,
+                          quoteCount: post.quoteCount,
+                          indexedAt: post.indexedAt,
+                          embeds: post.embed ? [post.embed] : undefined,
+                        },
+                      }}
+                    />
                   </View>
                   <View
                     style={[
