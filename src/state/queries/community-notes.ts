@@ -25,27 +25,14 @@ export function useNotesQuery(subjectUri: string) {
   const agent = useAgent()
   const queryClient = useQueryClient()
 
-  console.log('🔍 Debug: useNotesQuery called', {subjectUri, hasAgent: !!agent})
-
   const query = useQuery<CommunityNote[]>({
     queryKey: RQKEY(subjectUri),
     queryFn: async () => {
-      console.log('🔍 Debug: queryFn executing')
       try {
         const response = await apilib.getNotesForSubjects(agent, subjectUri)
-        console.log('🔍 Debug: API response', response)
-        console.log(
-          '🔍 Debug: First note viewer rating:',
-          response.notes[0]?.viewer?.rating,
-        )
 
         // Just map the response to notes first, don't update shadow cache yet
         const notes = response.notes.map(apiNote => {
-          console.log('🔍 Debug: Processing helpful note', {
-            uri: apiNote.uri,
-            val: apiNote.val,
-            hasNote: !!apiNote.note,
-          })
           return apilib.mapHelpfulNoteApiResponseToCommunityNote(apiNote)
         })
 
@@ -104,18 +91,11 @@ export function useProposalsQuery(subjectUri: string) {
   const agent = useAgent()
   const queryClient = useQueryClient()
 
-  console.log('🔍 Debug: useProposalsQuery called', {
-    subjectUri,
-    hasAgent: !!agent,
-  })
-
   const query = useQuery<CommunityNote[]>({
     queryKey: ['community-notes-proposals', subjectUri],
     queryFn: async () => {
-      console.log('🔍 Debug: proposals queryFn executing')
       try {
         const response = await apilib.getProposalsForSubject(agent, subjectUri)
-        console.log('🔍 Debug: Proposals API response', response)
 
         // Map the response to notes
         const notes = response.proposals.map(apiNote => {
