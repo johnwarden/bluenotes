@@ -44,113 +44,131 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
   const notesToShow = showAllNotes ? helpfulNotes : [primaryNote]
 
   return (
-    <View
-      style={[
-        a.mt_md,
-        a.rounded_lg,
-        a.border,
-        a.p_lg,
-        {
-          backgroundColor: t.palette.contrast_25,
-          borderColor: t.palette.contrast_200,
-        },
-      ]}>
-      {/* Header */}
-      <View style={[a.flex_row, a.align_center, a.gap_sm, a.mb_md]}>
-        <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
-        <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
-          <Trans>
-            Readers added context they thought people might want to know
-          </Trans>
-        </Text>
-      </View>
-
-      {/* Notes */}
-      {notesToShow.map((note, index) => (
-        <NoteContent
-          key={note.uri}
-          note={note}
-          isFirst={index === 0}
-          onShowDetails={() => noteDetailsControl.open()}
-        />
-      ))}
-
-      {/* Multiple notes controls */}
-      {hasMultipleNotes && (
-        <View style={[a.flex_row, a.gap_md, a.mt_md]}>
-          {!showAllNotes ? (
-            <Button
-              variant="ghost"
-              size="small"
-              label={_(
-                msg`Show ${helpfulNotes.length - 1} more note${helpfulNotes.length - 1 === 1 ? '' : 's'}`,
-              )}
-              onPress={() => setShowAllNotes(true)}>
-              <ButtonText style={[{color: t.palette.primary_500}]}>
-                <Trans>
-                  Show {helpfulNotes.length - 1} more note
-                  {helpfulNotes.length - 1 === 1 ? '' : 's'}
-                </Trans>
-              </ButtonText>
-            </Button>
-          ) : (
-            <Button
-              variant="ghost"
-              size="small"
-              label={_(msg`Show less`)}
-              onPress={() => setShowAllNotes(false)}>
-              <ButtonText style={[{color: t.palette.primary_500}]}>
-                <Trans>Show less</Trans>
-              </ButtonText>
-            </Button>
-          )}
-        </View>
-      )}
-
-      {/* Helpfulness rating section */}
+    <>
       <View
         style={[
-          a.flex_row,
-          a.align_center,
-          a.justify_between,
-          a.mt_lg,
-          a.pt_md,
-          a.border_t,
-          t.atoms.border_contrast_low,
+          a.mt_md,
+          a.rounded_lg,
+          a.border,
+          a.p_lg,
+          {
+            backgroundColor: t.palette.contrast_25,
+            borderColor: t.palette.contrast_200,
+          },
         ]}>
-        <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
-          <Trans>Do you find this helpful?</Trans>
-        </Text>
-        <Button
-          variant="outline"
-          size="small"
-          label={_(msg`Rate this note`)}
-          onPress={() => {
-            // TODO: Implement helpfulness rating
-            console.log('Rate helpfulness clicked')
-          }}>
-          <ButtonText style={[a.text_sm, t.atoms.text]}>
-            <Trans>Rate it</Trans>
-          </ButtonText>
-        </Button>
+        {/* Header with darker background */}
+        <View
+          style={[
+            a.flex_row,
+            a.align_center,
+            a.gap_sm,
+            a.p_md,
+            a.mb_md,
+            a.mx_neg_lg,
+            a.mt_neg_lg,
+            a.rounded_t_lg,
+            {backgroundColor: t.palette.contrast_50},
+          ]}>
+          <CommunityNotesIcon
+            size="sm"
+            style={{color: t.palette.primary_500}}
+          />
+          <Text style={[a.font_bold, a.text_md, t.atoms.text, a.flex_1]}>
+            <Trans>
+              Readers added context they thought people might want to know
+            </Trans>
+          </Text>
+        </View>
+
+        {/* Notes */}
+        {notesToShow.map((note, index) => (
+          <NoteContent
+            key={note.uri}
+            note={note}
+            isFirst={index === 0}
+            onShowDetails={() => noteDetailsControl.open()}
+          />
+        ))}
+
+        {/* Multiple notes controls */}
+        {hasMultipleNotes && (
+          <View style={[a.flex_row, a.gap_md, a.mt_md]}>
+            {!showAllNotes ? (
+              <Button
+                variant="ghost"
+                size="small"
+                label={_(
+                  msg`Show ${helpfulNotes.length - 1} more note${helpfulNotes.length - 1 === 1 ? '' : 's'}`,
+                )}
+                onPress={() => setShowAllNotes(true)}>
+                <ButtonText style={[{color: t.palette.primary_500}]}>
+                  <Trans>
+                    Show {helpfulNotes.length - 1} more note
+                    {helpfulNotes.length - 1 === 1 ? '' : 's'}
+                  </Trans>
+                </ButtonText>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="small"
+                label={_(msg`Show less`)}
+                onPress={() => setShowAllNotes(false)}>
+                <ButtonText style={[{color: t.palette.primary_500}]}>
+                  <Trans>Show less</Trans>
+                </ButtonText>
+              </Button>
+            )}
+          </View>
+        )}
+
+        {/* Helpfulness rating section */}
+        <View
+          style={[
+            a.flex_row,
+            a.align_center,
+            a.justify_between,
+            a.mt_lg,
+            a.pt_md,
+            a.border_t,
+            t.atoms.border_contrast_low,
+          ]}>
+          <Text style={[a.text_md, t.atoms.text]}>
+            <Trans>Do you find this helpful?</Trans>
+          </Text>
+          <Button
+            variant="solid"
+            color="secondary"
+            size="small"
+            shape="round"
+            label={_(msg`Rate this note`)}
+            onPress={() => {
+              // TODO: Implement helpfulness rating
+              console.log('Rate helpfulness clicked')
+            }}>
+            <ButtonText style={[a.text_sm]}>
+              <Trans>Rate it</Trans>
+            </ButtonText>
+          </Button>
+        </View>
+
+        {/* Note details dialog */}
+        <NoteDetailsDialog control={noteDetailsControl} note={primaryNote} />
       </View>
 
-      {/* Disclaimer */}
+      {/* Disclaimer outside the box */}
       <View style={[a.mt_md]}>
-        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+        <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
           <Trans>
             Context is written by people who use X, and appears when rated
             helpful by others.
           </Trans>{' '}
-          <Text style={[a.text_sm, {color: t.palette.primary_500}]}>
+          <Text style={[a.text_md, {color: t.palette.primary_500}]}>
             <Trans>Find out more.</Trans>
           </Text>
         </Text>
       </View>
-
-      {/* Note details dialog */}
-      <NoteDetailsDialog control={noteDetailsControl} note={primaryNote} />
-    </View>
+    </>
   )
 }
 
@@ -160,7 +178,11 @@ interface NoteContentProps {
   onShowDetails: () => void
 }
 
-function NoteContent({note, isFirst, onShowDetails}: NoteContentProps) {
+function NoteContent({
+  note,
+  isFirst,
+  onShowDetails: _onShowDetails,
+}: NoteContentProps) {
   const t = useTheme()
   const {_} = useLingui()
 
@@ -179,21 +201,7 @@ function NoteContent({note, isFirst, onShowDetails}: NoteContentProps) {
         </Text>
       </View>
 
-      {/* Note metadata - simplified like X */}
-      <View style={[a.flex_row, a.align_center, a.justify_between, a.mt_sm]}>
-        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-          {note.author.pseudonym}
-        </Text>
-        <Button
-          variant="ghost"
-          size="small"
-          label={_(msg`Show note details`)}
-          onPress={onShowDetails}>
-          <ButtonText style={[a.text_sm, {color: t.palette.primary_500}]}>
-            <Trans>Details</Trans>
-          </ButtonText>
-        </Button>
-      </View>
+      {/* X doesn't show author or details in the main display */}
     </View>
   )
 }
