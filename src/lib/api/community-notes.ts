@@ -65,7 +65,7 @@ export interface HelpfulNoteAPIResponse {
   typ: 'post_label'
   targetUri: string
   val: string
-  note: string // Required for helpful notes
+  note: string | {text: string; facets?: any[]} // Required for helpful notes, might be RichText object
   reasons?: string[]
   cts: string
   author: {
@@ -119,7 +119,10 @@ export function mapHelpfulNoteApiResponseToCommunityNote(
       cid: apiNote.cid,
     },
     label: apiNote.val,
-    text: apiNote.note, // Always present for helpful notes
+    text:
+      typeof apiNote.note === 'string'
+        ? apiNote.note
+        : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
     createdAt: apiNote.cts,
     noteId: apiNote.uri.split('/').pop() || apiNote.uri,
     status: 'rated_helpful', // Hardcoded since getNotesForSubjects only returns helpful notes
