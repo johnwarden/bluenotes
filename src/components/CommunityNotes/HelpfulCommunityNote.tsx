@@ -135,10 +135,14 @@ function NoteContent({note, isFirst, onShowDetails}: NoteContentProps) {
       {/* Note text */}
       <View style={[a.mb_sm]}>
         <RichText
-          value={{
-            text: note.text,
-            facets: [], // TODO: Parse facets from note text if needed
-          }}
+          value={
+            typeof note.text === 'string'
+              ? {
+                  text: note.text,
+                  facets: [], // TODO: Parse facets from note text if needed
+                }
+              : note.text // If note.text is already a RichText object
+          }
           style={[a.text_md, t.atoms.text]}
           enableTags={false}
         />
