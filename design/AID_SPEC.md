@@ -70,7 +70,7 @@ const creatorAid = generateAid(userDid, servicePrivateKey)
 
 // Create note with AID
 const noteRecord = {
-  $type: 'org.opencommunitynotes.proposal',
+  $type: 'social.pmsky.proposal',
   createdAt: new Date().toISOString(),
   creatorAid, // Base32 string: "mfrgg3dfmfrge2dfmfrgha"
   text: 'This claim needs more context...',

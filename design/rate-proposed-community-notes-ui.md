@@ -4,7 +4,7 @@ To start with, we just want to implement the UI for rating proposed community no
 
 For now let's add a static "Rate Proposed Community Notes" label under every post that leads to this "vote on notes" screen.
 
-To focus just on the UI, we will use mock data. We want a stub that fetches a list of (mock) notes given a post ID, and a stub function that stores the user's votes (but doesn't do anything). Let's create a static file at src/lib/mock-data/community-notes.ts that exports a mock note object conforming to the org.opencommunitynotes.label lexicon.
+To focus just on the UI, we will use mock data. We want a stub that fetches a list of (mock) notes given a post ID, and a stub function that stores the user's votes (but doesn't do anything). Let's create a static file at src/lib/mock-data/community-notes.ts that exports a mock note object conforming to the social.pmsky.label lexicon.
 
 After a user casts their vote, just show "You rated this note as ..." as shown in the screenshot after-rating.jpg.
 
