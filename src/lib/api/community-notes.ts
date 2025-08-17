@@ -79,7 +79,7 @@ export interface GetNotesForSubjectsResponse {
 }
 
 export interface GetProposalsForSubjectResponse {
-  proposals: CommunityNoteAPIResponse[]
+  notes: CommunityNoteAPIResponse[]
 }
 
 export interface RateProposalResponse {
@@ -119,7 +119,10 @@ export function mapHelpfulNoteApiResponseToCommunityNote(
       cid: apiNote.cid,
     },
     label: apiNote.val,
-    text: typeof apiNote.note === 'string' ? apiNote.note : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
+    text:
+      typeof apiNote.note === 'string'
+        ? apiNote.note
+        : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
     createdAt: apiNote.cts,
     noteId: apiNote.uri.split('/').pop() || apiNote.uri,
     status: 'rated_helpful', // Hardcoded since getNotesForSubjects only returns helpful notes
@@ -388,8 +391,8 @@ export async function getProposalsForSubject(
       }
 
       if (response.status === 404) {
-        // Return empty proposals array for 404s instead of throwing
-        return {proposals: []}
+        // Return empty notes array for 404s instead of throwing
+        return {notes: []}
       } else if (response.status === 401) {
         throw new Error('Authentication required. Please log in again.')
       }
