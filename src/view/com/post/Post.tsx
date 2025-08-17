@@ -74,6 +74,7 @@ export function Post({
     () => (moderationOpts ? moderatePost(post, moderationOpts) : undefined),
     [moderationOpts, post],
   )
+
   if (postShadowed === POST_TOMBSTONE) {
     return null
   }
