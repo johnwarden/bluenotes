@@ -9,7 +9,7 @@ import {
   hasProposedNotes,
 } from '#/lib/community-notes/labels'
 import {atoms as a, useTheme} from '#/alf'
-import {ChevronDown_Stroke2_Corner0_Rounded as ChevronDownIcon} from '#/components/icons/Chevron'
+import {ChevronBottom_Stroke2_Corner0_Rounded as ChevronDownIcon} from '#/components/icons/Chevron'
 import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {Text} from '#/components/Typography'
 
