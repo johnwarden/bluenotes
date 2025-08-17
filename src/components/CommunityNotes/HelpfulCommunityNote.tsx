@@ -11,7 +11,6 @@ import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
 import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
-import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
 
 interface HelpfulCommunityNoteProps {
@@ -134,18 +133,7 @@ function NoteContent({note, isFirst, onShowDetails}: NoteContentProps) {
       ]}>
       {/* Note text */}
       <View style={[a.mb_sm]}>
-        <RichText
-          value={
-            typeof note.text === 'string'
-              ? {
-                  text: note.text,
-                  facets: [], // TODO: Parse facets from note text if needed
-                }
-              : note.text // If note.text is already a RichText object
-          }
-          style={[a.text_md, t.atoms.text]}
-          enableTags={false}
-        />
+        <Text style={[a.text_md, t.atoms.text]}>{note.text}</Text>
       </View>
 
       {/* Note metadata */}
