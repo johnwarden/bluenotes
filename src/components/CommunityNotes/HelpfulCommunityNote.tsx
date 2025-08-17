@@ -50,23 +50,18 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           a.mt_md,
           a.rounded_lg,
           a.border,
-          a.p_lg,
           {
             backgroundColor: t.palette.contrast_25,
             borderColor: t.palette.contrast_200,
           },
         ]}>
-        {/* Header with darker background - no padding, extends to edges */}
+        {/* Header with darker background - extends to container edges */}
         <View
           style={[
             a.flex_row,
             a.align_center,
             a.gap_sm,
-            a.p_md,
-            a.mb_md,
-            a.mx_neg_lg,
-            a.mt_neg_lg,
-            a.px_lg, // Add back horizontal padding for content
+            a.p_lg, // Full padding for header content
             a.rounded_t_lg,
             {backgroundColor: t.palette.contrast_50},
           ]}>
@@ -81,60 +76,56 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           </Text>
         </View>
 
-        {/* Notes */}
-        {notesToShow.map((note, index) => (
-          <NoteContent
-            key={note.uri}
-            note={note}
-            isFirst={index === 0}
-            onShowDetails={() => noteDetailsControl.open()}
-          />
-        ))}
+        {/* Content area with padding */}
+        <View style={[a.p_lg, a.pt_md]}>
+          {/* Notes */}
+          {notesToShow.map((note, index) => (
+            <NoteContent
+              key={note.uri}
+              note={note}
+              isFirst={index === 0}
+              onShowDetails={() => noteDetailsControl.open()}
+            />
+          ))}
 
-        {/* Multiple notes controls */}
-        {hasMultipleNotes && (
-          <View style={[a.flex_row, a.gap_md, a.mt_md]}>
-            {!showAllNotes ? (
-              <Button
-                variant="ghost"
-                size="small"
-                label={_(
-                  msg`Show ${helpfulNotes.length - 1} more note${helpfulNotes.length - 1 === 1 ? '' : 's'}`,
-                )}
-                onPress={() => setShowAllNotes(true)}>
-                <ButtonText style={[{color: t.palette.primary_500}]}>
-                  <Trans>
-                    Show {helpfulNotes.length - 1} more note
-                    {helpfulNotes.length - 1 === 1 ? '' : 's'}
-                  </Trans>
-                </ButtonText>
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="small"
-                label={_(msg`Show less`)}
-                onPress={() => setShowAllNotes(false)}>
-                <ButtonText style={[{color: t.palette.primary_500}]}>
-                  <Trans>Show less</Trans>
-                </ButtonText>
-              </Button>
-            )}
-          </View>
-        )}
+          {/* Multiple notes controls */}
+          {hasMultipleNotes && (
+            <View style={[a.flex_row, a.gap_md, a.mt_md]}>
+              {!showAllNotes ? (
+                <Button
+                  variant="ghost"
+                  size="small"
+                  label={_(
+                    msg`Show ${helpfulNotes.length - 1} more note${helpfulNotes.length - 1 === 1 ? '' : 's'}`,
+                  )}
+                  onPress={() => setShowAllNotes(true)}>
+                  <ButtonText style={[{color: t.palette.primary_500}]}>
+                    <Trans>
+                      Show {helpfulNotes.length - 1} more note
+                      {helpfulNotes.length - 1 === 1 ? '' : 's'}
+                    </Trans>
+                  </ButtonText>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="small"
+                  label={_(msg`Show less`)}
+                  onPress={() => setShowAllNotes(false)}>
+                  <ButtonText style={[{color: t.palette.primary_500}]}>
+                    <Trans>Show less</Trans>
+                  </ButtonText>
+                </Button>
+              )}
+            </View>
+          )}
+        </View>
 
         {/* Horizontal line that goes edge-to-edge */}
-        <View
-          style={[
-            a.mx_neg_lg,
-            a.mt_lg,
-            a.border_t,
-            t.atoms.border_contrast_low,
-          ]}
-        />
+        <View style={[a.border_t, t.atoms.border_contrast_low]} />
 
         {/* Helpfulness rating section */}
-        <View style={[a.flex_row, a.align_center, a.justify_between, a.pt_md]}>
+        <View style={[a.p_lg, a.flex_row, a.align_center, a.justify_between]}>
           <Text style={[a.text_md, t.atoms.text]}>
             <Trans>Do you find this helpful?</Trans>
           </Text>
