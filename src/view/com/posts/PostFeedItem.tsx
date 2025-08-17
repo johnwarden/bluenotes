@@ -571,9 +571,9 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      <DebugLabels post={post} />
       {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
       <RateCommunityNotesPrompt post={post} />
+      <DebugLabels post={post} />
     </ContentHider>
   )
 }
