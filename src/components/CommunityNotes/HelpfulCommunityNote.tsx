@@ -50,20 +50,18 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           a.mt_md,
           a.rounded_lg,
           a.border,
-          {
-            backgroundColor: t.palette.contrast_25,
-            borderColor: t.palette.contrast_200,
-          },
+          t.atoms.bg, // Use theme background (works in dark mode)
+          t.atoms.border_contrast_low,
         ]}>
-        {/* Header with darker background - extends to container edges */}
+        {/* Header with RateCommunityNotesPrompt background color */}
         <View
           style={[
             a.flex_row,
             a.align_center,
             a.gap_sm,
-            a.p_lg, // Full padding for header content
+            a.p_md, // Reduced from a.p_lg
             a.rounded_t_lg,
-            {backgroundColor: t.palette.contrast_50},
+            t.atoms.bg_contrast_25, // Same as RateCommunityNotesPrompt
           ]}>
           <CommunityNotesIcon
             size="sm"
@@ -76,8 +74,8 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           </Text>
         </View>
 
-        {/* Content area with padding */}
-        <View style={[a.p_lg, a.pt_md]}>
+        {/* Content area with padding - lighter background */}
+        <View style={[a.p_md, a.pt_sm]}>
           {/* Notes */}
           {notesToShow.map((note, index) => (
             <NoteContent
@@ -125,7 +123,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
         <View style={[a.border_t, t.atoms.border_contrast_low]} />
 
         {/* Helpfulness rating section */}
-        <View style={[a.p_lg, a.flex_row, a.align_center, a.justify_between]}>
+        <View style={[a.p_md, a.flex_row, a.align_center, a.justify_between]}>
           <Text style={[a.text_md, t.atoms.text]}>
             <Trans>Do you find this helpful?</Trans>
           </Text>
@@ -145,7 +143,12 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
               // TODO: Implement helpfulness rating
               console.log('Rate helpfulness clicked')
             }}>
-            <ButtonText style={[{color: t.palette.primary_500}]}>
+            <ButtonText
+              style={[
+                a.text_md, // Bigger text
+                a.font_bold, // Bolder
+                t.atoms.text, // Black text (adapts to dark mode)
+              ]}>
               <Trans>Rate it</Trans>
             </ButtonText>
           </Button>
