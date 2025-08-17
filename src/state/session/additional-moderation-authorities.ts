@@ -1,5 +1,6 @@
 import {BskyAgent} from '@atproto/api'
 
+import {getCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
 import {logger} from '#/logger'
 import {device} from '#/storage'
 
@@ -86,7 +87,11 @@ export function configureAdditionalModerationAuthorities() {
   }
 
   const appLabelers = Array.from(
-    new Set([...BskyAgent.appLabelers, ...additionalLabelers]),
+    new Set([
+      ...BskyAgent.appLabelers,
+      ...additionalLabelers,
+      getCommunityNotesLabelerDid(), // Add Community Notes labeler
+    ]),
   )
 
   logger.info(`applying mod authorities`, {
