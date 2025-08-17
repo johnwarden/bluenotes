@@ -58,7 +58,7 @@ export interface CommunityNoteAPIResponse {
   }
 }
 
-export interface GetNotesForSubjectResponse {
+export interface GetNotesForSubjectsResponse {
   notes: CommunityNoteAPIResponse[]
 }
 
@@ -262,14 +262,18 @@ export async function createProposal(
   }
 }
 
-export async function getNotesForSubject(
+export async function getNotesForSubjects(
   agent: BskyAgent | null,
-  subjectUri: string,
-): Promise<GetNotesForSubjectResponse> {
+  subjectUris: string | string[],
+): Promise<GetNotesForSubjectsResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
   const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getNotesForSubject?uri=${encodeURIComponent(subjectUri)}`
+
+  // Handle both single URI and multiple URIs
+  const uris = Array.isArray(subjectUris) ? subjectUris : [subjectUris]
+  const uriParams = uris.map(uri => `uris=${encodeURIComponent(uri)}`).join('&')
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getNotesForSubjects?${uriParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
