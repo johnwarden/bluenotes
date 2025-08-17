@@ -10,7 +10,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
-import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
+import {People_Stroke2_Corner0_Rounded as PeopleIcon} from '#/components/icons/People'
 import {Text} from '#/components/Typography'
 
 interface HelpfulCommunityNoteProps {
@@ -57,7 +57,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
       ]}>
       {/* Header */}
       <View style={[a.flex_row, a.align_center, a.gap_sm, a.mb_md]}>
-        <InfoIcon size="sm" style={{color: t.palette.primary_500}} />
+        <PeopleIcon size="sm" style={{color: t.palette.primary_500}} />
         <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
           <Trans>
             Readers added context they thought people might want to know
@@ -107,6 +107,47 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
         </View>
       )}
 
+      {/* Helpfulness rating section */}
+      <View
+        style={[
+          a.flex_row,
+          a.align_center,
+          a.justify_between,
+          a.mt_lg,
+          a.pt_md,
+          a.border_t,
+          t.atoms.border_contrast_low,
+        ]}>
+        <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
+          <Trans>Do you find this helpful?</Trans>
+        </Text>
+        <Button
+          variant="outline"
+          size="small"
+          label={_(msg`Rate this note`)}
+          onPress={() => {
+            // TODO: Implement helpfulness rating
+            console.log('Rate helpfulness clicked')
+          }}>
+          <ButtonText style={[a.text_sm, t.atoms.text]}>
+            <Trans>Rate it</Trans>
+          </ButtonText>
+        </Button>
+      </View>
+
+      {/* Disclaimer */}
+      <View style={[a.mt_md]}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          <Trans>
+            Context is written by people who use X, and appears when rated
+            helpful by others.
+          </Trans>{' '}
+          <Text style={[a.text_sm, {color: t.palette.primary_500}]}>
+            <Trans>Find out more.</Trans>
+          </Text>
+        </Text>
+      </View>
+
       {/* Note details dialog */}
       <NoteDetailsDialog control={noteDetailsControl} note={primaryNote} />
     </View>
@@ -133,28 +174,21 @@ function NoteContent({note, isFirst, onShowDetails}: NoteContentProps) {
       ]}>
       {/* Note text */}
       <View style={[a.mb_sm]}>
-        <Text style={[a.text_md, t.atoms.text]}>{note.text}</Text>
+        <Text style={[a.text_md, t.atoms.text, {lineHeight: 20}]}>
+          {note.text}
+        </Text>
       </View>
 
-      {/* Note metadata */}
-      <View
-        style={[a.flex_row, a.align_center, a.justify_between, a.flex_wrap]}>
-        <View style={[a.flex_row, a.align_center, a.gap_sm]}>
-          <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-            {note.author.pseudonym}
-          </Text>
-          <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>•</Text>
-          <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-            Writing Impact: {note.author.writingImpact}
-          </Text>
-        </View>
-
+      {/* Note metadata - simplified like X */}
+      <View style={[a.flex_row, a.align_center, a.justify_between, a.mt_sm]}>
+        <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+          {note.author.pseudonym}
+        </Text>
         <Button
           variant="ghost"
           size="small"
           label={_(msg`Show note details`)}
-          onPress={onShowDetails}
-          style={[a.self_end]}>
+          onPress={onShowDetails}>
           <ButtonText style={[a.text_sm, {color: t.palette.primary_500}]}>
             <Trans>Details</Trans>
           </ButtonText>
