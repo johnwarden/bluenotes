@@ -20,6 +20,7 @@ export interface CommunityNoteView extends CommunityNote {
   }
 }
 
+// Hook for fetching approved/helpful notes (for display under posts)
 export function useNotesQuery(subjectUri: string) {
   const agent = useAgent()
   const queryClient = useQueryClient()
@@ -59,6 +60,91 @@ export function useNotesQuery(subjectUri: string) {
         return notes
       } catch (error) {
         console.error('Failed to fetch notes:', error)
+        // Fallback to empty array for now
+        // TODO: Implement proper error handling
+        return []
+      }
+    },
+    enabled: !!subjectUri,
+  })
+
+  // Update shadow cache after the query has succeeded and cache is populated
+  useEffect(() => {
+    if (query.isSuccess && query.data) {
+      const viewerRatings = (query.data as any)._viewerRatings
+      if (viewerRatings) {
+        console.log('🔍 Debug: Processing viewer ratings after cache update')
+        console.log('🔍 Debug: Viewer ratings from cache', viewerRatings)
+        for (const ratingData of viewerRatings) {
+          console.log('🔍 Debug: Checking rating data', ratingData)
+          if (ratingData.viewerRating) {
+            console.log('🔍 Debug: Found viewer rating data', ratingData)
+            const ratingState = apilib.mapApiRatingToNoteRatingState(
+              ratingData.viewerRating,
+            )
+            console.log('🔍 Debug: Mapped rating state', ratingState)
+            if (ratingState) {
+              updateNoteShadow(queryClient, ratingData.noteUri, {
+                rating: ratingState,
+              })
+              console.log(
+                '🔍 Debug: Updated shadow cache for note',
+                ratingData.noteUri,
+              )
+            }
+          } else {
+            console.log('🔍 Debug: No viewer rating for note', {
+              noteUri: ratingData.noteUri,
+              hasViewerRating: !!ratingData.viewerRating,
+            })
+          }
+        }
+      }
+    }
+  }, [query.isSuccess, query.data, queryClient])
+
+  return query
+}
+
+// Hook for fetching proposed notes that need ratings (for RateNotesScreen)
+export function useProposalsQuery(subjectUri: string) {
+  const agent = useAgent()
+  const queryClient = useQueryClient()
+
+  console.log('🔍 Debug: useProposalsQuery called', {
+    subjectUri,
+    hasAgent: !!agent,
+  })
+
+  const query = useQuery<CommunityNote[]>({
+    queryKey: ['community-notes-proposals', subjectUri],
+    queryFn: async () => {
+      console.log('🔍 Debug: proposals queryFn executing')
+      try {
+        const response = await apilib.getProposalsForSubject(agent, subjectUri)
+        console.log('🔍 Debug: Proposals API response', response)
+
+        // Map the response to notes
+        const notes = response.proposals.map(apiNote => {
+          console.log('🔍 Debug: Processing API proposal', {
+            uri: apiNote.uri,
+            hasViewer: !!apiNote.viewer,
+            viewerRating: apiNote.viewer?.rating,
+          })
+          return apilib.mapApiResponseToCommunityNote(apiNote)
+        })
+
+        // Store the rating data for later processing
+        const viewerRatings = response.proposals.map(apiNote => ({
+          noteUri: apiNote.uri,
+          viewerRating: apiNote.viewer?.rating,
+        }))
+        console.log('🔍 Debug: Proposal viewer ratings to store', viewerRatings)
+        ;(notes as any)._viewerRatings = viewerRatings
+
+        return notes
+      } catch (error) {
+        console.error('Failed to fetch proposals:', error)
         // Fallback to empty array for now
         // TODO: Implement proper error handling
         return []
