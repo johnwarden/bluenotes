@@ -98,7 +98,7 @@ export function useProposalsQuery(subjectUri: string) {
         const response = await apilib.getProposalsForSubject(agent, subjectUri)
 
         // Map the response to notes
-        const notes = response.proposals.map(apiNote => {
+        const notes = response.notes.map(apiNote => {
           console.log('🔍 Debug: Processing API proposal', {
             uri: apiNote.uri,
             hasViewer: !!apiNote.viewer,
@@ -108,7 +108,7 @@ export function useProposalsQuery(subjectUri: string) {
         })
 
         // Store the rating data for later processing
-        const viewerRatings = response.proposals.map(apiNote => ({
+        const viewerRatings = response.notes.map(apiNote => ({
           noteUri: apiNote.uri,
           viewerRating: apiNote.viewer?.rating,
         }))
