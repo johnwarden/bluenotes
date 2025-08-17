@@ -11,6 +11,7 @@ import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useActorStatus} from '#/lib/actor-status'
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {useTranslate} from '#/lib/hooks/useTranslate'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -42,6 +43,7 @@ import {
 import {atoms as a, useBreakpoints, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
+import {HelpfulCommunityNote} from '#/components/CommunityNotes/HelpfulCommunityNote'
 import {RateCommunityNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateCommunityNotesPrompt'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
@@ -412,6 +414,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               </View>
             )}
           </ContentHider>
+          {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
           <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}
