@@ -96,13 +96,13 @@ function ValidationWarning({message}: {message: string}) {
         a.mt_sm,
         a.rounded_md,
         {
-          backgroundColor: t.palette.warning_25,
+          backgroundColor: t.palette.negative_25,
           borderWidth: 1,
-          borderColor: t.palette.warning_200,
+          borderColor: t.palette.negative_200,
         },
       ]}>
-      <InfoIcon size="sm" style={[{color: t.palette.warning_700}]} />
-      <Text style={[a.flex_1, {color: t.palette.warning_700, fontSize: 14}]}>
+      <InfoIcon size="sm" style={[{color: t.palette.negative_700}]} />
+      <Text style={[a.flex_1, {color: t.palette.negative_700, fontSize: 14}]}>
         {message}
       </Text>
     </View>
@@ -204,7 +204,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
       // Store the note URI and create note object for the success dialog
       setSubmittedNoteUri(response.uri)
-      const noteObj = apilib.mapApiResponseToCommunityNote(response.proposal)
+      const noteObj = apilib.mapProposalApiResponseToCommunityNote(response.proposal)
       setSubmittedNote(noteObj)
 
       // Clear form and close dialog

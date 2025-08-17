@@ -119,10 +119,7 @@ export function mapHelpfulNoteApiResponseToCommunityNote(
       cid: apiNote.cid,
     },
     label: apiNote.val,
-    text:
-      typeof apiNote.note === 'string'
-        ? apiNote.note
-        : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
+    text: typeof apiNote.note === 'string' ? apiNote.note : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
     createdAt: apiNote.cts,
     noteId: apiNote.uri.split('/').pop() || apiNote.uri,
     status: 'rated_helpful', // Hardcoded since getNotesForSubjects only returns helpful notes
