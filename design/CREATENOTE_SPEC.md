@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `social.pmsky.createNote` endpoint allows authenticated users to create community notes (proposals) that add context or fact-checking information to any AT Protocol content. This endpoint is part of the Community Notes service that acts as both an App View and a record creator in the AT Protocol ecosystem.
+The `org.opencommunitynotes.createProposal` endpoint allows authenticated users to create community notes (proposals) that add context or fact-checking information to any AT Protocol content. This endpoint is part of the Community Notes service that acts as both an App View and a record creator in the AT Protocol ecosystem.
 
 ## Architecture
 
@@ -28,7 +28,7 @@ This "write-before-read" pattern ensures `getNotesForSubject` immediately shows 
 ### Endpoint
 
 ```
-POST /xrpc/social.pmsky.createNote
+POST /xrpc/org.opencommunitynotes.createProposal
 ```
 
 ### Authentication
