@@ -1,3 +1,4 @@
+import {useMemo} from 'react'
 import {ActivityIndicator, FlatList, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -43,6 +44,16 @@ export function RateNotesScreen() {
     error: notesError,
   } = useProposalsQuery(uri)
 
+  // Create a version of the post without the proposed-note label
+  // This prevents the RateCommunityNotesPrompt from showing in QuoteEmbed
+  const postWithoutProposedNoteLabel = useMemo(() => {
+    if (!post) return post
+    return {
+      ...post,
+      labels: post.labels?.filter(label => label.val !== 'proposed-note') || [],
+    }
+  }, [post])
+
   useSetTitle(_(msg`Rate notes`))
 
   const renderItem = ({item}: {item: CommunityNote}) => <NoteCard note={item} />
@@ -71,24 +82,26 @@ export function RateNotesScreen() {
             renderItem={renderItem}
             keyExtractor={item => item.author.aid}
             ListHeaderComponent={
-              post ? (
+              postWithoutProposedNoteLabel ? (
                 <View>
                   <View style={[a.pb_xl, a.px_lg]}>
                     <QuoteEmbed
                       embed={{
                         type: 'post',
                         view: {
-                          uri: post.uri,
-                          cid: post.cid,
-                          author: post.author,
-                          value: post.record,
-                          labels: post.labels,
-                          likeCount: post.likeCount,
-                          repostCount: post.repostCount,
-                          replyCount: post.replyCount,
-                          quoteCount: post.quoteCount,
-                          indexedAt: post.indexedAt,
-                          embeds: post.embed ? [post.embed] : undefined,
+                          uri: postWithoutProposedNoteLabel.uri,
+                          cid: postWithoutProposedNoteLabel.cid,
+                          author: postWithoutProposedNoteLabel.author,
+                          value: postWithoutProposedNoteLabel.record,
+                          labels: postWithoutProposedNoteLabel.labels,
+                          likeCount: postWithoutProposedNoteLabel.likeCount,
+                          repostCount: postWithoutProposedNoteLabel.repostCount,
+                          replyCount: postWithoutProposedNoteLabel.replyCount,
+                          quoteCount: postWithoutProposedNoteLabel.quoteCount,
+                          indexedAt: postWithoutProposedNoteLabel.indexedAt,
+                          embeds: postWithoutProposedNoteLabel.embed
+                            ? [postWithoutProposedNoteLabel.embed]
+                            : undefined,
                         },
                       }}
                     />
