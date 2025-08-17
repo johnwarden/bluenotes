@@ -23,7 +23,7 @@ Once a user is authenticated, the Community Notes service will perform additiona
 
 All endpoints are rooted at `/xrpc/social.pmsky`.
 
-### `social.pmsky.createNote`
+### `org.opencommunitynotes.createProposal`
 
 Creates a new note on a piece of content.
 
@@ -37,7 +37,7 @@ Creates a new note on a piece of content.
 *   **Response**:
     *   **200 OK**: The note was successfully created. The body will contain a strong reference to the newly created note record.
 
-### `social.pmsky.rateNote`
+### `org.opencommunitynotes.rateProposal`
 
 Creates, updates, or deletes a rating on a note.
 
@@ -51,7 +51,7 @@ Creates, updates, or deletes a rating on a note.
 *   **Response**:
     *   **200 OK**: The rating was successfully created/updated/deleted. The body will contain a strong reference to the rating record.
 
-### `social.pmsky.getNotesForSubject`
+### `org.opencommunitynotes.getProposalsForSubject`
 
 Retrieves all notes for a given subject (e.g., a post URI).
 
@@ -62,24 +62,3 @@ Retrieves all notes for a given subject (e.g., a post URI).
 *   **Response**:
     *   **200 OK**: An array of `NoteView` objects. A `NoteView` is a `social.pmsky.label` record hydrated with the viewer's rating (if authenticated) and other relevant metadata.
 
-### `social.pmsky.getNotesRatedByViewer`
-
-Retrieves all notes that the authenticated user has rated.
-
-*   **Method**: `GET`
-*   **Authentication**: Required.
-*   **Parameters**:
-    *   None.
-*   **Response**:
-    *   **200 OK**: An array of `NoteView` objects, ordered by the date of the rating.
-
-### `social.pmsky.getNotesNeedingRating`
-
-Retrieves notes that the system has prioritized for the authenticated user to rate.
-
-*   **Method**: `GET`
-*   **Authentication**: Required.
-*   **Parameters**:
-    *   None.
-*   **Response**:
-    *   **200 OK**: An array of `NoteView` objects, ordered by the system's priority.

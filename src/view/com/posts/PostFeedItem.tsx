@@ -39,6 +39,7 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {HelpfulCommunityNote} from '#/components/CommunityNotes/HelpfulCommunityNote'
 import {RateCommunityNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateCommunityNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -490,6 +491,7 @@ let PostContent = ({
           />
         </View>
       ) : null}
+      <DebugLabels post={post} />
       {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
       <RateCommunityNotesPrompt post={post} />
     </ContentHider>
