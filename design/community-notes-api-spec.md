@@ -21,37 +21,37 @@ Once a user is authenticated, the Community Notes service will perform additiona
 
 ## API Endpoints
 
-All endpoints are rooted at `/xrpc/org.opencommunitynotes`.
+All endpoints are rooted at `/xrpc/social.pmsky`.
 
-### `org.opencommunitynotes.createNote`
+### `social.pmsky.createNote`
 
 Creates a new note on a piece of content.
 
 *   **Method**: `POST`
-*   **Lexicon**: `org.opencommunitynotes.label` (A note is a specific type of label)
+*   **Lexicon**: `social.pmsky.label` (A note is a specific type of label)
 *   **Authentication**: Required.
 *   **Authorization**:
     *   The user must have a "rating impact score" above the required threshold.
 *   **Request Body**:
-    *   A valid `org.opencommunitynotes.label` record.
+    *   A valid `social.pmsky.label` record.
 *   **Response**:
     *   **200 OK**: The note was successfully created. The body will contain a strong reference to the newly created note record.
 
-### `org.opencommunitynotes.rateNote`
+### `social.pmsky.rateNote`
 
 Creates, updates, or deletes a rating on a note.
 
 *   **Method**: `POST`
-*   **Lexicon**: `org.opencommunitynotes.rating`
+*   **Lexicon**: `social.pmsky.rating`
 *   **Authentication**: Required.
 *   **Authorization**:
     *   The user must have a "rating impact score" above the required threshold for rating.
 *   **Request Body**:
-    *   A valid `org.opencommunitynotes.rating` record. To delete a rating, the `val` should be set to an empty string.
+    *   A valid `social.pmsky.rating` record. To delete a rating, the `val` should be set to an empty string.
 *   **Response**:
     *   **200 OK**: The rating was successfully created/updated/deleted. The body will contain a strong reference to the rating record.
 
-### `org.opencommunitynotes.getNotesForSubject`
+### `social.pmsky.getNotesForSubject`
 
 Retrieves all notes for a given subject (e.g., a post URI).
 
@@ -60,9 +60,9 @@ Retrieves all notes for a given subject (e.g., a post URI).
 *   **Parameters**:
     *   `uri` (string, required): The URI of the subject content.
 *   **Response**:
-    *   **200 OK**: An array of `NoteView` objects. A `NoteView` is a `org.opencommunitynotes.label` record hydrated with the viewer's rating (if authenticated) and other relevant metadata.
+    *   **200 OK**: An array of `NoteView` objects. A `NoteView` is a `social.pmsky.label` record hydrated with the viewer's rating (if authenticated) and other relevant metadata.
 
-### `org.opencommunitynotes.getNotesRatedByViewer`
+### `social.pmsky.getNotesRatedByViewer`
 
 Retrieves all notes that the authenticated user has rated.
 
@@ -73,7 +73,7 @@ Retrieves all notes that the authenticated user has rated.
 *   **Response**:
     *   **200 OK**: An array of `NoteView` objects, ordered by the date of the rating.
 
-### `org.opencommunitynotes.getNotesNeedingRating`
+### `social.pmsky.getNotesNeedingRating`
 
 Retrieves notes that the system has prioritized for the authenticated user to rate.
 

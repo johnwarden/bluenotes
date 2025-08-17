@@ -1,6 +1,6 @@
 # Community Notes Rating: State Management Specification
 
-This document outlines the technical specification for implementing the client-side state management for creating, updating, and deleting `org.opencommunitynotes.rating` records.
+This document outlines the technical specification for implementing the client-side state management for creating, updating, and deleting `social.pmsky.rating` records.
 
 The architecture is designed to provide a robust, optimistic UI experience by mirroring the state management patterns used for "likes" and other post interactions. It relies on a combination of a mutation queue, a shadow cache for optimistic updates, and fetching server-confirmed state from the AppView.
 
@@ -13,7 +13,7 @@ This object represents the complete state of a user's rating on a single note an
 ```typescript
 // src/state/queries/community-notes.ts
 export interface NoteRatingState {
-  uri?: string; // AT-URI of the org.opencommunitynotes.rating record. Present after creation.
+  uri?: string; // AT-URI of the social.pmsky.rating record. Present after creation.
   val: 'helpful' | 'somewhat_helpful' | 'not_helpful' | null;
   reasons: string[];
 }
@@ -60,7 +60,7 @@ The architecture consists of three main parts: a query to fetch data, a mutation
     -   `updateNoteShadow()`: A function used by the mutation queue to apply optimistic changes to the shadow cache.
 
 -   **`src/lib/api/community-notes.ts`:**
-    -   Contains wrappers (`createNoteRating`, etc.) that construct the `org.opencommunitynotes.rating` record and call the appropriate PDS `createRecord`, `putRecord`, or `deleteRecord` methods.
+    -   Contains wrappers (`createNoteRating`, etc.) that construct the `social.pmsky.rating` record and call the appropriate PDS `createRecord`, `putRecord`, or `deleteRecord` methods.
 
 ### 2.2. UI Flow and User Interactions
 

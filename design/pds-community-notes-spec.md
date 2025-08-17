@@ -15,27 +15,27 @@ The PDS **does not** require any new or custom XRPC endpoints. All interactions 
 *   `com.atproto.repo.deleteRecord`
 
 The primary responsibilities of the PDS are:
-1.  **Lexicon Awareness**: Ingesting and understanding the new `org.opencommunitynotes` lexicon.
-2.  **Record Validation**: Enforcing strict validation on incoming `org.opencommunitynotes.rating` records to ensure data integrity.
+1.  **Lexicon Awareness**: Ingesting and understanding the new `social.pmsky` lexicon.
+2.  **Record Validation**: Enforcing strict validation on incoming `social.pmsky.rating` records to ensure data integrity.
 
 ## 2. Lexicon Installation
 
 To process and validate community notes records, the PDS must have the following lexicon schemas installed:
 
-1.  `org.opencommunitynotes.label`
-2.  `org.opencommunitynotes.rating`
+1.  `social.pmsky.label`
+2.  `social.pmsky.rating`
 
 The PDS will use these schemas to validate the structure of records during write operations.
 
-## 3. Record Validation: `org.opencommunitynotes.rating`
+## 3. Record Validation: `social.pmsky.rating`
 
-The PDS MUST enforce the following validation rules upon receiving a `createRecord` or `putRecord` request for an `org.opencommunitynotes.rating` record.
+The PDS MUST enforce the following validation rules upon receiving a `createRecord` or `putRecord` request for an `social.pmsky.rating` record.
 
 ### 3.1. Field-Level Validation
 
 | Field | Type | Rules |
 | :--- | :--- | :--- |
-| `subject` | `com.atproto.repo.strongRef` | **Required.** Must be a valid strong reference to an existing `org.opencommunitynotes.label` record. The PDS should verify that the target `uri` and `cid` exist and correspond to a record of the correct type. |
+| `subject` | `com.atproto.repo.strongRef` | **Required.** Must be a valid strong reference to an existing `social.pmsky.label` record. The PDS should verify that the target `uri` and `cid` exist and correspond to a record of the correct type. |
 | `val` | `string` | **Required.** The value must be one of `"helpful"`, `"somewhat_helpful"`, or `"not_helpful"`. |
 | `reasons` | `string[]` | **Optional.** If present, the PDS must validate its contents based on the value of the `val` field. See section 3.2. |
 | `aid` | `string` | **Required.** The value must be a deterministically generated anonymous ID. See section 4 for validation rules. |
@@ -74,7 +74,7 @@ To ensure anonymity and prevent trivial spoofing, the PDS MUST validate the `aid
 1.  **Get Authenticated User's DID**: The PDS must identify the DID of the user making the `createRecord`/`putRecord` request.
 2.  **Derive Expected `aid`**: The PDS will compute the expected `aid` using the same method as the client:
     ```
-    expected_aid = "org.opencommunitynotes:" + sha256_hex(user.did)
+    expected_aid = "social.pmsky:" + sha256_hex(user.did)
     ```
 3.  **Compare and Verify**: The PDS must compare the `aid` field in the incoming record with the `expected_aid`. If they do not match exactly, the request MUST be rejected with an `InvalidRequest` error.
 

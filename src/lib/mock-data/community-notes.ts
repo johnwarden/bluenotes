@@ -14,7 +14,7 @@ export interface NoteAuthor {
 }
 
 export interface CommunityNote {
-  $type: 'org.opencommunitynotes.proposal'
+  $type: 'social.pmsky.proposal'
   typ: 'post_label'
   subject: CommunityNoteSubjectRef
   label: string
@@ -27,7 +27,7 @@ export interface CommunityNote {
 }
 
 const mockNote: CommunityNote = {
-  $type: 'org.opencommunitynotes.proposal',
+  $type: 'social.pmsky.proposal',
   typ: 'post_label',
   subject: {
     uri: 'at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/3kabc123xyz',
@@ -38,7 +38,7 @@ const mockNote: CommunityNote = {
   createdAt: new Date().toISOString(),
   noteId: '1939063431312875687',
   status: 'needs_more_ratings',
-  uri: 'at://did:plc:xxxxxxxxxxxx/org.opencommunitynotes.proposal/3kprop123abc',
+  uri: 'at://did:plc:xxxxxxxxxxxx/social.pmsky.proposal/3kprop123abc',
   author: {
     aid: 'anon:ab34fec9de56',
     pseudonym: 'Respectful Cave Falcon',

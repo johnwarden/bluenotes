@@ -2,7 +2,7 @@
 
 This document specifies the API for fetching community notes and their associated rating data from the AppView. It is designed to provide clients with the necessary information to display notes on a given subject and show the current user's rating, if available.
 
-## 1. Endpoint: `org.opencommunitynotes.getNotes`
+## 1. Endpoint: `social.pmsky.getNotes`
 
 This endpoint retrieves all community notes associated with a specific content URI. It does not require authentication, but can optionally include user-specific rating data if a `aid` is provided.
 
@@ -24,8 +24,8 @@ Each object in the `notes` array has the following structure:
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
-| `uri` | `string` | The AT-URI of the `org.opencommunitynotes.label` record. |
-| `cid` | `string` | The CID of the `org.opencommunitynotes.label` record. |
+| `uri` | `string` | The AT-URI of the `social.pmsky.label` record. |
+| `cid` | `string` | The CID of the `social.pmsky.label` record. |
 | `author` | `object` | Information about the note's author. |
 | `label` | `string` | The primary label string (e.g., `needs-context`). |
 | `reason`| `string` | The specific reason for the label (e.g., `factual_error`). |
@@ -47,7 +47,7 @@ Each object in the `notes` array has the following structure:
 | :--- | :--- | :--- |
 | `rating` | `string` | The rating value cast by the viewer. Must be one of `'helpful'`, `'somewhat_helpful'`, or `'not_helpful'`. |
 | `reasons`| `string[]` | An array of predefined reasons justifying the rating. |
-| `uri` | `string` | The AT-URI of the viewer's `org.opencommunitynotes.rating` record, which is necessary for client-side updates or deletions. |
+| `uri` | `string` | The AT-URI of the viewer's `social.pmsky.rating` record, which is necessary for client-side updates or deletions. |
 
 ### 1.3. Example Response
 
@@ -55,10 +55,10 @@ Each object in the `notes` array has the following structure:
 {
   "notes": [
     {
-      "uri": "at://did:plc:pds_host_did/org.opencommunitynotes.label/3klabelrecordkey",
+      "uri": "at://did:plc:pds_host_did/social.pmsky.label/3klabelrecordkey",
       "cid": "bafyreidddddddddddddddddddddddddddddddddddd",
       "author": {
-        "aid": "org.opencommunitynotes:ab34fec9de56",
+        "aid": "social.pmsky:ab34fec9de56",
         "pseudonym": "Helpful Hedgehog"
       },
       "label": "needs-context",
@@ -69,7 +69,7 @@ Each object in the `notes` array has the following structure:
       "viewer": {
         "rating": "helpful",
         "reasons": ["cites_high_quality_sources"],
-        "uri": "at://did:plc:user_pds_did/org.opencommunitynotes.rating/3kratingrecordkey"
+        "uri": "at://did:plc:user_pds_did/social.pmsky.rating/3kratingrecordkey"
       }
     }
   ]

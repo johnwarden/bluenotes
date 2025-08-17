@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `org.opencommunitynotes.createNote` endpoint allows authenticated users to create community notes (proposals) that add context or fact-checking information to any AT Protocol content. This endpoint is part of the Community Notes service that acts as both an App View and a record creator in the AT Protocol ecosystem.
+The `social.pmsky.createNote` endpoint allows authenticated users to create community notes (proposals) that add context or fact-checking information to any AT Protocol content. This endpoint is part of the Community Notes service that acts as both an App View and a record creator in the AT Protocol ecosystem.
 
 ## Architecture
 
@@ -11,7 +11,7 @@ The `org.opencommunitynotes.createNote` endpoint allows authenticated users to c
 The Community Notes service has a unique dual role:
 
 1. **App View**: Maintains local database for fast query responses via `getNotesForSubject`
-2. **Record Creator**: Creates `org.opencommunitynotes.proposal` records in AT Protocol using a service account
+2. **Record Creator**: Creates `social.pmsky.proposal` records in AT Protocol using a service account
 
 ### State Management Strategy
 
@@ -28,7 +28,7 @@ This "write-before-read" pattern ensures `getNotesForSubject` immediately shows 
 ### Endpoint
 
 ```
-POST /xrpc/org.opencommunitynotes.createNote
+POST /xrpc/social.pmsky.createNote
 ```
 
 ### Authentication
@@ -73,13 +73,13 @@ POST /xrpc/org.opencommunitynotes.createNote
 
 ```json
 {
-  "uri": "at://service-did/org.opencommunitynotes.proposal/abc123",
+  "uri": "at://service-did/social.pmsky.proposal/abc123",
   "cid": "bafy...",
   "proposal": {
-    "uri": "at://service-did/org.opencommunitynotes.proposal/abc123",
+    "uri": "at://service-did/social.pmsky.proposal/abc123",
     "cid": "bafy...",
     "author": {
-      "aid": "org.opencommunitynotes:abc123",
+      "aid": "social.pmsky:abc123",
       "pseudonym": "Thoughtful Beaver"
     },
     "typ": "post_label",
@@ -113,7 +113,7 @@ interface RecordTable {
   uri: string // AT Protocol URI (primary key)
   cid: string // AT Protocol CID
   did: string // Service account DID (all records created by service)
-  collection: string // 'org.opencommunitynotes.proposal'
+  collection: string // 'social.pmsky.proposal'
   rkey: string // Record key
   record: object // Full JSON record content (JSONB for efficient querying)
   indexedAt: string // For sorting/pagination
@@ -167,9 +167,9 @@ class CommunityNotesService {
   async createProposalRecord(input: CreateNoteInput, userAid: string) {
     return this.pdsClient.com.atproto.repo.createRecord({
       repo: this.serviceAccount.did,
-      collection: 'org.opencommunitynotes.proposal',
+      collection: 'social.pmsky.proposal',
       record: {
-        $type: 'org.opencommunitynotes.proposal',
+        $type: 'social.pmsky.proposal',
         typ: input.typ,
         src: this.serviceAccount.did,
         uri: input.uri,
@@ -191,7 +191,7 @@ class CommunityNotesService {
 2. Parse PDS URL from token (simplified: use default for dev)
 3. Call `com.atproto.server.getSession` on user's PDS
 4. Extract user DID from session response
-5. Generate anonymous ID: `org.opencommunitynotes:${sha256(userDid).substring(0,12)}`
+5. Generate anonymous ID: `social.pmsky:${sha256(userDid).substring(0,12)}`
 6. Check user's writing impact score (placeholder: always allow)
 
 ### Request Flow
@@ -226,7 +226,7 @@ async function createNote(input, req) {
     uri: atProtoRecord.uri,
     cid: atProtoRecord.cid,
     did: serviceAccount.did,
-    collection: 'org.opencommunitynotes.proposal',
+    collection: 'social.pmsky.proposal',
     rkey: atProtoRecord.rkey,
     record: atProtoRecord.record,
     indexedAt: new Date().toISOString(),
@@ -274,7 +274,7 @@ export async function up(db: Kysely<unknown>): Promise<void> {
     .createIndex('record_target_uri_idx')
     .on('record')
     .expression(`(record->>'uri')`)
-    .where('collection', '=', 'org.opencommunitynotes.proposal')
+    .where('collection', '=', 'social.pmsky.proposal')
     .execute()
 }
 ```
@@ -376,7 +376,7 @@ async function checkExistingNoteByUser(
   const query = ctx.db.db
     .selectFrom('record')
     .select(['uri'])
-    .where('collection', '=', 'org.opencommunitynotes.proposal')
+    .where('collection', '=', 'social.pmsky.proposal')
     .where(sql`record->>'uri'`, '=', targetUri)
     .where(sql`record->>'aid'`, '=', creatorAid)
     .where(
