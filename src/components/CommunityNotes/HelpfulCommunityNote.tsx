@@ -3,6 +3,7 @@ import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {useRoute} from '@react-navigation/native'
 
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useNotesQuery} from '#/state/queries/community-notes'
@@ -21,10 +22,15 @@ interface HelpfulCommunityNoteProps {
 export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
   const t = useTheme()
   const {_} = useLingui()
+  const route = useRoute()
   const [showAllNotes, setShowAllNotes] = useState(false)
   const noteDetailsControl = Dialog.useDialogControl()
-
   const {data: notes, isLoading, error} = useNotesQuery(post.uri)
+
+  // Don't show helpful notes on the community notes rating page
+  if (route.name === 'CommunityNotes') {
+    return null
+  }
 
   // Don't render if no notes or still loading
   if (isLoading || error || !notes || notes.length === 0) {
