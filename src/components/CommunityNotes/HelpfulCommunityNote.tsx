@@ -11,6 +11,7 @@ import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
+import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
 interface HelpfulCommunityNoteProps {
@@ -127,8 +128,10 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           <Text style={[a.text_md, t.atoms.text]}>
             <Trans>Do you find this helpful?</Trans>
           </Text>
-          <Button
-            variant="ghost"
+          <Link
+            to={`/profile/${post.author.handle}/post/${post.uri
+              .split('/')
+              .pop()}/community-notes`}
             label={_(msg`Rate this note`)}
             style={[
               {
@@ -137,21 +140,19 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
                 paddingHorizontal: 12,
                 paddingVertical: 6,
                 borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
               },
-            ]}
-            onPress={() => {
-              // TODO: Implement helpfulness rating
-              console.log('Rate helpfulness clicked')
-            }}>
-            <ButtonText
+            ]}>
+            <Text
               style={[
                 a.text_md, // Bigger text
                 a.font_bold, // Bolder
                 t.atoms.text, // Black text (adapts to dark mode)
               ]}>
               <Trans>Rate it</Trans>
-            </ButtonText>
-          </Button>
+            </Text>
+          </Link>
         </View>
 
         {/* Note details dialog */}
