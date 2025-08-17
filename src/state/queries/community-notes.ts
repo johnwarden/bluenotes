@@ -32,7 +32,7 @@ export function useNotesQuery(subjectUri: string) {
     queryFn: async () => {
       console.log('🔍 Debug: queryFn executing')
       try {
-        const response = await apilib.getNotesForSubject(agent, subjectUri)
+        const response = await apilib.getNotesForSubjects(agent, subjectUri)
         console.log('🔍 Debug: API response', response)
         console.log(
           '🔍 Debug: First note viewer rating:',
