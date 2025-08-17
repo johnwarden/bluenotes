@@ -5,7 +5,7 @@ import {type RouteProp, useRoute} from '@react-navigation/native'
 
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
-import {useNotesQuery} from '#/state/queries/community-notes'
+import {useProposalsQuery} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
@@ -41,7 +41,7 @@ export function RateNotesScreen() {
     data: notes,
     isLoading: isLoadingNotes,
     error: notesError,
-  } = useNotesQuery(uri)
+  } = useProposalsQuery(uri)
 
   useSetTitle(_(msg`Rate notes`))
 
