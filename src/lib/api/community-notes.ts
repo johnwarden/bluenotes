@@ -62,7 +62,7 @@ export interface GetNotesForSubjectResponse {
   notes: CommunityNoteAPIResponse[]
 }
 
-export interface RateNoteResponse {
+export interface RateProposalResponse {
   success: boolean
   rating: {
     uri: string
@@ -73,7 +73,7 @@ export interface RateNoteResponse {
   }
 }
 
-export interface CreateNoteRequest {
+export interface CreateProposalRequest {
   typ: 'post_label'
   uri: string // target post URI
   val: 'needs-context'
@@ -81,7 +81,7 @@ export interface CreateNoteRequest {
   reasons: string[]
 }
 
-export interface CreateNoteResponse {
+export interface CreateProposalResponse {
   uri: string
   cid: string
   proposal: CommunityNoteAPIResponse
@@ -92,7 +92,7 @@ export function mapApiResponseToCommunityNote(
   apiNote: CommunityNoteAPIResponse,
 ): CommunityNote {
   return {
-    $type: 'org.opencommunitynotes.proposal',
+    $type: 'social.pmsky.proposal',
     typ: 'post_label',
     subject: {
       uri: apiNote.targetUri,
@@ -126,12 +126,12 @@ export function mapApiRatingToNoteRatingState(
   }
 }
 
-export async function rateNote(
+export async function rateProposal(
   agent: BskyAgent,
   noteUri: string,
   value: VoteValue,
   reasons: string[],
-): Promise<RateNoteResponse> {
+): Promise<RateProposalResponse> {
   if (!agent.session) {
     throw new Error('Must be logged in to rate a note')
   }
@@ -142,7 +142,7 @@ export async function rateNote(
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateNote`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateProposal`
 
   try {
     const response = await fetch(url, {
@@ -188,12 +188,12 @@ export async function rateNote(
   }
 }
 
-export async function createNote(
+export async function createProposal(
   agent: BskyAgent,
   targetUri: string,
   noteText: string,
   reasons: string[],
-): Promise<CreateNoteResponse> {
+): Promise<CreateProposalResponse> {
   if (!agent.session) {
     throw new Error('Must be logged in to create a note')
   }
@@ -201,9 +201,9 @@ export async function createNote(
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.createNote`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.createProposal`
 
-  const requestBody: CreateNoteRequest = {
+  const requestBody: CreateProposalRequest = {
     typ: 'post_label',
     uri: targetUri,
     val: 'needs-context',
@@ -315,7 +315,7 @@ export async function createNoteRating(
   reasons: string[],
 ) {
   // Map to new API
-  const result = await rateNote(agent, note.uri, value, reasons)
+  const result = await rateProposal(agent, note.uri, value, reasons)
   return {
     uri: result.rating.uri,
   }
@@ -328,8 +328,8 @@ export async function updateNoteRating(
   value: VoteValue,
   reasons: string[],
 ) {
-  // For updates, we still call rateNote with the note URI
-  const result = await rateNote(agent, note.uri, value, reasons)
+  // For updates, we still call rateProposal with the note URI
+  const result = await rateProposal(agent, note.uri, value, reasons)
   return result
 }
 
@@ -341,7 +341,7 @@ export async function deleteNoteRating(agent: BskyAgent, noteUri: string) {
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateNote`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateProposal`
 
   try {
     const response = await fetch(url, {
