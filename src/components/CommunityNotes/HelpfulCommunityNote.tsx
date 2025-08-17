@@ -10,7 +10,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
-import {People_Stroke2_Corner0_Rounded as PeopleIcon} from '#/components/icons/People'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {Text} from '#/components/Typography'
 
 interface HelpfulCommunityNoteProps {
@@ -57,7 +57,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
       ]}>
       {/* Header */}
       <View style={[a.flex_row, a.align_center, a.gap_sm, a.mb_md]}>
-        <PeopleIcon size="sm" style={{color: t.palette.primary_500}} />
+        <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
         <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
           <Trans>
             Readers added context they thought people might want to know
