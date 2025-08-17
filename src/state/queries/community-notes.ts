@@ -41,22 +41,15 @@ export function useNotesQuery(subjectUri: string) {
 
         // Just map the response to notes first, don't update shadow cache yet
         const notes = response.notes.map(apiNote => {
-          console.log('🔍 Debug: Processing API note', {
+          console.log('🔍 Debug: Processing helpful note', {
             uri: apiNote.uri,
-            hasViewer: !!apiNote.viewer,
-            viewerRating: apiNote.viewer?.rating,
+            val: apiNote.val,
+            hasNote: !!apiNote.note,
           })
-          return apilib.mapApiResponseToCommunityNote(apiNote)
+          return apilib.mapHelpfulNoteApiResponseToCommunityNote(apiNote)
         })
 
-        // Store the rating data for later processing
-        const viewerRatings = response.notes.map(apiNote => ({
-          noteUri: apiNote.uri,
-          viewerRating: apiNote.viewer?.rating,
-        }))
-        console.log('🔍 Debug: Viewer ratings to store', viewerRatings)
-        ;(notes as any)._viewerRatings = viewerRatings
-
+        // Helpful notes don't have viewer ratings
         return notes
       } catch (error) {
         console.error('Failed to fetch notes:', error)
@@ -131,7 +124,7 @@ export function useProposalsQuery(subjectUri: string) {
             hasViewer: !!apiNote.viewer,
             viewerRating: apiNote.viewer?.rating,
           })
-          return apilib.mapApiResponseToCommunityNote(apiNote)
+          return apilib.mapProposalApiResponseToCommunityNote(apiNote)
         })
 
         // Store the rating data for later processing

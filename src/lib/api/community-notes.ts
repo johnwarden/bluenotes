@@ -58,8 +58,24 @@ export interface CommunityNoteAPIResponse {
   }
 }
 
+// Helpful Notes API Response (from getNotesForSubjects - no status field)
+export interface HelpfulNoteAPIResponse {
+  uri: string
+  cid: string
+  typ: 'post_label'
+  targetUri: string
+  val: string
+  note: string // Required for helpful notes
+  reasons?: string[]
+  cts: string
+  author: {
+    aid: string
+    pseudonym: string
+  }
+}
+
 export interface GetNotesForSubjectsResponse {
-  notes: CommunityNoteAPIResponse[]
+  notes: HelpfulNoteAPIResponse[]
 }
 
 export interface GetProposalsForSubjectResponse {
@@ -92,7 +108,33 @@ export interface CreateProposalResponse {
 }
 
 // Mapping functions
-export function mapApiResponseToCommunityNote(
+export function mapHelpfulNoteApiResponseToCommunityNote(
+  apiNote: HelpfulNoteAPIResponse,
+): CommunityNote {
+  return {
+    $type: 'social.pmsky.proposal',
+    typ: 'post_label',
+    subject: {
+      uri: apiNote.targetUri,
+      cid: apiNote.cid,
+    },
+    label: apiNote.val,
+    text: apiNote.note, // Always present for helpful notes
+    createdAt: apiNote.cts,
+    noteId: apiNote.uri.split('/').pop() || apiNote.uri,
+    status: 'rated_helpful', // Hardcoded since getNotesForSubjects only returns helpful notes
+    uri: apiNote.uri,
+    author: {
+      aid: apiNote.author.aid,
+      pseudonym: apiNote.author.pseudonym,
+      writingImpact: 0, // Not provided in helpful notes API
+      ratingImpact: 0, // Not provided in helpful notes API
+      profileUrl: '#',
+    },
+  }
+}
+
+export function mapProposalApiResponseToCommunityNote(
   apiNote: CommunityNoteAPIResponse,
 ): CommunityNote {
   return {
@@ -100,12 +142,12 @@ export function mapApiResponseToCommunityNote(
     typ: 'post_label',
     subject: {
       uri: apiNote.targetUri,
-      cid: apiNote.cid, // Now available in API response
+      cid: apiNote.cid,
     },
-    label: apiNote.val, // This is the label value like 'readers-added-context'
+    label: apiNote.val,
     text: apiNote.note || `Context note for ${apiNote.val}`, // Fallback text if note not provided
     createdAt: apiNote.cts,
-    noteId: apiNote.uri.split('/').pop() || apiNote.uri, // Extract ID from URI
+    noteId: apiNote.uri.split('/').pop() || apiNote.uri,
     status: apiNote.status,
     uri: apiNote.uri,
     author: {
