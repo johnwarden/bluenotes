@@ -56,7 +56,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
             borderColor: t.palette.contrast_200,
           },
         ]}>
-        {/* Header with darker background */}
+        {/* Header with darker background - no padding, extends to edges */}
         <View
           style={[
             a.flex_row,
@@ -66,6 +66,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
             a.mb_md,
             a.mx_neg_lg,
             a.mt_neg_lg,
+            a.px_lg, // Add back horizontal padding for content
             a.rounded_t_lg,
             {backgroundColor: t.palette.contrast_50},
           ]}>
@@ -122,31 +123,38 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           </View>
         )}
 
-        {/* Helpfulness rating section */}
+        {/* Horizontal line that goes edge-to-edge */}
         <View
           style={[
-            a.flex_row,
-            a.align_center,
-            a.justify_between,
+            a.mx_neg_lg,
             a.mt_lg,
-            a.pt_md,
             a.border_t,
             t.atoms.border_contrast_low,
-          ]}>
+          ]}
+        />
+
+        {/* Helpfulness rating section */}
+        <View style={[a.flex_row, a.align_center, a.justify_between, a.pt_md]}>
           <Text style={[a.text_md, t.atoms.text]}>
             <Trans>Do you find this helpful?</Trans>
           </Text>
           <Button
-            variant="solid"
-            color="secondary"
-            size="small"
-            shape="round"
+            variant="ghost"
             label={_(msg`Rate this note`)}
+            style={[
+              {
+                borderWidth: 1,
+                borderColor: t.palette.contrast_200,
+                paddingHorizontal: 12,
+                paddingVertical: 6,
+                borderRadius: 20,
+              },
+            ]}
             onPress={() => {
               // TODO: Implement helpfulness rating
               console.log('Rate helpfulness clicked')
             }}>
-            <ButtonText style={[a.text_sm]}>
+            <ButtonText style={[{color: t.palette.primary_500}]}>
               <Trans>Rate it</Trans>
             </ButtonText>
           </Button>
