@@ -29,10 +29,16 @@ export function useNotesQuery(subjectUri: string) {
     queryKey: RQKEY(subjectUri),
     queryFn: async () => {
       try {
-        const response = await apilib.getNotesForSubjects(agent, subjectUri)
+        const response = await apilib.getProposalsForSubjects(
+          agent,
+          subjectUri,
+          {
+            status: 'rated_helpful', // CRITICAL: Explicit filtering for approved notes only
+          },
+        )
 
         // Just map the response to notes first, don't update shadow cache yet
-        const notes = response.notes.map(apiNote => {
+        const notes = response.proposals.map(apiNote => {
           return apilib.mapHelpfulNoteApiResponseToCommunityNote(apiNote)
         })
 
@@ -98,7 +104,7 @@ export function useProposalsQuery(subjectUri: string) {
         const response = await apilib.getProposalsForSubject(agent, subjectUri)
 
         // Map the response to notes
-        const notes = response.notes.map(apiNote => {
+        const notes = response.proposals.map(apiNote => {
           console.log('🔍 Debug: Processing API proposal', {
             uri: apiNote.uri,
             hasViewer: !!apiNote.viewer,
@@ -108,7 +114,7 @@ export function useProposalsQuery(subjectUri: string) {
         })
 
         // Store the rating data for later processing
-        const viewerRatings = response.notes.map(apiNote => ({
+        const viewerRatings = response.proposals.map(apiNote => ({
           noteUri: apiNote.uri,
           viewerRating: apiNote.viewer?.rating,
         }))
