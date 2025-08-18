@@ -67,7 +67,7 @@ export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
             a.align_center,
             a.gap_sm,
             a.p_md, // Reduced from a.p_lg
-            a.rounded_t_lg,
+            a.rounded_lg,
             t.atoms.bg_contrast_25, // Same as RateProposedNotesPrompt
           ]}>
           <CommunityNotesIcon
