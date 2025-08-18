@@ -4,7 +4,6 @@ import EventEmitter from 'eventemitter3'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
-import {RQKEY} from '#/state/queries/community-notes'
 import {castAsShadow, type Shadow} from './types'
 export type {Shadow} from './types'
 
@@ -25,19 +24,22 @@ export interface CommunityNoteView extends CommunityNote {
 }
 
 const emitter = new EventEmitter()
-const shadows: WeakMap<CommunityNote, Partial<NoteShadow>> = new WeakMap()
+// Store shadows by URI instead of object reference for better reliability
+const shadowsByUri = new Map<string, Partial<NoteShadow>>()
 
 export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
-  const [shadow, setShadow] = useState(() => shadows.get(note))
-  const [prevNote, setPrevNote] = useState(note)
-  if (note !== prevNote) {
-    setPrevNote(note)
-    setShadow(shadows.get(note))
+  const [shadow, setShadow] = useState(() => shadowsByUri.get(note.uri))
+  const [prevNoteUri, setPrevNoteUri] = useState(note.uri)
+
+  // Update shadow when note URI changes
+  if (note.uri !== prevNoteUri) {
+    setPrevNoteUri(note.uri)
+    setShadow(shadowsByUri.get(note.uri))
   }
 
   useEffect(() => {
     function onUpdate() {
-      const newShadow = shadows.get(note)
+      const newShadow = shadowsByUri.get(note.uri)
       console.log('🔍 Debug: useNoteShadow onUpdate', {
         noteUri: note.uri,
         newShadow,
@@ -48,7 +50,7 @@ export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
     return () => {
       emitter.removeListener(note.uri, onUpdate)
     }
-  }, [note, setShadow])
+  }, [note.uri])
 
   const result = useMemo(() => {
     if (shadow) {
@@ -83,36 +85,30 @@ export function updateNoteShadow(
   value: Partial<NoteShadow>,
 ) {
   console.log('🔍 Debug: updateNoteShadow called', {noteUri, value})
-  const cachedNotes = Array.from(findNotesInCache(queryClient, noteUri))
-  console.log('🔍 Debug: Found cached notes', cachedNotes.length)
-  for (let note of cachedNotes) {
-    console.log('🔍 Debug: Setting shadow for note', note.uri)
-    shadows.set(note, {...shadows.get(note), ...value})
-  }
+
+  // Update shadow data by URI - much simpler and more reliable
+  shadowsByUri.set(noteUri, {
+    ...shadowsByUri.get(noteUri),
+    ...value,
+  })
+
+  // Emit update for components using this note
   batchedUpdates(() => {
     emitter.emit(noteUri)
   })
-}
 
-function* findNotesInCache(
-  queryClient: QueryClient,
-  noteUri: string,
-): Generator<CommunityNote, void> {
-  // Search through all community notes queries in the cache
-  const cache = queryClient.getQueryCache()
-  const queries = cache.findAll({
-    queryKey: [RQKEY('')[0]], // Match the root key 'community-notes'
-    exact: false,
+  // Optional: Invalidate queries that might contain this note
+  // This ensures server state stays fresh
+  queryClient.invalidateQueries({
+    predicate: query => {
+      const key = query.queryKey[0]?.toString() || ''
+      return (
+        key.includes('community-notes') ||
+        key.includes('proposals') ||
+        key.includes('notes')
+      )
+    },
   })
-
-  for (const query of queries) {
-    const data = query.state.data as CommunityNote[] | undefined
-    if (data && Array.isArray(data)) {
-      for (const note of data) {
-        if (note.uri === noteUri) {
-          yield note
-        }
-      }
-    }
-  }
 }
+
+// Note: findNotesInCache function removed - no longer needed with URI-based approach
