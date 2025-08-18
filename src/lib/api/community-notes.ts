@@ -74,12 +74,12 @@ export interface HelpfulNoteAPIResponse {
   }
 }
 
-export interface GetNotesForSubjectsResponse {
-  notes: HelpfulNoteAPIResponse[]
+export interface GetProposalsForSubjectsResponse {
+  proposals: HelpfulNoteAPIResponse[]
 }
 
 export interface GetProposalsForSubjectResponse {
-  notes: CommunityNoteAPIResponse[]
+  proposals: CommunityNoteAPIResponse[]
 }
 
 export interface RateProposalResponse {
@@ -274,7 +274,7 @@ export async function createProposal(
       let errorMessage = `HTTP ${response.status}`
       try {
         const errorData = await response.json()
-        if (errorData.error === 'DuplicateNote') {
+        if (errorData.error === 'DuplicateProposal') {
           throw new Error('You have already created a note for this post')
         }
         errorMessage = errorData.message || errorData.error || errorMessage
@@ -307,10 +307,14 @@ export async function createProposal(
   }
 }
 
-export async function getNotesForSubjects(
+export async function getProposalsForSubjects(
   agent: BskyAgent | null,
   subjectUris: string | string[],
-): Promise<GetNotesForSubjectsResponse> {
+  options?: {
+    status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
+    label?: string
+  },
+): Promise<GetProposalsForSubjectsResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
   const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
@@ -318,7 +322,18 @@ export async function getNotesForSubjects(
   // Handle both single URI and multiple URIs
   const uris = Array.isArray(subjectUris) ? subjectUris : [subjectUris]
   const uriParams = uris.map(uri => `uris=${encodeURIComponent(uri)}`).join('&')
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getNotesForSubjects?${uriParams}`
+
+  // Add optional filtering parameters
+  const filterParams = []
+  if (options?.status) {
+    filterParams.push(`status=${encodeURIComponent(options.status)}`)
+  }
+  if (options?.label) {
+    filterParams.push(`label=${encodeURIComponent(options.label)}`)
+  }
+
+  const allParams = [uriParams, ...filterParams].join('&')
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
@@ -342,13 +357,13 @@ export async function getNotesForSubjects(
       }
 
       if (response.status === 404) {
-        // Return empty notes array for 404s instead of throwing
-        return {notes: []}
+        // Return empty proposals array for 404s instead of throwing
+        return {proposals: []}
       } else if (response.status === 401) {
         throw new Error('Authentication required. Please log in again.')
       }
 
-      throw new Error(`Failed to get notes: ${errorMessage}`)
+      throw new Error(`Failed to get proposals: ${errorMessage}`)
     }
 
     return await response.json()
@@ -356,18 +371,33 @@ export async function getNotesForSubjects(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while fetching notes: ${error}`)
+    throw new Error(`Network error while fetching proposals: ${error}`)
   }
 }
 
 export async function getProposalsForSubject(
   agent: BskyAgent | null,
   subjectUri: string,
+  options?: {
+    status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
+    label?: string
+  },
 ): Promise<GetProposalsForSubjectResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
   const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubject?uri=${encodeURIComponent(subjectUri)}`
+  // Add optional filtering parameters
+  const filterParams = []
+  if (options?.status) {
+    filterParams.push(`status=${encodeURIComponent(options.status)}`)
+  }
+  if (options?.label) {
+    filterParams.push(`label=${encodeURIComponent(options.label)}`)
+  }
+
+  const uriParam = `uris=${encodeURIComponent(subjectUri)}`
+  const allParams = [uriParam, ...filterParams].join('&')
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
@@ -391,8 +421,8 @@ export async function getProposalsForSubject(
       }
 
       if (response.status === 404) {
-        // Return empty notes array for 404s instead of throwing
-        return {notes: []}
+        // Return empty proposals array for 404s instead of throwing
+        return {proposals: []}
       } else if (response.status === 401) {
         throw new Error('Authentication required. Please log in again.')
       }
