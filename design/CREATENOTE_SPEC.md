@@ -41,7 +41,7 @@ POST /xrpc/org.opencommunitynotes.createProposal
 
 ```json
 {
-  "typ": "post_label",
+  "typ": "label",
   "uri": "at://did:example/app.bsky.feed.post/123",
   "cid": "bafy...", // Optional - specific version
   "val": "needs-context",
@@ -52,7 +52,7 @@ POST /xrpc/org.opencommunitynotes.createProposal
 
 #### Fields
 
-- **`typ`** (required): Type of moderation action ("post_label")
+- **`typ`** (required): Type of moderation action ("label")
 - **`uri`** (required): AT-URI of content being annotated
 - **`cid`** (optional): CID for specific version of target
 - **`val`** (required): Proposed label value (e.g., "needs-context")
@@ -82,7 +82,7 @@ POST /xrpc/org.opencommunitynotes.createProposal
       "aid": "social.pmsky:abc123",
       "pseudonym": "Thoughtful Beaver"
     },
-    "typ": "post_label",
+    "typ": "label",
     "targetUri": "at://did:example/app.bsky.feed.post/123",
     "targetCid": "bafy...", // Optional
     "val": "needs-context",
