@@ -169,7 +169,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
       <View style={[a.mt_md]}>
         <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
           <Trans>
-            Context is written by people who use X, and appears when rated
+            Context is written by people who use Bluesky, and appears when rated
             helpful by others.
           </Trans>{' '}
           <Text style={[a.text_md, {color: t.palette.primary_500}]}>
