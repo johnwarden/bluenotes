@@ -1,13 +1,13 @@
 # Community Notes Label Architecture
 
-The Community Notes app will piggyback on Bluesky labelers for displaying helpful notes, as well as the "rate proposed community notes" promptys.
+The Community Notes app will piggyback on Bluesky labelers for displaying helpful proposals, as well as the "rate proposed community notes" prompts.
 
 ## Community-Notes-Enabled Social Apps
 
 Community-Notes-Enabled Social Apps will:
 
 - Display helpful community notes below posts
-- Show "rate proposed community notes" prompts below notes that need ratings
+- Show "rate proposed community notes" prompts below proposals that need ratings
 - Have a "Write a Community Note" menu option
 
 These apps should be able to use existing Bluesky App Views and PDSs. To find posts with helpful notes or notes needing ratings, the app view will rely on labels.
@@ -19,8 +19,8 @@ The Community Notes labeler will be configured as an **App Labeler** rather than
 - The Community Notes labeler DID will be added to `BskyAgent.appLabelers` configuration
 - This ensures all users automatically receive Community Notes labels without any subscription process
 - Labels from app labelers are automatically sent in PostView objects returned by the bsky service (the app view)
-- For posts with a 'proposed-note' label, the front-end will display a "rate proposed community notes" prompt
-- For posts with a 'note' label, the front-end will lookup the notes by calling getNotesForSubjects in the Community Notes service
+- For posts with a 'proposed-label:needs-context' label, the front-end will display a "rate proposed community notes" prompt
+- For posts with a 'needs-context' label, the front-end will lookup the proposals by calling getProposalsForSubjects in the Community Notes service
 
 This approach:
 - ✅ Requires no user action or subscription management
@@ -29,24 +29,25 @@ This approach:
 - ✅ Eliminates complex subscription logic and error handling
 
 
-## Community Notes Service: getNotesForSubjects endpoint
+## Community Notes Service: getProposalsForSubjects endpoint
 
-- The Community Notes Service will also implement the getNotesForSubjects endpoint, which will take one or more URIs of subjects (e.g. posts) that have "note" labels, and return the notes.
-	- This service will need to have access to two shared tables:
+- The Community Notes Service implements the getProposalsForSubjects endpoint, which takes one or more URIs of subjects (e.g. posts) and returns proposals with optional filtering.
+	- This service has access to two shared tables:
 		- the labelStatus table from the labeler service
 		- the proposals table with all proposed notes
-	- getNotesForSubjects will do a joint and return up to one helpful note per subject
+	- getProposalsForSubjects supports filtering by status (needs_more_ratings, rated_helpful, rated_not_helpful) and label (needs-context, etc.)
+	- By default returns ALL proposals - frontend must explicitly filter for rated_helpful if only approved proposals are desired
 
 ## Community Notes Labeler Service
 
-- The community notes labeler service will implement the /xrpc/com.atproto.label.queryLabels endpoint and publish "note" and "proposed-note" labels
-- These labels will not contain the text of the note (Bsky app views will ignore these). The getNotesForSubject endpoint will provide this instead.
-- There will be a database with labelStatusEvent table. 
-- The labelStatusEvent will include a note URI and status "created", "needs ratings", "rated helpful" and "rated not helpful". Possibly also "deleted". These should also have some score metadata so that when there is more than one helpful note the most helpful can be selected.
+- The community notes labeler service will implement the /xrpc/com.atproto.label.queryLabels endpoint and publish "needs-context" and "proposed-label:needs-context" labels
+- These labels will not contain the text of the proposal (Bsky app views will ignore these). The getProposalsForSubjects endpoint will provide this instead.
+- There will be a database with labelStatusEvent table.
+- The labelStatusEvent will include a proposal URI and status "created", "needs_more_ratings", "rated_helpful" and "rated_not_helpful". Possibly also "deleted". These should also have some score metadata so that when there is more than one helpful proposal the most helpful can be selected.
 - The aggregator service will run the algorithm and bulk-insert labelStatusEvents into the DB -- sharing the DB table.
 - A sql trigger, perhaps, maintains a labelStatus table, with the latest label status
-- The getNotesForSubject endpoint will read the labelStatus table.
-- Another trigger will update the "label" table, inserting "note" and "proposed-note" labels, and "neg" labels with status changes. The queryLabels endpoint will return the content of the label table.
+- The getProposalsForSubjects endpoint will read the labelStatus table.
+- Another trigger will update the "label" table, inserting "needs-context" and "proposed-label:needs-context" labels, and "neg" labels with status changes. The queryLabels endpoint will return the content of the label table.
 
 
 ## Dev-env Setup
@@ -54,7 +55,8 @@ This approach:
 Changes to dev-env
 	- The actually code for subscribing to labelers and importing labels is *not* implemented by the open source app view in the atproto repo (the bsky package)
 	- Instead, there is a database with labels, and labelers are inserted during mock data setup.
-	- To start, let's have the mock data setup insert some mock note proposals for some of the mock posts, a couple that have the "proposed-note" label, a couple with the "note" label, and a couple with both.
+	- The mock data setup inserts proposals for some of the mock posts, with "proposed-label:needs-context" labels for proposals needing ratings, "needs-context" labels for approved proposals, and some posts with both.
+	- Proposal record keys now use "proposal_" prefix instead of "note_" prefix
 	- Maybe eventually we make the labeler service directly insert into the bsky app view DB table in dev environments?
 
 ## Implementation Plan
@@ -64,40 +66,40 @@ Changes to dev-env
 
 **Tasks**:
 1. **Add label detection utilities**
-   - Create helper functions to check for `note` and `proposed-note` labels in PostView objects
+   - Create helper functions to check for `needs-context` and `proposed-label:needs-context` labels in PostView objects
    - Add TypeScript types for Community Notes labels
 
 2. **Make RateCommunityNotesPrompt conditional**
    - Modify `RateCommunityNotesPromptDefault` and `RateCommunityNotesPromptEmbedded` components
-   - Only show prompts when posts have `proposed-note` labels
+   - Only show prompts when posts have `proposed-label:needs-context` labels
    - Remove current always-visible behavior
 
 3. **Add mock labels to dev environment**
    - Update mock data setup to include Community Notes labels on test posts
-   - Create variety of test cases: posts with `note` labels, `proposed-note` labels, and both
+   - Create variety of test cases: posts with `needs-context` labels, `proposed-label:needs-context` labels, and both
 
 **Files to modify**:
 - `src/components/CommunityNotes/RateCommunityNotesPrompt.tsx`
 - `src/lib/community-notes/labels.ts` (new file)
 - Mock data setup files
 
-### Phase 2: Helpful Notes Display
-**Goal**: Display helpful Community Notes inline with posts that have `note` labels
+### Phase 2: Helpful Proposals Display
+**Goal**: Display helpful Community Notes inline with posts that have `needs-context` labels
 
 **Tasks**:
 1. **Create HelpfulCommunityNote component**
-   - Design component to display helpful notes below posts
-   - Include note text, author pseudonym, and timestamp
+   - Design component to display helpful proposals below posts
+   - Include proposal text, author pseudonym, and timestamp
    - Add "Show more details" functionality
 
-2. **Integrate with posts that have `note` labels**
+2. **Integrate with posts that have `needs-context` labels**
    - Add conditional rendering in post components
-   - Fetch note content using existing `getNotesForSubjects` API
+   - Fetch proposal content using `getProposalsForSubjects` API with `status=rated_helpful` filter
    - Handle loading and error states
 
-3. **Handle multiple helpful notes per post**
-   - Display most helpful note by default
-   - Add UI to cycle through multiple notes if present
+3. **Handle multiple helpful proposals per post**
+   - Display most helpful proposal by default
+   - Add UI to cycle through multiple proposals if present
 
 **Files to modify**:
 - `src/components/CommunityNotes/HelpfulCommunityNote.tsx` (new file)
@@ -160,13 +162,21 @@ Changes to dev-env
 
 ### Success Criteria
 
-**Phase 1 Complete**: Community Notes prompts only appear on posts with `proposed-note` labels
-**Phase 2 Complete**: Helpful notes display inline with posts that have `note` labels  
+**Phase 1 Complete**: Community Notes prompts only appear on posts with `proposed-label:needs-context` labels
+**Phase 2 Complete**: Helpful proposals display inline with posts that have `needs-context` labels
 **Phase 3 Complete**: Labels are automatically delivered via App Labeler configuration
 **Phase 4 Complete**: Production-ready with proper error handling, loading states, and monitoring
 
 ### Dependencies
 
 - **Community Notes Labeler Service**: Must be deployed and publishing labels
-- **Community Notes Service**: `getNotesForSubjects` endpoint must be available
+- **Community Notes Service**: `getProposalsForSubjects` endpoint must be available
 - **Labeler DID**: Community Notes labeler DID must be known for each environment
+
+### API Changes Summary
+
+- **REMOVED**: `getNotesForSubjects` endpoint
+- **NEW**: `getProposalsForSubjects` endpoint with filtering capabilities
+- **Label Values**: `"note"` → `"needs-context"`, `"proposed-note"` → `"proposed-label:needs-context"`
+- **Record Keys**: `note_` prefix → `proposal_` prefix
+- **Default Behavior**: New API returns ALL proposals by default (frontend must filter for `status=rated_helpful`)
