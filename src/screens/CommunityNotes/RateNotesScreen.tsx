@@ -1,4 +1,3 @@
-import {useMemo} from 'react'
 import {ActivityIndicator, FlatList, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -8,12 +7,12 @@ import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
+import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
-import {NoteCard} from '#/components/CommunityNotes/NoteCard'
+import {RateNoteForm} from '#/components/CommunityNotes/RateNoteForm'
 import {WriteANotePrompt} from '#/components/CommunityNotes/WriteANotePrompt'
 import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import * as Layout from '#/components/Layout'
-import {QuoteEmbed} from '#/components/Post/Embed'
 import {Text} from '#/components/Typography'
 
 type RateNotesScreenParams = {
@@ -44,19 +43,11 @@ export function RateNotesScreen() {
     error: notesError,
   } = useProposalsQuery(uri)
 
-  // Create a version of the post without the proposed-note label
-  // This prevents the RateCommunityNotesPrompt from showing in QuoteEmbed
-  const postWithoutProposedNoteLabel = useMemo(() => {
-    if (!post) return post
-    return {
-      ...post,
-      labels: post.labels?.filter(label => label.val !== 'proposed-note') || [],
-    }
-  }, [post])
-
   useSetTitle(_(msg`Rate notes`))
 
-  const renderItem = ({item}: {item: CommunityNote}) => <NoteCard note={item} />
+  const renderItem = ({item}: {item: CommunityNote}) => (
+    <RateNoteForm note={item} />
+  )
 
   return (
     <Layout.Screen>
@@ -82,29 +73,10 @@ export function RateNotesScreen() {
             renderItem={renderItem}
             keyExtractor={item => item.author.aid}
             ListHeaderComponent={
-              postWithoutProposedNoteLabel ? (
+              post ? (
                 <View>
-                  <View style={[a.pb_xl, a.px_lg]}>
-                    <QuoteEmbed
-                      embed={{
-                        type: 'post',
-                        view: {
-                          uri: postWithoutProposedNoteLabel.uri,
-                          cid: postWithoutProposedNoteLabel.cid,
-                          author: postWithoutProposedNoteLabel.author,
-                          value: postWithoutProposedNoteLabel.record,
-                          labels: postWithoutProposedNoteLabel.labels,
-                          likeCount: postWithoutProposedNoteLabel.likeCount,
-                          repostCount: postWithoutProposedNoteLabel.repostCount,
-                          replyCount: postWithoutProposedNoteLabel.replyCount,
-                          quoteCount: postWithoutProposedNoteLabel.quoteCount,
-                          indexedAt: postWithoutProposedNoteLabel.indexedAt,
-                          embeds: postWithoutProposedNoteLabel.embed
-                            ? [postWithoutProposedNoteLabel.embed]
-                            : undefined,
-                        },
-                      }}
-                    />
+                  <View style={[a.pb_xl]}>
+                    <Post post={post} />
                   </View>
                   <View
                     style={[
@@ -125,7 +97,9 @@ export function RateNotesScreen() {
                 </View>
               ) : undefined
             }
-            ListFooterComponent={<WriteANotePrompt postUri={uri} />}
+            ListFooterComponent={
+              <WriteANotePrompt showRatingWarning postUri={uri} />
+            }
           />
         )}
       </Layout.Center>

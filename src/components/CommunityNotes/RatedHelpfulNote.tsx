@@ -15,11 +15,11 @@ import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/Community
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
-interface HelpfulCommunityNoteProps {
+interface RatedHelpfulNoteProps {
   post: AppBskyFeedDefs.PostView
 }
 
-export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
+export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
   const t = useTheme()
   const {_} = useLingui()
   const route = useRoute()
@@ -60,7 +60,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
           t.atoms.bg, // Use theme background (works in dark mode)
           t.atoms.border_contrast_low,
         ]}>
-        {/* Header with RateCommunityNotesPrompt background color */}
+        {/* Header with RateProposedNotesPrompt background color */}
         <View
           style={[
             a.flex_row,
@@ -68,7 +68,7 @@ export function HelpfulCommunityNote({post}: HelpfulCommunityNoteProps) {
             a.gap_sm,
             a.p_md, // Reduced from a.p_lg
             a.rounded_t_lg,
-            t.atoms.bg_contrast_25, // Same as RateCommunityNotesPrompt
+            t.atoms.bg_contrast_25, // Same as RateProposedNotesPrompt
           ]}>
           <CommunityNotesIcon
             size="sm"

@@ -28,7 +28,7 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
-import {HelpfulCommunityNote} from '#/components/CommunityNotes/HelpfulCommunityNote'
+import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -227,7 +227,7 @@ function PostInner({
               />
             ) : null}
           </ContentHider>
-          {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
+          {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
           <PostControls
             post={post}
             record={record}
