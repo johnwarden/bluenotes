@@ -125,9 +125,7 @@ export function RateNotesScreen() {
                 </View>
               ) : undefined
             }
-            ListFooterComponent={
-              <WriteANotePrompt showRatingWarning postUri={uri} />
-            }
+            ListFooterComponent={<WriteANotePrompt postUri={uri} />}
           />
         )}
       </Layout.Center>
