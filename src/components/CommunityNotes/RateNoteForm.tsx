@@ -60,7 +60,7 @@ const NOT_HELPFUL_REASONS = [
 
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
-export function NoteCard({note}: {note: CommunityNote}) {
+export function RateNoteForm({note}: {note: CommunityNote}) {
   const t = useTheme()
   const {_} = useLingui()
   const noteWithShadow = useNoteShadow(note)
@@ -78,7 +78,7 @@ export function NoteCard({note}: {note: CommunityNote}) {
   const hasSubmittedRating = currentRating && currentRating.val !== null
 
   // Debug logging
-  console.log('🔍 Debug: NoteCard render', {
+  console.log('🔍 Debug: RateNoteForm render', {
     noteUri: note.uri,
     noteWithShadow: noteWithShadow.viewer,
     currentRating,
