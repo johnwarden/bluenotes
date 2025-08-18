@@ -2,8 +2,8 @@ import {type AppBskyFeedDefs, type ComAtprotoLabelDefs} from '@atproto/api'
 
 // Community Notes label values
 export const COMMUNITY_NOTES_LABELS = {
-  NOTE: 'note',
-  PROPOSED_NOTE: 'proposed-note',
+  NOTE: 'needs-context',
+  PROPOSED_NOTE: 'proposed-label:needs-context',
 } as const
 
 export type CommunityNotesLabelValue =
@@ -41,7 +41,7 @@ export function hasHelpfulNotes(post: AppBskyFeedDefs.PostView): boolean {
 }
 
 /**
- * Check if a post has proposed Community Notes that need rating (proposed-note label)
+ * Check if a post has proposed Community Notes that need rating (proposed-label:needs-context label)
  */
 export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
   return hasLabel(post, COMMUNITY_NOTES_LABELS.PROPOSED_NOTE)
