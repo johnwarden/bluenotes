@@ -10,7 +10,7 @@ import {CommunityNotes as CommunityIcon} from '#/components/icons/CommunityNotes
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
-function _RateCommunityNotesPromptContent() {
+function _RateProposedNotesPromptContent() {
   const t = useTheme()
 
   return (
@@ -23,7 +23,7 @@ function _RateCommunityNotesPromptContent() {
   )
 }
 
-export function RateCommunityNotesPromptDefault({
+export function RateProposedNotesPromptDefault({
   post,
 }: {
   post: AppBskyFeedDefs.PostView
@@ -59,14 +59,14 @@ export function RateCommunityNotesPromptDefault({
           a.justify_between,
           a.gap_md,
         ]}>
-        <_RateCommunityNotesPromptContent />
+        <_RateProposedNotesPromptContent />
         <ArrowRightIcon size="md" style={t.atoms.text} />
       </View>
     </Link>
   )
 }
 
-export function RateCommunityNotesPromptEmbedded({
+export function RateProposedNotesPromptEmbedded({
   post,
 }: {
   post: AppBskyFeedDefs.PostView
@@ -94,7 +94,7 @@ export function RateCommunityNotesPromptEmbedded({
           a.justify_between,
           a.gap_md,
         ]}>
-        <_RateCommunityNotesPromptContent />
+        <_RateProposedNotesPromptContent />
         <ArrowRightIcon size="md" style={t.atoms.text} />
       </View>
     </Link>

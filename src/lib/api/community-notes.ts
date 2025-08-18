@@ -46,7 +46,7 @@ export interface CommunityNoteAPIResponse {
     ratingImpact?: number
     profileUrl?: string
   }
-  // Viewer rating data structure - nested as designed
+  // Viewer rating data structure - nested as per official schema
   viewer?: {
     rating: {
       uri: string

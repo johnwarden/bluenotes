@@ -40,8 +40,8 @@ import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
-import {HelpfulCommunityNote} from '#/components/CommunityNotes/HelpfulCommunityNote'
-import {RateCommunityNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateCommunityNotesPrompt'
+import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -492,7 +492,7 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      {hasHelpfulNotes(post) && <HelpfulCommunityNote post={post} />}
+      {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
       <RateCommunityNotesPrompt post={post} />
     </ContentHider>
   )
