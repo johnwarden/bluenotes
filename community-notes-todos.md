@@ -1,3 +1,7 @@
+- make DB source of truth for proposal and vote records
+
+
+
 Must-Do UI
 	- Test that we can use accept-labelers headings with live bsky app view
 
