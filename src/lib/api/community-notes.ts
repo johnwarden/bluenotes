@@ -32,7 +32,7 @@ function mapApiVoteValue(val: 1 | 0 | -1): VoteValue {
 export interface CommunityNoteAPIResponse {
   uri: string
   cid: string
-  typ: 'post_label'
+  typ: 'label'
   targetUri: string
   val: string
   reasons?: string[]
@@ -62,7 +62,7 @@ export interface CommunityNoteAPIResponse {
 export interface HelpfulNoteAPIResponse {
   uri: string
   cid: string
-  typ: 'post_label'
+  typ: 'label'
   targetUri: string
   val: string
   note: string | {text: string; facets?: any[]} // Required for helpful notes, might be RichText object
@@ -94,7 +94,7 @@ export interface RateProposalResponse {
 }
 
 export interface CreateProposalRequest {
-  typ: 'post_label'
+  typ: 'label'
   uri: string // target post URI
   val: 'needs-context'
   note: string
@@ -113,7 +113,7 @@ export function mapHelpfulNoteApiResponseToCommunityNote(
 ): CommunityNote {
   return {
     $type: 'social.pmsky.proposal',
-    typ: 'post_label',
+    typ: 'label',
     subject: {
       uri: apiNote.targetUri,
       cid: apiNote.cid,
@@ -125,7 +125,7 @@ export function mapHelpfulNoteApiResponseToCommunityNote(
         : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
     createdAt: apiNote.cts,
     noteId: apiNote.uri.split('/').pop() || apiNote.uri,
-    status: 'rated_helpful', // Hardcoded since getNotesForSubjects only returns helpful notes
+    status: 'rated_helpful', // Hardcoded since API call should only return helpful notes
     uri: apiNote.uri,
     author: {
       aid: apiNote.author.aid,
@@ -142,7 +142,7 @@ export function mapProposalApiResponseToCommunityNote(
 ): CommunityNote {
   return {
     $type: 'social.pmsky.proposal',
-    typ: 'post_label',
+    typ: 'label',
     subject: {
       uri: apiNote.targetUri,
       cid: apiNote.cid,
@@ -253,7 +253,7 @@ export async function createProposal(
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.createProposal`
 
   const requestBody: CreateProposalRequest = {
-    typ: 'post_label',
+    typ: 'label',
     uri: targetUri,
     val: 'needs-context',
     note: noteText,
