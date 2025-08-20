@@ -33,7 +33,7 @@ This approach:
 
 - The Community Notes Service implements the getProposalsForSubjects endpoint, which takes one or more URIs of subjects (e.g. posts) and returns proposals with optional filtering.
 	- This service has access to two shared tables:
-		- the labelStatus table from the labeler service
+		- the status table from the labeler service
 		- the proposals table with all proposed notes
 	- getProposalsForSubjects supports filtering by status (needs_more_ratings, rated_helpful, rated_not_helpful) and label (needs-context, etc.)
 	- By default returns ALL proposals - frontend must explicitly filter for rated_helpful if only approved proposals are desired
@@ -42,11 +42,11 @@ This approach:
 
 - The community notes labeler service will implement the /xrpc/com.atproto.label.queryLabels endpoint and publish "needs-context" and "proposed-label:needs-context" labels
 - These labels will not contain the text of the proposal (Bsky app views will ignore these). The getProposalsForSubjects endpoint will provide this instead.
-- There will be a database with labelStatusEvent table.
-- The labelStatusEvent will include a proposal URI and status "created", "needs_more_ratings", "rated_helpful" and "rated_not_helpful". Possibly also "deleted". These should also have some score metadata so that when there is more than one helpful proposal the most helpful can be selected.
-- The aggregator service will run the algorithm and bulk-insert labelStatusEvents into the DB -- sharing the DB table.
-- A sql trigger, perhaps, maintains a labelStatus table, with the latest label status
-- The getProposalsForSubjects endpoint will read the labelStatus table.
+- There will be a database with statusEvent table.
+- The statusEvent will include a proposal URI and status "created", "needs_more_ratings", "rated_helpful" and "rated_not_helpful". Possibly also "deleted". These should also have some score metadata so that when there is more than one helpful proposal the most helpful can be selected.
+- The aggregator service will run the algorithm and bulk-insert statusEvents into the DB -- sharing the DB table.
+- A sql trigger, perhaps, maintains a status table, with the latest label status
+- The getProposalsForSubjects endpoint will read the status table.
 - Another trigger will update the "label" table, inserting "needs-context" and "proposed-label:needs-context" labels, and "neg" labels with status changes. The queryLabels endpoint will return the content of the label table.
 
 
@@ -56,7 +56,6 @@ Changes to dev-env
 	- The actually code for subscribing to labelers and importing labels is *not* implemented by the open source app view in the atproto repo (the bsky package)
 	- Instead, there is a database with labels, and labelers are inserted during mock data setup.
 	- The mock data setup inserts proposals for some of the mock posts, with "proposed-label:needs-context" labels for proposals needing ratings, "needs-context" labels for approved proposals, and some posts with both.
-	- Proposal record keys now use "proposal_" prefix instead of "note_" prefix
 	- Maybe eventually we make the labeler service directly insert into the bsky app view DB table in dev environments?
 
 ## Implementation Plan
