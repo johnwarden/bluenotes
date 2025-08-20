@@ -37,18 +37,10 @@ export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
     return null
   }
 
-  // Filter to only helpful notes (those that would have 'note' labels)
-  // In a real implementation, this would be filtered by the API
-  const helpfulNotes = notes.filter(note => note.status === 'rated_helpful')
-
-  if (helpfulNotes.length === 0) {
-    return null
-  }
-
   // Show the most helpful note by default
-  const primaryNote = helpfulNotes[0]
-  const hasMultipleNotes = helpfulNotes.length > 1
-  const notesToShow = showAllNotes ? helpfulNotes : [primaryNote]
+  const primaryNote = notes[0]
+  const hasMultipleNotes = notes.length > 1
+  const notesToShow = showAllNotes ? notes : [primaryNote]
 
   return (
     <>
@@ -101,13 +93,13 @@ export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
                   variant="ghost"
                   size="small"
                   label={_(
-                    msg`Show ${helpfulNotes.length - 1} more note${helpfulNotes.length - 1 === 1 ? '' : 's'}`,
+                    msg`Show ${notes.length - 1} more note${notes.length - 1 === 1 ? '' : 's'}`,
                   )}
                   onPress={() => setShowAllNotes(true)}>
                   <ButtonText style={[{color: t.palette.primary_500}]}>
                     <Trans>
-                      Show {helpfulNotes.length - 1} more note
-                      {helpfulNotes.length - 1 === 1 ? '' : 's'}
+                      Show {notes.length - 1} more note
+                      {notes.length - 1 === 1 ? '' : 's'}
                     </Trans>
                   </ButtonText>
                 </Button>
