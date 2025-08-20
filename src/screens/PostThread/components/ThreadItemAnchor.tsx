@@ -43,6 +43,7 @@ import {
 import {atoms as a, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
 import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
@@ -411,6 +412,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
             )}
           </ContentHider>
           {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
+          <DebugLabels post={post} />
           <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}
