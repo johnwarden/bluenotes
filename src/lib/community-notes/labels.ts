@@ -11,8 +11,8 @@ export type CommunityNotesLabelValue =
 
 // Community Notes labeler DID (will be environment-specific)
 export const COMMUNITY_NOTES_LABELER_DID = {
-  PROD: 'did:web:community-notes.bsky.app',
-  STAGING: 'did:web:community-notes.staging.bsky.dev',
+  PROD: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
+  STAGING: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
   DEV: 'did:web:bluenotes.social',
 } as const
 
