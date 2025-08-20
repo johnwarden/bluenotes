@@ -13,7 +13,7 @@ export type CommunityNotesLabelValue =
 export const COMMUNITY_NOTES_LABELER_DID = {
   PROD: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
   STAGING: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-  DEV: 'did:web:bluenotes.social',
+  DEV: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
 } as const
 
 /**

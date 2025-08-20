@@ -15,7 +15,7 @@ export interface NoteAuthor {
 
 export interface CommunityNote {
   $type: 'social.pmsky.proposal'
-  typ: 'post_label'
+  typ: 'label'
   subject: CommunityNoteSubjectRef
   label: string
   text: string
@@ -28,7 +28,7 @@ export interface CommunityNote {
 
 const mockNote: CommunityNote = {
   $type: 'social.pmsky.proposal',
-  typ: 'post_label',
+  typ: 'label',
   subject: {
     uri: 'at://did:plc:xxxxxxxxxxxx/app.bsky.feed.post/3kabc123xyz',
     cid: 'bafyreibxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
