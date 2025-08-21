@@ -71,19 +71,12 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   const [reasons, setReasons] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [formInitialized, setFormInitialized] = useState(false)
   const noteDetailsControl = Dialog.useDialogControl()
 
   // Get the current rating state from the shadow cache
   const currentRating = noteWithShadow.viewer?.rating
   const hasSubmittedRating = currentRating && currentRating.val !== null
-
-  // Debug logging
-  console.log('🔍 Debug: RateNoteForm render', {
-    noteUri: note.uri,
-    noteWithShadow: noteWithShadow.viewer,
-    currentRating,
-    hasSubmittedRating,
-  })
 
   const richText = useMemo(
     () =>
@@ -93,16 +86,22 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
     [note.text],
   )
 
-  // Only populate form when explicitly editing
+  // Only populate form when explicitly entering edit mode (and only once)
   useEffect(() => {
-    if (isEditing && currentRating) {
+    if (isEditing && currentRating && !formInitialized) {
       setVoted(currentRating.val as Vote)
       setReasons(currentRating.reasons || [])
+      setFormInitialized(true)
     }
-  }, [isEditing, currentRating])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing, formInitialized]) // Only run when entering edit mode or initialization status changes
 
   const handleSelectVote = (vote: Vote) => {
     setVoted(vote)
+  }
+
+  const handleReasonsChange = (newReasons: string[]) => {
+    setReasons(newReasons)
   }
 
   const handleSubmit = async () => {
@@ -122,6 +121,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       setVoted(null)
       setReasons([])
       setIsEditing(false)
+      setFormInitialized(false)
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         Toast.show(_(msg`Failed to submit your rating. Please try again.`))
@@ -132,10 +132,6 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   }
 
   const handleDelete = async () => {
-    console.log('🔍 Debug: handleDelete called', {
-      currentRating,
-      noteUri: note.uri,
-    })
     setIsSubmitting(true)
     try {
       const deleteRatingState: NoteRatingState = {
@@ -143,7 +139,6 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
         val: null,
         reasons: [],
       }
-      console.log('🔍 Debug: handleDelete deleteRatingState', deleteRatingState)
 
       await submitRating(deleteRatingState)
 
@@ -151,6 +146,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       setVoted(null)
       setReasons([])
       setIsEditing(false)
+      setFormInitialized(false)
     } catch (e: any) {
       if (e?.name !== 'AbortError') {
         Toast.show(_(msg`Failed to delete your rating. Please try again.`))
@@ -220,7 +216,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       <Toggle.Group
         type="checkbox"
         values={reasons}
-        onChange={setReasons}
+        onChange={handleReasonsChange}
         label={title}>
         {reasonSet.map(reason => (
           <Toggle.Item
