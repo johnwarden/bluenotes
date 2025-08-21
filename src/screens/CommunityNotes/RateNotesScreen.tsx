@@ -1,8 +1,10 @@
+import {useMemo} from 'react'
 import {ActivityIndicator, FlatList, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type RouteProp, useRoute} from '@react-navigation/native'
 
+import {COMMUNITY_NOTES_LABELS} from '#/lib/community-notes/labels'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useProposalsQuery} from '#/state/queries/community-notes'
@@ -43,6 +45,22 @@ export function RateNotesScreen() {
     error: notesError,
   } = useProposalsQuery(uri)
 
+  // Create a version of the post without community notes labels
+  // This prevents RatedHelpfulNote and RateCommunityNotesPrompt from showing
+  // since we're already displaying the notes separately on this page
+  const postWithoutCommunityNotesLabels = useMemo(() => {
+    if (!post) return post
+    return {
+      ...post,
+      labels:
+        post.labels?.filter(
+          label =>
+            label.val !== COMMUNITY_NOTES_LABELS.NOTE &&
+            label.val !== COMMUNITY_NOTES_LABELS.PROPOSED_NOTE,
+        ) || [],
+    }
+  }, [post])
+
   useSetTitle(_(msg`Rate notes`))
 
   const renderItem = ({item}: {item: CommunityNote}) => (
@@ -73,10 +91,10 @@ export function RateNotesScreen() {
             renderItem={renderItem}
             keyExtractor={item => item.author.aid}
             ListHeaderComponent={
-              post ? (
+              postWithoutCommunityNotesLabels ? (
                 <View>
                   <View style={[a.pb_xl]}>
-                    <Post post={post} />
+                    <Post post={postWithoutCommunityNotesLabels} />
                   </View>
                   <View
                     style={[
