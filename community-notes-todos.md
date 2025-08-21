@@ -1,5 +1,6 @@
 - make DB source of truth for proposal and vote records
-
+- getProposalsForSubjects => getProposals
+- multipel calls to getProposalsForSubjects when pulling up a feed
 
 
 Must-Do UI
