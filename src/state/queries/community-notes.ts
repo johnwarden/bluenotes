@@ -59,30 +59,19 @@ export function useNotesQuery(subjectUri: string) {
     if (query.isSuccess && query.data) {
       const viewerRatings = (query.data as any)._viewerRatings
       if (viewerRatings) {
-        console.log('🔍 Debug: Processing viewer ratings after cache update')
-        console.log('🔍 Debug: Viewer ratings from cache', viewerRatings)
         for (const ratingData of viewerRatings) {
-          console.log('🔍 Debug: Checking rating data', ratingData)
           if (ratingData.viewerRating) {
-            console.log('🔍 Debug: Found viewer rating data', ratingData)
             const ratingState = apilib.mapApiRatingToNoteRatingState(
               ratingData.viewerRating,
             )
-            console.log('🔍 Debug: Mapped rating state', ratingState)
+
             if (ratingState) {
-              updateNoteShadow(queryClient, ratingData.noteUri, {
+              // Populate shadow cache from server response
+              updateNoteShadow(ratingData.noteUri, {
                 rating: ratingState,
               })
-              console.log(
-                '🔍 Debug: Updated shadow cache for note',
-                ratingData.noteUri,
-              )
             }
           } else {
-            console.log('🔍 Debug: No viewer rating for note', {
-              noteUri: ratingData.noteUri,
-              hasViewerRating: !!ratingData.viewerRating,
-            })
           }
         }
       }
@@ -105,11 +94,6 @@ export function useProposalsQuery(subjectUri: string) {
 
         // Map the response to notes
         const notes = response.proposals.map(apiNote => {
-          console.log('🔍 Debug: Processing API proposal', {
-            uri: apiNote.uri,
-            hasViewer: !!apiNote.viewer,
-            viewerRating: apiNote.viewer?.rating,
-          })
           return apilib.mapProposalApiResponseToCommunityNote(apiNote)
         })
 
@@ -118,7 +102,7 @@ export function useProposalsQuery(subjectUri: string) {
           noteUri: apiNote.uri,
           viewerRating: apiNote.viewer?.rating,
         }))
-        console.log('🔍 Debug: Proposal viewer ratings to store', viewerRatings)
+
         ;(notes as any)._viewerRatings = viewerRatings
 
         return notes
@@ -137,30 +121,19 @@ export function useProposalsQuery(subjectUri: string) {
     if (query.isSuccess && query.data) {
       const viewerRatings = (query.data as any)._viewerRatings
       if (viewerRatings) {
-        console.log('🔍 Debug: Processing viewer ratings after cache update')
-        console.log('🔍 Debug: Viewer ratings from cache', viewerRatings)
         for (const ratingData of viewerRatings) {
-          console.log('🔍 Debug: Checking rating data', ratingData)
           if (ratingData.viewerRating) {
-            console.log('🔍 Debug: Found viewer rating data', ratingData)
             const ratingState = apilib.mapApiRatingToNoteRatingState(
               ratingData.viewerRating,
             )
-            console.log('🔍 Debug: Mapped rating state', ratingState)
+
             if (ratingState) {
-              updateNoteShadow(queryClient, ratingData.noteUri, {
+              // Populate shadow cache from server response
+              updateNoteShadow(ratingData.noteUri, {
                 rating: ratingState,
               })
-              console.log(
-                '🔍 Debug: Updated shadow cache for note',
-                ratingData.noteUri,
-              )
             }
           } else {
-            console.log('🔍 Debug: No viewer rating for note', {
-              noteUri: ratingData.noteUri,
-              hasViewerRating: !!ratingData.viewerRating,
-            })
           }
         }
       }
@@ -174,7 +147,6 @@ export function useNoteRatingMutationQueue(
   note: CommunityNote,
   _logContext?: string,
 ) {
-  const queryClient = useQueryClient()
   const agent = useAgent()
   const noteUri = note.uri
   const noteWithShadow = useNoteShadow(note)
@@ -186,26 +158,15 @@ export function useNoteRatingMutationQueue(
     reasons: [],
   }
 
-  console.log('🔍 Debug: Mutation queue initialState', {
-    noteUri,
-    initialState,
-  })
-
   const queueRating = useComplexMutationQueue<NoteRatingState>({
     initialState,
     runMutation: async (
       prevState: NoteRatingState,
       nextState: NoteRatingState,
     ) => {
-      console.log('🔍 Debug: runMutation called', {
-        noteUri,
-        prevState,
-        nextState,
-      })
-
       if (prevState.val === null && nextState.val !== null) {
         // Case 1: Create
-        console.log('🔍 Debug: Mutation case 1 - CREATE')
+
         const response = await apilib.rateProposal(
           agent,
           noteUri,
@@ -225,14 +186,7 @@ export function useNoteRatingMutationQueue(
 
         if (valChanged || reasonsChanged) {
           // Case 2: Update
-          console.log('🔍 Debug: Mutation case 2 - UPDATE', {
-            valChanged,
-            reasonsChanged,
-            prevVal: prevState.val,
-            nextVal: nextState.val,
-            prevReasons: prevState.reasons,
-            nextReasons: nextState.reasons,
-          })
+
           const response = await apilib.rateProposal(
             agent,
             noteUri,
@@ -245,12 +199,12 @@ export function useNoteRatingMutationQueue(
           }
         } else {
           // No actual change - skip API call
-          console.log('🔍 Debug: Mutation case - NO CHANGE (same rating)')
+
           return prevState // Return prevState to preserve URI
         }
       } else if (prevState.val !== null && nextState.val === null) {
         // Case 3: Delete
-        console.log('🔍 Debug: Mutation case 3 - DELETE')
+
         await apilib.deleteNoteRating(agent, noteUri)
         return {
           ...nextState,
@@ -258,12 +212,12 @@ export function useNoteRatingMutationQueue(
         }
       }
       // No change needed
-      console.log('🔍 Debug: Mutation case - NO CHANGE (both null)')
+
       return nextState
     },
     onSuccess(finalState) {
       // Finalize the shadow state
-      updateNoteShadow(queryClient, noteUri, {
+      updateNoteShadow(noteUri, {
         rating: finalState,
       })
     },
@@ -281,81 +235,4 @@ export function useNoteRatingMutationQueue(
   )
 
   return queueRatingWrap
-}
-
-// Legacy hooks for backward compatibility - these will be removed later
-export function useCreateNoteRatingMutation() {
-  const queryClient = useQueryClient()
-  const agent = useAgent()
-  return {
-    mutateAsync: async ({
-      note,
-      value,
-      reasons,
-    }: {
-      note: {uri: string; cid?: string}
-      value: 'helpful' | 'somewhat_helpful' | 'not_helpful'
-      reasons: string[]
-    }) => {
-      const response = await apilib.createNoteRating(
-        agent,
-        note,
-        value,
-        reasons,
-      )
-      queryClient.invalidateQueries({
-        queryKey: RQKEY(note.uri),
-      })
-      return response
-    },
-  }
-}
-
-export function useUpdateNoteRatingMutation() {
-  const queryClient = useQueryClient()
-  const agent = useAgent()
-  return {
-    mutateAsync: async ({
-      ratingUri,
-      note,
-      value,
-      reasons,
-    }: {
-      ratingUri: string
-      note: {uri: string; cid?: string}
-      value: 'helpful' | 'somewhat_helpful' | 'not_helpful'
-      reasons: string[]
-    }) => {
-      const response = await apilib.updateNoteRating(
-        agent,
-        ratingUri,
-        note,
-        value,
-        reasons,
-      )
-      queryClient.invalidateQueries({
-        queryKey: RQKEY(note.uri),
-      })
-      return response
-    },
-  }
-}
-
-export function useDeleteNoteRatingMutation() {
-  const queryClient = useQueryClient()
-  const agent = useAgent()
-  return {
-    mutateAsync: async ({
-      ratingUri,
-      noteUri,
-    }: {
-      ratingUri: string
-      noteUri: string
-    }) => {
-      await apilib.deleteNoteRating(agent, ratingUri)
-      queryClient.invalidateQueries({
-        queryKey: RQKEY(noteUri),
-      })
-    },
-  }
 }
