@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react'
-import {type QueryClient} from '@tanstack/react-query'
+// QueryClient import removed - shadow cache no longer depends on queries
 import EventEmitter from 'eventemitter3'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
@@ -40,10 +40,7 @@ export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
   useEffect(() => {
     function onUpdate() {
       const newShadow = shadowsByUri.get(note.uri)
-      console.log('🔍 Debug: useNoteShadow onUpdate', {
-        noteUri: note.uri,
-        newShadow,
-      })
+
       setShadow(newShadow)
     }
     emitter.addListener(note.uri, onUpdate)
@@ -54,10 +51,6 @@ export function useNoteShadow(note: CommunityNote): Shadow<CommunityNoteView> {
 
   const result = useMemo(() => {
     if (shadow) {
-      console.log('🔍 Debug: useNoteShadow applying shadow', {
-        noteUri: note.uri,
-        shadow,
-      })
       return mergeShadow(note, shadow)
     } else {
       return castAsShadow(note as CommunityNoteView)
@@ -79,14 +72,8 @@ function mergeShadow(
   return castAsShadow(noteView)
 }
 
-export function updateNoteShadow(
-  queryClient: QueryClient,
-  noteUri: string,
-  value: Partial<NoteShadow>,
-) {
-  console.log('🔍 Debug: updateNoteShadow called', {noteUri, value})
-
-  // Update shadow data by URI - much simpler and more reliable
+export function updateNoteShadow(noteUri: string, value: Partial<NoteShadow>) {
+  // Update shadow data by URI - simple and reliable
   shadowsByUri.set(noteUri, {
     ...shadowsByUri.get(noteUri),
     ...value,
@@ -97,18 +84,8 @@ export function updateNoteShadow(
     emitter.emit(noteUri)
   })
 
-  // Optional: Invalidate queries that might contain this note
-  // This ensures server state stays fresh
-  queryClient.invalidateQueries({
-    predicate: query => {
-      const key = query.queryKey[0]?.toString() || ''
-      return (
-        key.includes('community-notes') ||
-        key.includes('proposals') ||
-        key.includes('notes')
-      )
-    },
-  })
+  // No query invalidation - shadow cache is independent of server queries
+  // Components read from shadow cache, queries provide server state
 }
 
 // Note: findNotesInCache function removed - no longer needed with URI-based approach
