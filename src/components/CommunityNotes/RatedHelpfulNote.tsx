@@ -3,8 +3,8 @@ import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useRoute} from '@react-navigation/native'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useNotesQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
@@ -22,18 +22,45 @@ interface RatedHelpfulNoteProps {
 export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
   const t = useTheme()
   const {_} = useLingui()
-  const route = useRoute()
   const [showAllNotes, setShowAllNotes] = useState(false)
   const noteDetailsControl = Dialog.useDialogControl()
   const {data: notes, isLoading, error} = useNotesQuery(post.uri)
 
-  // Don't show helpful notes on the community notes rating page
-  if (route.name === 'CommunityNotesRating') {
+  // Note: Removed route checking to avoid navigation context issues
+  // The rating page should handle not showing this component if needed
+
+  // Check if this post should have notes based on labels
+  const shouldHaveNotes = hasHelpfulNotes(post)
+
+  // Don't render if loading
+  if (isLoading) {
     return null
   }
 
-  // Don't render if no notes or still loading
-  if (isLoading || error || !notes || notes.length === 0) {
+  // Show warning if there should be notes but we got an error or no notes
+  if (shouldHaveNotes && (error || !notes || notes.length === 0)) {
+    return (
+      <View
+        style={[
+          a.mt_md,
+          a.rounded_lg,
+          a.border,
+          t.atoms.bg,
+          t.atoms.border_contrast_low,
+          a.p_md,
+        ]}>
+        <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>⚠️</Text>
+          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
+            <Trans>Couldn't fetch community note for this post</Trans>
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  // Don't render if no notes and no labels indicating there should be notes
+  if (!notes || notes.length === 0) {
     return null
   }
 
