@@ -2,6 +2,10 @@
 - getProposalsForSubjects => getProposals
 - multipel calls to getProposalsForSubjects when pulling up a feed
 
+- add logging to queryLabels and subscribeLabels endpoints in case we need to debug
+- endpoint that exposes labeler did. have frontend query this.
+
+- How we are handling CIDs in the databse and with all the lookups etc.
 
 Must-Do UI
 	- Test that we can use accept-labelers headings with live bsky app view

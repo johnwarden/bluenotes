@@ -72,6 +72,7 @@ import {SupportScreen} from '#/view/screens/Support'
 import {TermsOfServiceScreen} from '#/view/screens/TermsOfService'
 import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
+import {CommunityNotesScreen} from '#/screens/CommunityNotes'
 import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
 import HashtagScreen from '#/screens/Hashtag'
@@ -608,6 +609,14 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
           title: title(msg`Post by @${route.params.name}`),
           requireAuth: true,
         })}
+      />
+      <Stack.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        options={{
+          title: title(msg`Community Notes`),
+          requireAuth: true,
+        }}
       />
     </>
   )
