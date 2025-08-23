@@ -1,6 +1,8 @@
 import {View} from 'react-native'
-import {Trans} from '@lingui/macro'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
 
+import {HELP_DESK_URL} from '#/lib/constants'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {
   atoms as a,
@@ -10,11 +12,12 @@ import {
   web,
 } from '#/alf'
 import {CENTER_COLUMN_OFFSET} from '#/components/Layout/const'
-import {Link} from '#/components/Link'
+import {InlineLinkText, Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
 export function CommunityNotesRightPane() {
   const t = useTheme()
+  const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
   const gutters = useGutters(['base', 0, 'base', 'wide'])
   const {rightNavVisible, centerColumnOffset} = useLayoutBreakpoints()
@@ -23,7 +26,7 @@ export function CommunityNotesRightPane() {
     return null
   }
 
-  const width = centerColumnOffset ? 250 : 300
+  const width = centerColumnOffset ? 280 : 330
 
   return (
     <View
@@ -104,7 +107,7 @@ export function CommunityNotesRightPane() {
           <Trans>Feedback</Trans>
         </Text>
 
-        <Text style={[a.text_md, t.atoms.text, a.mb_md]}>
+        <Text style={[a.text_md, t.atoms.text]}>
           <Trans>Ideas or suggestions to improve Community Notes?</Trans>{' '}
           <Link
             to="https://bsky.app/profile/communitynotes.bsky.social"
@@ -114,41 +117,26 @@ export function CommunityNotesRightPane() {
             </Text>
           </Link>
         </Text>
-
-        {/* Footer Links */}
-        <View style={[a.mt_lg, a.gap_sm]}>
-          <View style={[a.flex_row, a.flex_wrap, a.gap_md]}>
-            <Link
-              to="/support/privacy"
-              style={[{color: t.atoms.text_contrast_medium.color}]}>
-              <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-                <Trans>Privacy Policy</Trans>
-              </Text>
-            </Link>
-            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>|</Text>
-            <Link
-              to="/support/tos"
-              style={[{color: t.atoms.text_contrast_medium.color}]}>
-              <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-                <Trans>Terms of Service</Trans>
-              </Text>
-            </Link>
-          </View>
-          <View style={[a.flex_row, a.flex_wrap, a.gap_md]}>
-            <Link
-              to="/support/accessibility"
-              style={[{color: t.atoms.text_contrast_medium.color}]}>
-              <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-                <Trans>Accessibility</Trans>
-              </Text>
-            </Link>
-            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>|</Text>
-            <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
-              <Trans>© 2025 Bluesky</Trans>
-            </Text>
-          </View>
-        </View>
       </View>
+
+      {/* Footer Links - Same as main app */}
+      <Text style={[a.leading_snug, t.atoms.text_contrast_low]}>
+        <InlineLinkText
+          to="https://bsky.social/about/support/privacy-policy"
+          label={_(msg`Privacy`)}>
+          {_(msg`Privacy`)}
+        </InlineLinkText>
+        {' • '}
+        <InlineLinkText
+          to="https://bsky.social/about/support/tos"
+          label={_(msg`Terms`)}>
+          {_(msg`Terms`)}
+        </InlineLinkText>
+        {' • '}
+        <InlineLinkText label={_(msg`Help`)} to={HELP_DESK_URL}>
+          {_(msg`Help`)}
+        </InlineLinkText>
+      </Text>
     </View>
   )
 }
