@@ -76,7 +76,6 @@ function SidebarNavItem({
 }
 
 export function CommunityNotesSidebar() {
-  const t = useTheme()
   const pal = usePalette('default')
   const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
@@ -95,8 +94,8 @@ export function CommunityNotesSidebar() {
           width: leftNavMinimal ? 86 : 240,
           paddingTop: 10,
           paddingBottom: 10,
-          borderRightWidth: 1,
-          borderRightColor: t.atoms.border_contrast_low.borderColor,
+          marginLeft: 24, // Add left margin to match main app spacing
+          marginRight: 24, // Add right margin for spacing from content
         },
         leftNavMinimal && {
           paddingTop: 0,

@@ -13,6 +13,7 @@ import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesContent} from '#/components/CommunityNotes/CommunityNotesContent'
 import {CommunityNotesHeader} from '#/components/CommunityNotes/CommunityNotesHeader'
+import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
 import {CommunityNotesSidebar} from '#/components/CommunityNotes/CommunityNotesSidebar'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
@@ -149,7 +150,8 @@ export function CommunityNotesScreen() {
       <CommunityNotesSidebar />
 
       {/* Main Content */}
-      <View style={[a.flex_1]}>
+      <View
+        style={[a.flex_1, {maxWidth: 600, marginLeft: 12, marginRight: 12}]}>
         <Pager
           initialPage={selectedIndex}
           onPageSelected={onPageSelected}
@@ -164,6 +166,9 @@ export function CommunityNotesScreen() {
           ))}
         </Pager>
       </View>
+
+      {/* Right Pane */}
+      <CommunityNotesRightPane />
     </View>
   )
 }
