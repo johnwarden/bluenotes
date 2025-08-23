@@ -693,7 +693,7 @@ export function DesktopLeftNav() {
             label={_(msg`Lists`)}
           />
           <NavItem
-            href="/community-notes"
+            href="/community-notes/needs_your_help"
             icon={
               <CommunityNotesIcon
                 style={pal.text}

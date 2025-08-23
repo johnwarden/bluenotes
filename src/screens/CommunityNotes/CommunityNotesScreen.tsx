@@ -2,10 +2,14 @@ import {useCallback, useMemo, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import {hasProposedNotes} from '#/lib/community-notes/labels'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
+import {type NavigationProp} from '#/lib/routes/types'
+import {isWeb} from '#/platform/detection'
 import {usePostFeedQuery} from '#/state/queries/post-feed'
+import {useSetMinimalShellMode} from '#/state/shell'
 import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesContent} from '#/components/CommunityNotes/CommunityNotesContent'
@@ -25,10 +29,36 @@ const TAB_ITEMS = [
 export function CommunityNotesScreen() {
   const t = useTheme()
   const {_} = useLingui()
-  const [selectedTab, setSelectedTab] = useState<TabStatus>('needs_your_help')
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const route = useRoute()
+  const _navigation = useNavigation<NavigationProp>()
+  const setMinimalShellMode = useSetMinimalShellMode()
+
+  // Determine initial tab from URL
+  const getTabFromPath = useCallback((path: string): TabStatus => {
+    if (path.includes('/new')) return 'new'
+    if (path.includes('/rated_helpful')) return 'rated_helpful'
+    return 'needs_your_help' // default
+  }, [])
+
+  const currentPath =
+    route.name === 'CommunityNotes' && isWeb ? window.location.pathname : ''
+  const initialTab = getTabFromPath(currentPath)
+  const initialIndex = TAB_ITEMS.findIndex(item => item.key === initialTab)
+
+  const [selectedTab, setSelectedTab] = useState<TabStatus>(initialTab)
+  const [selectedIndex, setSelectedIndex] = useState(Math.max(0, initialIndex))
 
   useSetTitle(_(msg`Community Notes`))
+
+  // Hide the main sidebar when this screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      setMinimalShellMode(true)
+      return () => {
+        setMinimalShellMode(false)
+      }
+    }, [setMinimalShellMode]),
+  )
 
   // For now, get posts from following feed and filter for those with proposed notes
   const {data: feedData, isLoading, error} = usePostFeedQuery('following')
@@ -66,8 +96,20 @@ export function CommunityNotesScreen() {
   }, [feedData])
 
   const onPageSelected = useCallback((index: number) => {
+    const newTab = TAB_ITEMS[index].key
     setSelectedIndex(index)
-    setSelectedTab(TAB_ITEMS[index].key)
+    setSelectedTab(newTab)
+
+    // Update URL without navigation
+    const paths = {
+      needs_your_help: '/community-notes/needs_your_help',
+      new: '/community-notes/new',
+      rated_helpful: '/community-notes/rated_helpful',
+    }
+
+    if (isWeb) {
+      window.history.replaceState(null, '', paths[newTab])
+    }
   }, [])
 
   const onPressSelected = useCallback(() => {
