@@ -11,7 +11,7 @@ Integrate the `createNote` API endpoint to allow users to submit community notes
 ### Request Format
 ```json
 {
-  "typ": "post_label",
+  "typ": "label",
   "uri": "at://did:plc:zvp4eaun3i27ulmozkohz6bg/app.bsky.feed.post/3lvc43lfnlk2j",
   "val": "needs-context", 
   "note": "This is my test note",
@@ -31,7 +31,7 @@ Integrate the `createNote` API endpoint to allow users to submit community notes
       "aid": "org.opencommunitynotes:fb9f68d2a518",
       "pseudonym": "Careful Beaver"
     },
-    "typ": "post_label",
+    "typ": "label",
     "targetUri": "...",
     "val": "needs-context",
     "note": "This is my test note",
@@ -57,7 +57,7 @@ Integrate the `createNote` API endpoint to allow users to submit community notes
 Add new types:
 ```typescript
 export interface CreateNoteRequest {
-  typ: 'post_label'
+  typ: 'label'
   uri: string // target post URI
   val: 'needs-context'
   note: string

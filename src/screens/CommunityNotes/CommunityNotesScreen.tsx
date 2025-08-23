@@ -2,14 +2,13 @@ import {useCallback, useMemo, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
+import {useNavigation, useRoute} from '@react-navigation/native'
 
 import {hasProposedNotes} from '#/lib/community-notes/labels'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
 import {usePostFeedQuery} from '#/state/queries/post-feed'
-import {useSetMinimalShellMode} from '#/state/shell'
 import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesContent} from '#/components/CommunityNotes/CommunityNotesContent'
@@ -31,7 +30,6 @@ export function CommunityNotesScreen() {
   const {_} = useLingui()
   const route = useRoute()
   const _navigation = useNavigation<NavigationProp>()
-  const setMinimalShellMode = useSetMinimalShellMode()
 
   // Determine initial tab from URL
   const getTabFromPath = useCallback((path: string): TabStatus => {
@@ -49,16 +47,6 @@ export function CommunityNotesScreen() {
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, initialIndex))
 
   useSetTitle(_(msg`Community Notes`))
-
-  // Hide the main sidebar when this screen is focused
-  useFocusEffect(
-    useCallback(() => {
-      setMinimalShellMode(true)
-      return () => {
-        setMinimalShellMode(false)
-      }
-    }, [setMinimalShellMode]),
-  )
 
   // For now, get posts from following feed and filter for those with proposed notes
   const {data: feedData, isLoading, error} = usePostFeedQuery('following')
@@ -156,7 +144,7 @@ export function CommunityNotesScreen() {
   }
 
   return (
-    <View style={[a.flex_1, a.flex_row]}>
+    <View style={[a.flex_1, a.flex_row, t.atoms.bg]}>
       {/* Left Sidebar */}
       <CommunityNotesSidebar />
 
