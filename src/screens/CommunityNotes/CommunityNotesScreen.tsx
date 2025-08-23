@@ -145,13 +145,9 @@ export function CommunityNotesScreen() {
   }
 
   return (
-    <View style={[a.flex_1, a.flex_row, t.atoms.bg]}>
-      {/* Left Sidebar */}
+    <Layout.Screen>
       <CommunityNotesSidebar />
-
-      {/* Main Content */}
-      <View
-        style={[a.flex_1, {maxWidth: 600, marginLeft: 12, marginRight: 12}]}>
+      <Layout.Center>
         <Pager
           initialPage={selectedIndex}
           onPageSelected={onPageSelected}
@@ -165,10 +161,8 @@ export function CommunityNotesScreen() {
             />
           ))}
         </Pager>
-      </View>
-
-      {/* Right Pane */}
+      </Layout.Center>
       <CommunityNotesRightPane />
-    </View>
+    </Layout.Screen>
   )
 }

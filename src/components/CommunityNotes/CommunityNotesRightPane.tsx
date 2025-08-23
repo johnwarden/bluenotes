@@ -1,29 +1,45 @@
 import {View} from 'react-native'
 import {Trans} from '@lingui/macro'
 
+import {useLayoutBreakpoints} from '#/lib/hooks/useLayoutBreakpoints'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
+import {web} from '#/platform/detection'
 import {atoms as a, useTheme} from '#/alf'
+import {useGutters} from '#/components/hooks/useGutters'
+import {CENTER_COLUMN_OFFSET} from '#/components/Layout/const'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
 export function CommunityNotesRightPane() {
   const t = useTheme()
   const {isDesktop} = useWebMediaQueries()
+  const gutters = useGutters(['base', 0, 'base', 'wide'])
+  const {rightNavVisible, centerColumnOffset} = useLayoutBreakpoints()
 
-  if (!isDesktop) {
+  if (!isDesktop || !rightNavVisible) {
     return null
   }
+
+  const width = centerColumnOffset ? 250 : 300
 
   return (
     <View
       style={[
-        {
-          width: 300,
-          paddingTop: 10,
-          paddingBottom: 10,
-          paddingLeft: 24,
-          paddingRight: 24,
-        },
+        gutters,
+        a.gap_lg,
+        web({
+          position: 'fixed',
+          left: '50%',
+          transform: [
+            {
+              translateX: 300 + (centerColumnOffset ? CENTER_COLUMN_OFFSET : 0),
+            },
+            ...a.scrollbar_offset.transform,
+          ],
+          width: width + gutters.paddingLeft,
+          maxHeight: '100%',
+          overflowY: 'auto',
+        }),
       ]}>
       {/* Community Notes Values */}
       <View

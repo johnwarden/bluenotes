@@ -1,9 +1,10 @@
-import {View} from 'react-native'
+import {StyleSheet, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
+import {web} from '#/platform/detection'
 import {PressableWithHover} from '#/view/com/util/PressableWithHover'
 import {atoms as a, useLayoutBreakpoints, useTheme} from '#/alf'
 import {CircleInfo_Stroke2_Corner0_Rounded as Info} from '#/components/icons/CircleInfo'
@@ -12,6 +13,7 @@ import {
   UserCircle_Filled_Corner0_Rounded as UserCircleFilled,
   UserCircle_Stroke2_Corner0_Rounded as UserCircle,
 } from '#/components/icons/UserCircle'
+import {CENTER_COLUMN_OFFSET} from '#/components/Layout/const'
 import {Text} from '#/components/Typography'
 
 const NAV_ICON_WIDTH = 28
@@ -79,7 +81,7 @@ export function CommunityNotesSidebar() {
   const pal = usePalette('default')
   const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
-  const {leftNavMinimal} = useLayoutBreakpoints()
+  const {leftNavMinimal, centerColumnOffset} = useLayoutBreakpoints()
 
   if (!isDesktop) {
     return null
@@ -90,19 +92,17 @@ export function CommunityNotesSidebar() {
       role="navigation"
       style={[
         a.px_xl,
+        styles.leftNav,
+        leftNavMinimal && styles.leftNavMinimal,
         {
-          width: leftNavMinimal ? 86 : 240,
-          paddingTop: 10,
-          paddingBottom: 10,
-          marginLeft: 24, // Add left margin to match main app spacing
-          marginRight: 24, // Add right margin for spacing from content
-        },
-        leftNavMinimal && {
-          paddingTop: 0,
-          paddingBottom: 0,
-          paddingLeft: 0,
-          paddingRight: 0,
-          alignItems: 'center',
+          transform: [
+            {
+              translateX:
+                -300 + (centerColumnOffset ? CENTER_COLUMN_OFFSET : 0),
+            },
+            {translateX: '-100%'},
+            ...a.scrollbar_offset.transform,
+          ],
         },
       ]}>
       <View style={[a.pt_xl]}>
@@ -160,3 +160,27 @@ export function CommunityNotesSidebar() {
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  leftNav: {
+    ...a.fixed,
+    top: 0,
+    paddingTop: 10,
+    paddingBottom: 10,
+    left: '50%',
+    width: 240,
+    // @ts-expect-error web only
+    maxHeight: '100vh',
+    overflowY: 'auto',
+  },
+  leftNavMinimal: {
+    paddingTop: 0,
+    paddingBottom: 0,
+    paddingLeft: 0,
+    paddingRight: 0,
+    height: '100%',
+    width: 86,
+    alignItems: 'center',
+    ...web({overflowX: 'hidden'}),
+  },
+})
