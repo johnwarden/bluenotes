@@ -37,9 +37,10 @@ export function CommunityNotesScreen() {
     if (!feedData?.pages) return []
 
     return feedData.pages
-      .flatMap((page: any) => page.feed)
-      .filter((item: any) => hasProposedNotes(item.post))
-      .map((item: any) => item.post)
+      .flatMap(page => page.slices)
+      .flatMap(slice => slice.items)
+      .filter(item => hasProposedNotes(item.post))
+      .map(item => item.post)
   }, [feedData])
 
   const onPageSelected = useCallback((index: number) => {
