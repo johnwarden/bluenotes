@@ -1,10 +1,14 @@
 import {View} from 'react-native'
 import {Trans} from '@lingui/macro'
 
-import {useLayoutBreakpoints} from '#/lib/hooks/useLayoutBreakpoints'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
-import {web} from '#/platform/detection'
-import {atoms as a, useGutters, useTheme} from '#/alf'
+import {
+  atoms as a,
+  useGutters,
+  useLayoutBreakpoints,
+  useTheme,
+  web,
+} from '#/alf'
 import {CENTER_COLUMN_OFFSET} from '#/components/Layout/const'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'

@@ -4,9 +4,8 @@ import {useLingui} from '@lingui/react'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
-import {web} from '#/platform/detection'
 import {PressableWithHover} from '#/view/com/util/PressableWithHover'
-import {atoms as a, useLayoutBreakpoints, useTheme} from '#/alf'
+import {atoms as a, useLayoutBreakpoints, useTheme, web} from '#/alf'
 import {CircleInfo_Stroke2_Corner0_Rounded as Info} from '#/components/icons/CircleInfo'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {
