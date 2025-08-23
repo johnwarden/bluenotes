@@ -25,7 +25,7 @@ export function CommunityNotesContent({
   )
 
   const renderHeader = () => (
-    <View style={[a.p_lg]}>
+    <View style={[a.p_lg, a.w_full, {maxWidth: 600}]}>
       <InstructionPrompt status={status} />
     </View>
   )

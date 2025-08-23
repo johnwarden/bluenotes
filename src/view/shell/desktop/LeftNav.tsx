@@ -708,7 +708,7 @@ export function DesktopLeftNav() {
                 width={NAV_ICON_WIDTH}
               />
             }
-            label={_(msg`Community Notes`)}
+            label={_(msg`Notes`)}
           />
           <NavItem
             href={currentAccount ? makeProfileLink(currentAccount) : '/'}

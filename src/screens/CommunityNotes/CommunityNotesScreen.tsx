@@ -36,11 +36,33 @@ export function CommunityNotesScreen() {
   const postsWithProposedNotes = useMemo(() => {
     if (!feedData?.pages) return []
 
-    return feedData.pages
+    const allPosts = feedData.pages
       .flatMap(page => page.slices)
       .flatMap(slice => slice.items)
-      .filter(item => hasProposedNotes(item.post))
       .map(item => item.post)
+
+    const postsWithProposed = allPosts.filter(post => {
+      const hasProposed = hasProposedNotes(post)
+      if (post.labels && post.labels.length > 0) {
+        console.log('Post with labels:', {
+          uri: post.uri,
+          labels: post.labels.map(l => ({val: l.val, src: l.src})),
+          hasProposed,
+        })
+      }
+      return hasProposed
+    })
+
+    // Debug logging
+    console.log('Community Notes Debug:', {
+      totalPages: feedData.pages.length,
+      totalPosts: allPosts.length,
+      postsWithProposed: postsWithProposed.length,
+      postsWithAnyLabels: allPosts.filter(p => p.labels && p.labels.length > 0)
+        .length,
+    })
+
+    return postsWithProposed
   }, [feedData])
 
   const onPageSelected = useCallback((index: number) => {
@@ -92,28 +114,26 @@ export function CommunityNotesScreen() {
   }
 
   return (
-    <Layout.Screen>
-      <View style={[a.flex_1, a.flex_row]}>
-        {/* Left Sidebar */}
-        <CommunityNotesSidebar />
+    <View style={[a.flex_1, a.flex_row]}>
+      {/* Left Sidebar */}
+      <CommunityNotesSidebar />
 
-        {/* Main Content */}
-        <View style={[a.flex_1]}>
-          <Pager
-            initialPage={selectedIndex}
-            onPageSelected={onPageSelected}
-            renderTabBar={renderTabBar}>
-            {TAB_ITEMS.map(tab => (
-              <CommunityNotesContent
-                key={tab.key}
-                status={tab.key}
-                posts={postsWithProposedNotes}
-                isActive={selectedTab === tab.key}
-              />
-            ))}
-          </Pager>
-        </View>
+      {/* Main Content */}
+      <View style={[a.flex_1]}>
+        <Pager
+          initialPage={selectedIndex}
+          onPageSelected={onPageSelected}
+          renderTabBar={renderTabBar}>
+          {TAB_ITEMS.map(tab => (
+            <CommunityNotesContent
+              key={tab.key}
+              status={tab.key}
+              posts={postsWithProposedNotes}
+              isActive={selectedTab === tab.key}
+            />
+          ))}
+        </Pager>
       </View>
-    </Layout.Screen>
+    </View>
   )
 }
