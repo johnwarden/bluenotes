@@ -4,7 +4,7 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation, useRoute} from '@react-navigation/native'
 
-import {hasProposedNotes} from '#/lib/community-notes/labels'
+import {DISCOVER_FEED_URI} from '#/lib/constants'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
@@ -49,10 +49,12 @@ export function CommunityNotesScreen() {
 
   useSetTitle(_(msg`Community Notes`))
 
-  // For now, get posts from following feed and filter for those with proposed notes
-  const {data: feedData, isLoading, error} = usePostFeedQuery('following')
+  // For now, use discover feed as placeholder for all tabs
+  // TODO: Replace with actual Community Notes feeds when available
+  const feedDescriptor = `feedgen|${DISCOVER_FEED_URI}`
+  const {data: feedData, isLoading, error} = usePostFeedQuery(feedDescriptor)
 
-  const postsWithProposedNotes = useMemo(() => {
+  const feedPosts = useMemo(() => {
     if (!feedData?.pages) return []
 
     const allPosts = feedData.pages
@@ -60,29 +62,14 @@ export function CommunityNotesScreen() {
       .flatMap(slice => slice.items)
       .map(item => item.post)
 
-    const postsWithProposed = allPosts.filter(post => {
-      const hasProposed = hasProposedNotes(post)
-      if (post.labels && post.labels.length > 0) {
-        console.log('Post with labels:', {
-          uri: post.uri,
-          labels: post.labels.map(l => ({val: l.val, src: l.src})),
-          hasProposed,
-        })
-      }
-      return hasProposed
-    })
-
-    // Debug logging
-    console.log('Community Notes Debug:', {
+    console.log('Community Notes Placeholder Feed:', {
       totalPages: feedData.pages.length,
       totalPosts: allPosts.length,
-      postsWithProposed: postsWithProposed.length,
-      postsWithAnyLabels: allPosts.filter(p => p.labels && p.labels.length > 0)
-        .length,
+      selectedTab,
     })
 
-    return postsWithProposed
-  }, [feedData])
+    return allPosts
+  }, [feedData, selectedTab])
 
   const onPageSelected = useCallback((index: number) => {
     const newTab = TAB_ITEMS[index].key
@@ -156,7 +143,7 @@ export function CommunityNotesScreen() {
             <CommunityNotesContent
               key={tab.key}
               status={tab.key}
-              posts={postsWithProposedNotes}
+              posts={feedPosts}
               isActive={selectedTab === tab.key}
             />
           ))}

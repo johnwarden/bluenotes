@@ -9,6 +9,10 @@ import {atoms as a, useLayoutBreakpoints, useTheme, web} from '#/alf'
 import {CircleInfo_Stroke2_Corner0_Rounded as Info} from '#/components/icons/CircleInfo'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {
+  HomeOpen_Filled_Corner0_Rounded as HomeFilled,
+  HomeOpen_Stoke2_Corner0_Rounded as Home,
+} from '#/components/icons/HomeOpen'
+import {
   UserCircle_Filled_Corner0_Rounded as UserCircleFilled,
   UserCircle_Stroke2_Corner0_Rounded as UserCircle,
 } from '#/components/icons/UserCircle'
@@ -105,6 +109,22 @@ export function CommunityNotesSidebar() {
         },
       ]}>
       <View style={[a.pt_xl]}>
+        <SidebarNavItem
+          icon={
+            <Home aria-hidden={true} width={NAV_ICON_WIDTH} style={pal.text} />
+          }
+          iconFilled={
+            <HomeFilled
+              aria-hidden={true}
+              width={NAV_ICON_WIDTH}
+              style={pal.text}
+            />
+          }
+          label={_(msg`Home`)}
+          onPress={() => {
+            // TODO: Navigate to home
+          }}
+        />
         <SidebarNavItem
           icon={
             <CommunityNotesIcon
