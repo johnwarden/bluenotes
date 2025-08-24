@@ -29,13 +29,9 @@ export function useNotesQuery(subjectUri: string) {
     queryKey: RQKEY(subjectUri),
     queryFn: async () => {
       try {
-        const response = await apilib.getProposalsForSubjects(
-          agent,
-          subjectUri,
-          {
-            status: 'rated_helpful', // CRITICAL: Explicit filtering for approved notes only
-          },
-        )
+        const response = await apilib.getProposals(agent, subjectUri, {
+          status: 'rated_helpful', // CRITICAL: Explicit filtering for approved notes only
+        })
 
         // Just map the response to notes first, don't update shadow cache yet
         const notes = response.proposals.map(apiNote => {

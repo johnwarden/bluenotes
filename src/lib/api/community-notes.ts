@@ -74,7 +74,7 @@ export interface HelpfulNoteAPIResponse {
   }
 }
 
-export interface GetProposalsForSubjectsResponse {
+export interface GetProposalsResponse {
   proposals: HelpfulNoteAPIResponse[]
 }
 
@@ -307,14 +307,14 @@ export async function createProposal(
   }
 }
 
-export async function getProposalsForSubjects(
+export async function getProposals(
   agent: BskyAgent | null,
   subjectUris: string | string[],
   options?: {
     status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
     label?: string
   },
-): Promise<GetProposalsForSubjectsResponse> {
+): Promise<GetProposalsResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
   const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
@@ -333,7 +333,7 @@ export async function getProposalsForSubjects(
   }
 
   const allParams = [uriParams, ...filterParams].join('&')
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
@@ -397,7 +397,7 @@ export async function getProposalsForSubject(
 
   const uriParam = `uris=${encodeURIComponent(subjectUri)}`
   const allParams = [uriParam, ...filterParams].join('&')
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
