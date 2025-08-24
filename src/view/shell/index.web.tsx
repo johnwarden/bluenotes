@@ -10,6 +10,7 @@ import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {type NavigationProp} from '#/lib/routes/types'
 import {colors} from '#/lib/styles'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useIsDrawerOpen, useSetDrawerOpen} from '#/state/shell'
 import {useComposerKeyboardShortcut} from '#/state/shell/composer/useComposerKeyboardShortcut'
 import {useCloseAllActiveElements} from '#/state/util'
@@ -134,6 +135,7 @@ export const Shell: React.FC = function ShellImpl() {
   const pageBg = useColorSchemeStyle(styles.bgLight, styles.bgDark)
   return (
     <View style={[a.util_screen_outer, pageBg]}>
+      <CommunityNotesConfigLoader />
       <RoutesContainer>
         <ShellInner />
       </RoutesContainer>

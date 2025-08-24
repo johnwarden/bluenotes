@@ -4,10 +4,10 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation, useRoute} from '@react-navigation/native'
 
-import {DISCOVER_FEED_URI} from '#/lib/constants'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
+import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {usePostFeedQuery} from '#/state/queries/post-feed'
 import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
@@ -49,10 +49,38 @@ export function CommunityNotesScreen() {
 
   useSetTitle(_(msg`Community Notes`))
 
-  // For now, use discover feed as placeholder for all tabs
-  // TODO: Replace with actual Community Notes feeds when available
-  const feedDescriptor = `feedgen|${DISCOVER_FEED_URI}`
-  const {data: feedData, isLoading, error} = usePostFeedQuery(feedDescriptor)
+  // Load Community Notes configuration
+  const {
+    data: config,
+    isLoading: configLoading,
+    error: configError,
+  } = useCommunityNotesConfig()
+
+  // Get feed URI based on selected tab and config
+  const getFeedUri = useCallback(
+    (tab: TabStatus) => {
+      if (!config) return null
+
+      // Standard rkey patterns for Community Notes feeds
+      const rkeys = {
+        needs_your_help: 'needs-help',
+        new: 'new-notes',
+        rated_helpful: 'helpful',
+      }
+
+      return `at://${config.feed_generator_did}/app.bsky.feed.generator/${rkeys[tab]}`
+    },
+    [config],
+  )
+
+  const feedUri = getFeedUri(selectedTab)
+  const feedDescriptor = feedUri ? (`feedgen|${feedUri}` as const) : null
+
+  const {
+    data: feedData,
+    isLoading,
+    error,
+  } = usePostFeedQuery(feedDescriptor!, undefined, {enabled: !!feedDescriptor})
 
   const feedPosts = useMemo(() => {
     if (!feedData?.pages) return []
@@ -62,14 +90,16 @@ export function CommunityNotesScreen() {
       .flatMap(slice => slice.items)
       .map(item => item.post)
 
-    console.log('Community Notes Placeholder Feed:', {
+    console.log('Community Notes Feed:', {
       totalPages: feedData.pages.length,
       totalPosts: allPosts.length,
       selectedTab,
+      feedUri,
+      configVersion: config?.version,
     })
 
     return allPosts
-  }, [feedData, selectedTab])
+  }, [feedData, selectedTab, feedUri, config])
 
   const onPageSelected = useCallback((index: number) => {
     const newTab = TAB_ITEMS[index].key
@@ -105,7 +135,8 @@ export function CommunityNotesScreen() {
     [onPressSelected],
   )
 
-  if (isLoading) {
+  // Show loading state while config or initial feed data is loading
+  if (configLoading || (isLoading && !feedData)) {
     return (
       <Layout.Screen>
         <Layout.Center>
@@ -117,16 +148,37 @@ export function CommunityNotesScreen() {
     )
   }
 
-  if (error) {
+  // Handle config errors - show unavailable message but still render the UI structure
+  const isConfigUnavailable = configError || !config
+  const isFeedUnavailable = error || !feedDescriptor
+
+  // If both config and feeds are unavailable, show a general unavailable message
+  if (isConfigUnavailable && isFeedUnavailable) {
     return (
       <Layout.Screen>
+        <CommunityNotesSidebar />
         <Layout.Center>
-          <View style={[a.flex_1, a.align_center, a.justify_center, a.p_xl]}>
-            <Text style={[t.atoms.text_contrast_medium, a.text_center]}>
-              <Trans>Failed to load Community Notes</Trans>
+          <View
+            style={[
+              a.flex_1,
+              a.align_center,
+              a.justify_center,
+              a.gap_md,
+              a.p_xl,
+            ]}>
+            <Text style={[a.text_lg, a.font_bold, t.atoms.text]}>
+              <Trans>Community Notes Unavailable</Trans>
+            </Text>
+            <Text
+              style={[a.text_md, t.atoms.text_contrast_medium, a.text_center]}>
+              <Trans>
+                The Community Notes service is currently unavailable. Please try
+                again later.
+              </Trans>
             </Text>
           </View>
         </Layout.Center>
+        <CommunityNotesRightPane />
       </Layout.Screen>
     )
   }
@@ -143,8 +195,9 @@ export function CommunityNotesScreen() {
             <CommunityNotesContent
               key={tab.key}
               status={tab.key}
-              posts={feedPosts}
+              posts={isFeedUnavailable ? [] : feedPosts}
               isActive={selectedTab === tab.key}
+              isUnavailable={!!isFeedUnavailable}
             />
           ))}
         </Pager>

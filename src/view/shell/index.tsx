@@ -13,6 +13,7 @@ import {useNotificationsRegistration} from '#/lib/notifications/notifications'
 import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {isAndroid, isIOS} from '#/platform/detection'
 import {useDialogFullyExpandedCountContext} from '#/state/dialogs'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useSession} from '#/state/session'
 import {
   useIsDrawerOpen,
@@ -191,6 +192,7 @@ export const Shell: React.FC = function ShellImpl() {
 
   return (
     <View testID="mobileShellView" style={[a.h_full, t.atoms.bg]}>
+      <CommunityNotesConfigLoader />
       <SystemBars
         style={{
           statusBar:

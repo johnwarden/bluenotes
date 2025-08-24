@@ -11,12 +11,14 @@ interface CommunityNotesContentProps {
   status: 'needs_your_help' | 'new' | 'rated_helpful'
   posts: AppBskyFeedDefs.PostView[]
   isActive: boolean
+  isUnavailable?: boolean
 }
 
 export function CommunityNotesContent({
   status,
   posts,
   isActive,
+  isUnavailable = false,
 }: CommunityNotesContentProps) {
   const t = useTheme()
 
@@ -33,12 +35,18 @@ export function CommunityNotesContent({
   const renderEmpty = () => (
     <View style={[a.flex_1, a.align_center, a.justify_center, a.p_xl]}>
       <Text style={[t.atoms.text_contrast_medium, a.text_center]}>
-        {status === 'needs_your_help' && (
-          <Trans>No notes need your help right now</Trans>
-        )}
-        {status === 'new' && <Trans>No new notes to review</Trans>}
-        {status === 'rated_helpful' && (
-          <Trans>No notes have been rated helpful yet</Trans>
+        {isUnavailable ? (
+          <Trans>This feed is currently unavailable</Trans>
+        ) : (
+          <>
+            {status === 'needs_your_help' && (
+              <Trans>No notes need your help right now</Trans>
+            )}
+            {status === 'new' && <Trans>No new notes to review</Trans>}
+            {status === 'rated_helpful' && (
+              <Trans>No notes have been rated helpful yet</Trans>
+            )}
+          </>
         )}
       </Text>
     </View>
