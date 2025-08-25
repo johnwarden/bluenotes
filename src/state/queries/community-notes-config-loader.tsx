@@ -2,6 +2,7 @@ import React from 'react'
 
 import {updateCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
+import {configureAdditionalModerationAuthorities} from '#/state/session/additional-moderation-authorities'
 
 /**
  * Component to load Community Notes config and update the global labeler DID.
@@ -15,10 +16,14 @@ export function CommunityNotesConfigLoader() {
   React.useEffect(() => {
     if (communityNotesConfig?.labeler_did) {
       updateCommunityNotesLabelerDid(communityNotesConfig.labeler_did)
+      // Reconfigure moderation authorities to include the new labeler DID
+      configureAdditionalModerationAuthorities()
     } else if (communityNotesConfigError) {
       // If config fails to load, clear any existing labeler DID to prevent
       // using stale/invalid labeler configuration
       updateCommunityNotesLabelerDid(null)
+      // Reconfigure to remove the labeler DID
+      configureAdditionalModerationAuthorities()
     }
   }, [communityNotesConfig, communityNotesConfigError])
 
