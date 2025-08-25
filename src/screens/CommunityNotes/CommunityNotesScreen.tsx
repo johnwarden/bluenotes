@@ -68,7 +68,7 @@ export function CommunityNotesScreen() {
         rated_helpful: 'helpful',
       }
 
-      return `at://${config.feed_generator_did}/app.bsky.feed.generator/${rkeys[tab]}`
+      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${rkeys[tab]}`
     },
     [config],
   )

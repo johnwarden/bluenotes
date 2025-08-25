@@ -6,8 +6,8 @@ import {useAgent} from '#/state/session'
 
 export interface CommunityNotesConfig {
   version: string
-  labeler_did: string
-  feed_generator_did: string
+  labelerDid: string
+  feedGeneratorDid: string
 }
 
 const RQKEY_ROOT = 'community-notes-config'
@@ -37,11 +37,7 @@ export function useCommunityNotesConfig() {
       const config = await response.json()
 
       // Validate the response structure
-      if (
-        !config.version ||
-        !config.labeler_did ||
-        !config.feed_generator_did
-      ) {
+      if (!config.version || !config.labelerDid || !config.feedGeneratorDid) {
         throw new Error('Invalid Community Notes config response')
       }
 

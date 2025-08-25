@@ -14,8 +14,8 @@ export function CommunityNotesConfigLoader() {
     useCommunityNotesConfig()
 
   React.useEffect(() => {
-    if (communityNotesConfig?.labeler_did) {
-      updateCommunityNotesLabelerDid(communityNotesConfig.labeler_did)
+    if (communityNotesConfig?.labelerDid) {
+      updateCommunityNotesLabelerDid(communityNotesConfig.labelerDid)
       // Reconfigure moderation authorities to include the new labeler DID
       configureAdditionalModerationAuthorities()
     } else if (communityNotesConfigError) {

@@ -49,18 +49,18 @@ The Community Notes service will provide a `getConfig` XRPC endpoint that return
         "encoding": "application/json",
         "schema": {
           "type": "object",
-          "required": ["feed_generator_did", "labeler_did", "version"],
+          "required": ["feedGeneratorDid", "labelerDid", "version"],
           "properties": {
             "version": {
               "type": "string",
               "description": "Configuration version for cache invalidation (ISO 8601 timestamp)"
             },
-            "labeler_did": {
+            "labelerDid": {
               "type": "string",
               "format": "did",
               "description": "DID of the Community Notes labeler service"
             },
-            "feed_generator_did": {
+            "feedGeneratorDid": {
               "type": "string",
               "format": "did",
               "description": "DID of the Community Notes feed generator service"
@@ -79,8 +79,8 @@ The Community Notes service will provide a `getConfig` XRPC endpoint that return
 ```json
 {
   "version": "2024-01-15T10:30:00Z",
-  "labeler_did": "did:plc:community-notes-prod-labeler",
-  "feed_generator_did": "did:plc:community-notes-prod-feeds"
+  "labelerDid": "did:plc:community-notes-prod-labeler",
+  "feedGeneratorDid": "did:plc:community-notes-prod-feeds"
 }
 ```
 
@@ -88,8 +88,8 @@ The Community Notes service will provide a `getConfig` XRPC endpoint that return
 ```json
 {
   "version": "2024-01-15T10:30:00Z",
-  "labeler_did": "did:plc:community-notes-dev-labeler",
-  "feed_generator_did": "did:plc:community-notes-dev-feeds"
+  "labelerDid": "did:plc:community-notes-dev-labeler",
+  "feedGeneratorDid": "did:plc:community-notes-dev-feeds"
 }
 ```
 
@@ -101,8 +101,8 @@ The Community Notes service will provide a `getConfig` XRPC endpoint that return
 // src/state/queries/community-notes-config.ts
 export interface CommunityNotesConfig {
   version: string
-  labeler_did: string
-  feed_generator_did: string
+  labelerDid: string
+  feedGeneratorDid: string
 }
 
 export function useCommunityNotesConfig() {
@@ -143,8 +143,8 @@ export function SessionProvider({children}: React.PropsWithChildren<{}>) {
   
   // Update global labeler DID when config loads
   useEffect(() => {
-    if (communityNotesConfig?.labeler_did) {
-      updateCommunityNotesLabelerDid(communityNotesConfig.labeler_did)
+    if (communityNotesConfig?.labelerDid) {
+      updateCommunityNotesLabelerDid(communityNotesConfig.labelerDid)
     }
   }, [communityNotesConfig])
   
@@ -190,7 +190,7 @@ export function CommunityNotesScreen() {
       rated_helpful: 'helpful'
     }
 
-    return `at://${config.feed_generator_did}/app.bsky.feed.generator/${rkeys[tab]}`
+    return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${rkeys[tab]}`
   }, [config])
   
   const feedUri = getFeedUri(selectedTab)
@@ -217,22 +217,22 @@ export function CommunityNotesScreen() {
 ```typescript
 // Community Notes Service - getConfig endpoint
 interface EnvironmentConfig {
-  labeler_did: string
-  feed_generator_did: string
+  labelerDid: string
+  feedGeneratorDid: string
 }
 
 const ENVIRONMENT_CONFIGS: Record<string, EnvironmentConfig> = {
   production: {
-    labeler_did: 'did:plc:community-notes-prod-labeler',
-    feed_generator_did: 'did:plc:community-notes-prod-feeds'
+    labelerDid: 'did:plc:community-notes-prod-labeler',
+    feedGeneratorDid: 'did:plc:community-notes-prod-feeds'
   },
   staging: {
-    labeler_did: 'did:plc:community-notes-staging-labeler',
-    feed_generator_did: 'did:plc:community-notes-staging-feeds'
+    labelerDid: 'did:plc:community-notes-staging-labeler',
+    feedGeneratorDid: 'did:plc:community-notes-staging-feeds'
   },
   development: {
-    labeler_did: 'did:plc:community-notes-dev-labeler',
-    feed_generator_did: 'did:plc:your-dev-feed-generator'
+    labelerDid: 'did:plc:community-notes-dev-labeler',
+    feedGeneratorDid: 'did:plc:your-dev-feed-generator'
   }
 }
 
