@@ -80,7 +80,9 @@ export function CommunityNotesScreen() {
     data: feedData,
     isLoading,
     error,
-  } = usePostFeedQuery(feedDescriptor!, undefined, {enabled: !!feedDescriptor})
+  } = usePostFeedQuery(feedDescriptor || 'following', undefined, {
+    enabled: !!feedDescriptor,
+  })
 
   const feedPosts = useMemo(() => {
     if (!feedData?.pages) return []
