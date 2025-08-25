@@ -8,6 +8,9 @@ export interface CommunityNotesConfig {
   version: string
   labelerDid: string
   feedGeneratorDid: string
+  feeds?: {
+    uri: string
+  }[]
 }
 
 const RQKEY_ROOT = 'community-notes-config'
@@ -24,21 +27,37 @@ export function useCommunityNotesConfig() {
         : 'https://bsky.social'
       const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
 
-      const response = await fetch(
+      // Fetch basic config
+      const configResponse = await fetch(
         `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getConfig`,
       )
 
-      if (!response.ok) {
+      if (!configResponse.ok) {
         throw new Error(
-          `Failed to fetch Community Notes config: ${response.status}`,
+          `Failed to fetch Community Notes config: ${configResponse.status}`,
         )
       }
 
-      const config = await response.json()
+      const config = await configResponse.json()
 
-      // Validate the response structure
+      // Validate the basic config structure
       if (!config.version || !config.labelerDid || !config.feedGeneratorDid) {
         throw new Error('Invalid Community Notes config response')
+      }
+
+      // Fetch feed generator description to get actual feed URIs
+      try {
+        const feedGenResponse = await fetch(
+          `${communityNotesServiceUrl}/xrpc/app.bsky.feed.describeFeedGenerator`,
+        )
+
+        if (feedGenResponse.ok) {
+          const feedGenData = await feedGenResponse.json()
+          config.feeds = feedGenData.feeds || []
+        }
+      } catch (error) {
+        // If describeFeedGenerator fails, continue without feeds
+        console.warn('Failed to fetch feed generator description:', error)
       }
 
       return config as CommunityNotesConfig

@@ -59,16 +59,22 @@ export function CommunityNotesScreen() {
   // Get feed URI based on selected tab and config
   const getFeedUri = useCallback(
     (tab: TabStatus) => {
-      if (!config) return null
+      if (!config?.feeds) return null
 
-      // Standard rkey patterns for Community Notes feeds
-      const rkeys = {
-        needs_your_help: 'needs-help',
-        new: 'new-notes',
-        rated_helpful: 'helpful',
+      // Map tab status to feed rkey patterns (from integration guide)
+      const rkeyPatterns = {
+        needs_your_help: 'needs_your_help',
+        new: 'new',
+        rated_helpful: 'rated_helpful',
       }
 
-      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${rkeys[tab]}`
+      // Find the matching feed URI from the describeFeedGenerator response
+      const targetRkey = rkeyPatterns[tab]
+      const matchingFeed = config.feeds.find(feed =>
+        feed.uri.endsWith(`/app.bsky.feed.generator/${targetRkey}`),
+      )
+
+      return matchingFeed?.uri || null
     },
     [config],
   )
