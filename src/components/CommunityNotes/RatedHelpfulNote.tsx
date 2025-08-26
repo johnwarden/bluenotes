@@ -6,7 +6,7 @@ import {useLingui} from '@lingui/react'
 
 import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
-import {useNotesQuery} from '#/state/queries/community-notes'
+import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
@@ -24,13 +24,25 @@ export function RatedHelpfulNote({post}: RatedHelpfulNoteProps) {
   const {_} = useLingui()
   const [showAllNotes, setShowAllNotes] = useState(false)
   const noteDetailsControl = Dialog.useDialogControl()
-  const {data: notes, isLoading, error} = useNotesQuery(post.uri)
+  const {
+    data: notes,
+    isLoading,
+    error,
+  } = useProposalsQuery(post.uri, 'rated_helpful')
 
   // Note: Removed route checking to avoid navigation context issues
   // The rating page should handle not showing this component if needed
 
   // Check if this post should have notes based on labels
   const shouldHaveNotes = hasHelpfulNotes(post)
+
+  console.log('RatedHelpfulNote for', post.uri, ':', {
+    shouldHaveNotes,
+    labels: post.labels,
+    notes: notes?.length || 0,
+    isLoading,
+    error: error?.message,
+  })
 
   // Don't render if loading
   if (isLoading) {
