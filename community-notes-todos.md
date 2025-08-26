@@ -39,3 +39,8 @@ Refactoring:
 In the notes service,
 	
 	- ATP Agent Caching: The Community Notes service was creating multiple AtpAgent instances (one per API request), and each agent was independently managing AT Protocol sessions. When sessions refresh (which happens frequently for security), each agent would log a debug message.. For even better performance, we could implement agent caching to reuse AtpAgent instances instead of creating new ones for each request, but the current fix resolves the immediate logging issue effectively.
+
+rateProposal calls syncToPds, createProposasl doesn't. Create proposal inserts a rating record. Review how this all works.
+
+
+

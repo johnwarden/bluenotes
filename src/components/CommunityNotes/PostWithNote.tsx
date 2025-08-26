@@ -15,9 +15,13 @@ interface PostWithNoteProps {
   status: 'needs_your_help' | 'new' | 'rated_helpful'
 }
 
-export function PostWithNote({post, status: _status}: PostWithNoteProps) {
+export function PostWithNote({post, status}: PostWithNoteProps) {
   const t = useTheme()
-  const {data: notes, isLoading} = useProposalsQuery(post.uri)
+
+  // Map the status to the appropriate query parameter
+  const queryStatus =
+    status === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
+  const {data: notes, isLoading} = useProposalsQuery(post.uri, queryStatus)
 
   // Create a version of the post without community notes labels
   // This prevents other community notes components from showing

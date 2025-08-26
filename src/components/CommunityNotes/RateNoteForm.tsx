@@ -33,7 +33,7 @@ const HELPFUL_REASONS = [
   {key: 'addresses_claim', label: msg`Directly addresses the post's claim`},
   {key: 'provides_important_context', label: msg`Provides important context`},
   {key: 'is_unbiased', label: msg`Neutral or unbiased language`},
-  {key: 'other', label: msg`Other`},
+  {key: 'helpful_other', label: msg`Other`},
 ]
 
 const NOT_HELPFUL_REASONS = [
@@ -55,7 +55,7 @@ const NOT_HELPFUL_REASONS = [
   },
   {key: 'note_not_needed', label: msg`Note not needed on this post`},
   {key: 'is_spam_harassment_or_abuse', label: msg`Spam, harassment, or abuse`},
-  {key: 'other', label: msg`Other`},
+  {key: 'not_helpful_other', label: msg`Other`},
 ]
 
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
@@ -109,10 +109,28 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
 
     setIsSubmitting(true)
     try {
+      // Clear conflicting reasons before submission
+      const helpfulReasonKeys = HELPFUL_REASONS.map(r => r.key)
+      const notHelpfulReasonKeys = NOT_HELPFUL_REASONS.map(r => r.key)
+
+      let filteredReasons = reasons
+      if (voted === 'helpful') {
+        // Keep only helpful reasons
+        filteredReasons = reasons.filter(reason =>
+          helpfulReasonKeys.includes(reason),
+        )
+      } else if (voted === 'not_helpful') {
+        // Keep only not helpful reasons
+        filteredReasons = reasons.filter(reason =>
+          notHelpfulReasonKeys.includes(reason),
+        )
+      }
+      // For 'somewhat_helpful', keep all reasons as both sections are valid
+
       const newRatingState: NoteRatingState = {
         uri: currentRating?.uri, // Preserve existing URI for updates
         val: voted,
-        reasons: reasons,
+        reasons: filteredReasons,
       }
 
       await submitRating(newRatingState)

@@ -78,15 +78,24 @@ export function useNotesQuery(subjectUri: string) {
 }
 
 // Hook for fetching proposed notes that need ratings (for RateNotesScreen)
-export function useProposalsQuery(subjectUri: string) {
+export function useProposalsQuery(
+  subjectUri: string,
+  status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful',
+) {
   const agent = useAgent()
   const queryClient = useQueryClient()
 
   const query = useQuery<CommunityNote[]>({
-    queryKey: ['community-notes-proposals', subjectUri],
+    queryKey: ['community-notes-proposals', subjectUri, status],
     queryFn: async () => {
       try {
-        const response = await apilib.getProposalsForSubject(agent, subjectUri)
+        const response = await apilib.getProposalsForSubject(
+          agent,
+          subjectUri,
+          {
+            status,
+          },
+        )
 
         // Map the response to notes
         const notes = response.proposals.map(apiNote => {

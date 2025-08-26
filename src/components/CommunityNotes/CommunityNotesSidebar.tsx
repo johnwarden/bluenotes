@@ -1,9 +1,11 @@
 import {StyleSheet, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
+import {type NavigationProp} from '#/lib/routes/types'
 import {PressableWithHover} from '#/view/com/util/PressableWithHover'
 import {atoms as a, useLayoutBreakpoints, useTheme, web} from '#/alf'
 import {CircleInfo_Stroke2_Corner0_Rounded as Info} from '#/components/icons/CircleInfo'
@@ -85,6 +87,7 @@ export function CommunityNotesSidebar() {
   const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
   const {leftNavMinimal, centerColumnOffset} = useLayoutBreakpoints()
+  const navigation = useNavigation<NavigationProp>()
 
   if (!isDesktop) {
     return null
@@ -122,7 +125,7 @@ export function CommunityNotesSidebar() {
           }
           label={_(msg`Home`)}
           onPress={() => {
-            // TODO: Navigate to home
+            navigation.navigate('Home')
           }}
         />
         <SidebarNavItem
