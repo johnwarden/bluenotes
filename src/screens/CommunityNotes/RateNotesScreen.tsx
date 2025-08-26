@@ -43,7 +43,7 @@ export function RateNotesScreen() {
     data: notes,
     isLoading: isLoadingNotes,
     error: notesError,
-  } = useProposalsQuery(uri, 'needs_more_ratings')
+  } = useProposalsQuery(uri) // No status filter - show all proposals
 
   // Create a version of the post without community notes labels
   // This prevents RatedHelpfulNote and RateCommunityNotesPrompt from showing
