@@ -376,6 +376,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
         </View>
         <View style={[a.pb_sm]}>
           <LabelsOnMyPost post={post} style={[a.pb_sm]} />
+          <DebugLabels post={post} />
           <ContentHider
             modui={moderation.ui('contentView')}
             ignoreMute
@@ -409,7 +410,6 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
             )}
           </ContentHider>
           {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
-          <DebugLabels post={post} />
           <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}

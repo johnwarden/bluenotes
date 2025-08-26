@@ -186,6 +186,7 @@ function PostInner({
             <PostRepliedTo parentAuthor={replyAuthorDid} />
           )}
           <LabelsOnMyPost post={post} />
+          <DebugLabels post={post} />
           <ContentHider
             modui={moderation.ui('contentView')}
             style={styles.contentHider}
@@ -222,7 +223,6 @@ function PostInner({
             ) : null}
           </ContentHider>
           {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
-          <DebugLabels post={post} />
           <PostControls
             post={post}
             record={record}

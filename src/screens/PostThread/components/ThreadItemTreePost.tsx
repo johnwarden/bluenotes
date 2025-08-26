@@ -335,6 +335,7 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                 <ThreadItemTreeReplyChildReplyLine item={item} />
                 <View style={[a.flex_1, a.pl_2xs]}>
                   <LabelsOnMyPost post={post} style={[a.pb_2xs]} />
+                  <DebugLabels post={post} />
                   <PostAlerts
                     modui={moderation.ui('contentList')}
                     style={[a.pb_2xs]}
@@ -367,7 +368,6 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                       />
                     </View>
                   )}
-                  <DebugLabels post={post} />
                   <PostControls
                     post={postShadow}
                     record={record}

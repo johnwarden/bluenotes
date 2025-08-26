@@ -44,3 +44,16 @@ rateProposal calls syncToPds, createProposasl doesn't. Create proposal inserts a
 
 
 
+
+In rated helpful page, we should show the standard RatedHelpfulNote component. Underneaeth that (underneath the status button), "see all notes on this post >" should link to Post with NOtes
+
+
+The status widget should show the actual status.
+
+On the "needs your help" page, it should show "Rate proposed community notes", thenote, and "is this proposed note helpful? rate" underneath. Same with new.
+
+
+ALso on this pages, the status lines (likes, etc.) is shown below the note
+
+Top-of-page prompts for the three notes pages.
+
