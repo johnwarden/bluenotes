@@ -11,91 +11,56 @@ import {
 } from '#/state/cache/community-notes-shadow'
 import {useAgent} from '#/state/session'
 
-const RQKEY_ROOT = 'community-notes'
-export const RQKEY = (subjectUri: string) => [RQKEY_ROOT, subjectUri]
-
 export interface CommunityNoteView extends CommunityNote {
   viewer?: {
     rating?: NoteRatingState
   }
 }
 
-// Hook for fetching approved/helpful notes (for display under posts)
-export function useNotesQuery(subjectUri: string) {
+// Hook for fetching Community Notes proposals with optional status filtering
+export function useProposalsQuery(
+  subjectUri: string,
+  status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful',
+) {
   const agent = useAgent()
   const queryClient = useQueryClient()
 
   const query = useQuery<CommunityNote[]>({
-    queryKey: RQKEY(subjectUri),
+    queryKey: ['community-notes-proposals', subjectUri, status],
     queryFn: async () => {
       try {
-        const response = await apilib.getProposalsForSubjects(
-          agent,
+        console.log(
+          'useProposalsQuery: Fetching proposals for',
           subjectUri,
-          {
-            status: 'rated_helpful', // CRITICAL: Explicit filtering for approved notes only
-          },
+          'with status',
+          status,
         )
-
-        // Just map the response to notes first, don't update shadow cache yet
-        const notes = response.proposals.map(apiNote => {
-          return apilib.mapHelpfulNoteApiResponseToCommunityNote(apiNote)
+        const response = await apilib.getProposals(agent, subjectUri, {
+          status,
         })
 
-        // Helpful notes don't have viewer ratings
-        return notes
-      } catch (error) {
-        console.error('Failed to fetch notes:', error)
-        // Fallback to empty array for now
-        // TODO: Implement proper error handling
-        return []
-      }
-    },
-    enabled: !!subjectUri,
-  })
-
-  // Update shadow cache after the query has succeeded and cache is populated
-  useEffect(() => {
-    if (query.isSuccess && query.data) {
-      const viewerRatings = (query.data as any)._viewerRatings
-      if (viewerRatings) {
-        for (const ratingData of viewerRatings) {
-          if (ratingData.viewerRating) {
-            const ratingState = apilib.mapApiRatingToNoteRatingState(
-              ratingData.viewerRating,
-            )
-
-            if (ratingState) {
-              // Populate shadow cache from server response
-              updateNoteShadow(ratingData.noteUri, {
-                rating: ratingState,
-              })
-            }
-          } else {
-          }
-        }
-      }
-    }
-  }, [query.isSuccess, query.data, queryClient])
-
-  return query
-}
-
-// Hook for fetching proposed notes that need ratings (for RateNotesScreen)
-export function useProposalsQuery(subjectUri: string) {
-  const agent = useAgent()
-  const queryClient = useQueryClient()
-
-  const query = useQuery<CommunityNote[]>({
-    queryKey: ['community-notes-proposals', subjectUri],
-    queryFn: async () => {
-      try {
-        const response = await apilib.getProposalsForSubject(agent, subjectUri)
+        console.log(
+          'useProposalsQuery: Response for',
+          subjectUri,
+          'with status',
+          status,
+          ':',
+          response,
+        )
 
         // Map the response to notes
         const notes = response.proposals.map(apiNote => {
           return apilib.mapProposalApiResponseToCommunityNote(apiNote)
         })
+
+        console.log(
+          'useProposalsQuery: Mapped notes for',
+          subjectUri,
+          'with status',
+          status,
+          ':',
+          notes,
+        )
 
         // Store the rating data for later processing
         const viewerRatings = response.proposals.map(apiNote => ({
@@ -107,7 +72,14 @@ export function useProposalsQuery(subjectUri: string) {
 
         return notes
       } catch (error) {
-        console.error('Failed to fetch proposals:', error)
+        console.error(
+          'useProposalsQuery: Failed to fetch proposals for',
+          subjectUri,
+          'with status',
+          status,
+          ':',
+          error,
+        )
         // Fallback to empty array for now
         // TODO: Implement proper error handling
         return []
