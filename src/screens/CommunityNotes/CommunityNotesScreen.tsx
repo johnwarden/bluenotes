@@ -59,7 +59,7 @@ export function CommunityNotesScreen() {
   // Get feed URI based on selected tab and config
   const getFeedUri = useCallback(
     (tab: TabStatus) => {
-      if (!config?.feeds) return null
+      if (!config?.feedGeneratorDid) return null
 
       // Map tab status to feed rkey patterns (from integration guide)
       const rkeyPatterns = {
@@ -68,13 +68,9 @@ export function CommunityNotesScreen() {
         rated_helpful: 'rated_helpful',
       }
 
-      // Find the matching feed URI from the describeFeedGenerator response
+      // Construct feed URI directly using feedGeneratorDid
       const targetRkey = rkeyPatterns[tab]
-      const matchingFeed = config.feeds.find(feed =>
-        feed.uri.endsWith(`/app.bsky.feed.generator/${targetRkey}`),
-      )
-
-      return matchingFeed?.uri || null
+      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${targetRkey}`
     },
     [config],
   )
@@ -157,7 +153,7 @@ export function CommunityNotesScreen() {
   }
 
   // Handle config errors - show unavailable message but still render the UI structure
-  const isConfigUnavailable = configError || !config
+  const isConfigUnavailable = configError || !config || !config.feedGeneratorDid
   const isFeedUnavailable = error || !feedDescriptor
 
   // If both config and feeds are unavailable, show a general unavailable message

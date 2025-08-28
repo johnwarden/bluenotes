@@ -45,21 +45,6 @@ export function useCommunityNotesConfig() {
         throw new Error('Invalid Community Notes config response')
       }
 
-      // Fetch feed generator description to get actual feed URIs
-      try {
-        const feedGenResponse = await fetch(
-          `${communityNotesServiceUrl}/xrpc/app.bsky.feed.describeFeedGenerator`,
-        )
-
-        if (feedGenResponse.ok) {
-          const feedGenData = await feedGenResponse.json()
-          config.feeds = feedGenData.feeds || []
-        }
-      } catch (error) {
-        // If describeFeedGenerator fails, continue without feeds
-        console.warn('Failed to fetch feed generator description:', error)
-      }
-
       return config as CommunityNotesConfig
     },
     staleTime: STALE.MINUTES.FIVE, // 5 minutes
