@@ -19,7 +19,7 @@ import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {atoms as a, useTheme} from '#/alf'
-import {RateProposedNotesPromptEmbedded} from '#/components/CommunityNotes/RateProposedNotesPrompt'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import {RichText} from '#/components/RichText'
@@ -331,7 +331,11 @@ export function QuoteEmbed({
         )}
       </ContentHider>
       <View style={[a.border_t, t.atoms.border_contrast_low]} />
-      <RateProposedNotesPromptEmbedded post={quote} />
+      <CommunityNoteWidget
+        post={quote}
+        displayMode="embedded"
+        showDisclaimer={false}
+      />
     </View>
   )
 }
