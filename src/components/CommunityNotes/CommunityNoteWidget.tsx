@@ -7,6 +7,7 @@ import {useLingui} from '@lingui/react'
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Link} from '#/components/Link'
@@ -20,6 +21,7 @@ interface CommunityNoteWidgetProps {
   displayMode: DisplayMode
   showRatingPrompt?: boolean
   showDisclaimer?: boolean
+  showSeeAllLink?: boolean
 }
 
 export function CommunityNoteWidget({
@@ -27,6 +29,7 @@ export function CommunityNoteWidget({
   displayMode,
   showRatingPrompt = true,
   showDisclaimer = true,
+  showSeeAllLink = false,
 }: CommunityNoteWidgetProps) {
   const t = useTheme()
   const {_} = useLingui()
@@ -189,6 +192,7 @@ export function CommunityNoteWidget({
     <>
       {widget}
       {showDisclaimer && <Disclaimer />}
+      {showSeeAllLink && <SeeAllNotesLink post={post} />}
     </>
   )
 }
@@ -336,6 +340,27 @@ function NoteContent({note, textColor}: NoteContentProps) {
           {note.text}
         </Text>
       </View>
+    </View>
+  )
+}
+
+function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
+  const {_} = useLingui()
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <Link
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={_(msg`See all notes on this post`)}
+        style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+        <Text style={[a.text_md, {color: t.palette.primary_500}]}>
+          <Trans>See all notes on this post</Trans>
+        </Text>
+        <ChevronRightIcon size="sm" style={[{color: t.palette.primary_500}]} />
+      </Link>
     </View>
   )
 }
