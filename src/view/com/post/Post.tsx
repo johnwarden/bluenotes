@@ -28,8 +28,9 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
-import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -193,6 +194,7 @@ function PostInner({
             <PostRepliedTo parentAuthor={replyAuthorDid} />
           )}
           <LabelsOnMyPost post={post} />
+          <DebugLabels post={post} />
           <ContentHider
             modui={moderation.ui('contentView')}
             style={styles.contentHider}
@@ -228,8 +230,14 @@ function PostInner({
               />
             ) : null}
           </ContentHider>
-          {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
-          <DebugLabels post={post} />
+          {hasHelpfulNotes(post) && (
+            <CommunityNoteWidget
+              post={post}
+              displayMode="rated_helpful"
+              showDisclaimer={true}
+            />
+          )}
+          <RateCommunityNotesPrompt post={post} />
           <PostControls
             post={post}
             record={record}
