@@ -17,16 +17,17 @@ export interface CommunityNoteView extends CommunityNote {
   }
 }
 
-// Hook for fetching Community Notes proposals with optional status filtering
+// Hook for fetching Community Notes proposals with optional status and label filtering
 export function useProposalsQuery(
   subjectUri: string,
   status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful',
+  label?: string,
 ) {
   const agent = useAgent()
   const queryClient = useQueryClient()
 
   const query = useQuery<CommunityNote[]>({
-    queryKey: ['community-notes-proposals', subjectUri, status],
+    queryKey: ['community-notes-proposals', subjectUri, status, label],
     queryFn: async () => {
       try {
         console.log(
@@ -37,6 +38,7 @@ export function useProposalsQuery(
         )
         const response = await apilib.getProposals(agent, subjectUri, {
           status,
+          label,
         })
 
         console.log(
