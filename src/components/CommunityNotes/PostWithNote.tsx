@@ -1,14 +1,23 @@
-import React from 'react'
+import React, {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
-import {Trans} from '@lingui/macro'
+import {
+  type AppBskyFeedDefs,
+  AppBskyFeedPost,
+  RichText as RichTextAPI,
+} from '@atproto/api'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
 
-import {useProposalsQuery} from '#/state/queries/community-notes'
-import {Post} from '#/view/com/post/Post'
+import {COMMUNITY_NOTES_LABELS} from '#/lib/community-notes/labels'
+import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {atoms as a, useTheme} from '#/alf'
-import {RateNoteForm} from '#/components/CommunityNotes/RateNoteForm'
-import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {PostContent} from '#/components/CommunityNotes/PostContent'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
+import {Link} from '#/components/Link'
+import {PostControls} from '#/components/PostControls'
 import {Text} from '#/components/Typography'
+import * as bsky from '#/types/bsky'
 
 interface PostWithNoteProps {
   post: AppBskyFeedDefs.PostView
@@ -17,11 +26,8 @@ interface PostWithNoteProps {
 
 export function PostWithNote({post, status}: PostWithNoteProps) {
   const t = useTheme()
-
-  // Map the status to the appropriate query parameter
-  const queryStatus =
-    status === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
-  const {data: notes, isLoading} = useProposalsQuery(post.uri, queryStatus)
+  const {_} = useLingui()
+  const {openComposer} = useOpenComposer()
 
   // Create a version of the post without community notes labels
   // This prevents other community notes components from showing
@@ -31,70 +37,97 @@ export function PostWithNote({post, status}: PostWithNoteProps) {
       labels:
         post.labels?.filter(
           label =>
-            label.val !== 'needs-context' &&
-            label.val !== 'proposed-label:needs-context',
+            label.val !== COMMUNITY_NOTES_LABELS.NOTE &&
+            label.val !== COMMUNITY_NOTES_LABELS.PROPOSED_NOTE,
         ) || [],
     }
   }, [post])
 
+  // Extract record and richText for PostControls (same logic as Post component)
+  const record = useMemo<AppBskyFeedPost.Record | undefined>(
+    () =>
+      bsky.validate(post.record, AppBskyFeedPost.validateRecord)
+        ? post.record
+        : undefined,
+    [post],
+  )
+  const richText = useMemo(
+    () =>
+      record
+        ? new RichTextAPI({
+            text: record.text,
+            facets: record.facets,
+          })
+        : undefined,
+    [record],
+  )
+
+  // Reply handler for PostControls
+  const onPressReply = useCallback(() => {
+    if (!record) return
+    openComposer({
+      replyTo: {
+        uri: post.uri,
+        cid: post.cid,
+        text: record.text,
+        author: post.author,
+        embed: post.embed,
+      },
+    })
+  }, [openComposer, post, record])
+
+  // Don't render if we don't have the necessary data
+  if (!record || !richText) {
+    return null
+  }
+
   return (
     <View style={[a.border_b, t.atoms.border_contrast_low]}>
-      {/* Post */}
+      {/* Post Content (without controls) */}
       <View style={[a.p_lg, a.pb_md]}>
-        <Post post={postWithoutCommunityNotesLabels} />
+        <PostContent post={postWithoutCommunityNotesLabels} />
       </View>
 
-      {/* Rate Proposed Community Notes Section */}
-      {notes && notes.length > 0 && (
-        <View style={[a.mx_lg, a.mb_lg]}>
-          {/* Header */}
-          <View
-            style={[
-              a.flex_row,
-              a.align_center,
-              a.gap_sm,
-              a.py_md,
-              a.px_lg,
-              a.rounded_lg,
-              t.atoms.bg_contrast_25,
-            ]}>
-            <CommunityNotesIcon
-              size="sm"
-              style={{color: t.palette.primary_500}}
-            />
-            <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
-              <Trans>Rate proposed Community Notes</Trans>
-            </Text>
-          </View>
+      {/* Community Notes Widget - different modes based on status */}
+      <View style={[a.mx_lg, a.mb_lg]}>
+        <CommunityNoteWidget
+          post={post}
+          displayMode={
+            status === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
+          }
+          showRatingPrompt={true}
+          showDisclaimer={status === 'rated_helpful'}
+        />
+      </View>
 
-          {/* Notes */}
-          <View
-            style={[
-              a.border,
-              a.border_t_0,
-              a.rounded_lg,
-              t.atoms.bg,
-              t.atoms.border_contrast_low,
-            ]}>
-            {isLoading ? (
-              <View style={[a.p_lg, a.align_center]}>
-                <Text style={[t.atoms.text_contrast_medium]}>
-                  <Trans>Loading notes...</Trans>
-                </Text>
-              </View>
-            ) : (
-              notes.map((note, index) => (
-                <View key={note.uri}>
-                  {index > 0 && (
-                    <View style={[a.border_t, t.atoms.border_contrast_low]} />
-                  )}
-                  <RateNoteForm note={note} />
-                </View>
-              ))
-            )}
-          </View>
-        </View>
-      )}
+      {/* Post Controls - positioned after community notes */}
+      <View style={[a.px_lg, a.pb_md]}>
+        <PostControls
+          post={post}
+          record={record}
+          richText={richText}
+          onPressReply={onPressReply}
+          logContext="Post"
+        />
+      </View>
+
+      {/* "See all notes on this post" prompt - appears for all statuses */}
+      <View style={[a.mx_lg, a.mb_lg]}>
+        <Link
+          to={`/profile/${post.author.handle}/post/${post.uri
+            .split('/')
+            .pop()}/community-notes`}
+          label={_(msg`See all notes on this post`)}
+          style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+          <Text style={[a.text_md, {color: t.palette.primary_500}]}>
+            <Trans>See all notes on this post</Trans>
+          </Text>
+          <ChevronRightIcon
+            size="sm"
+            style={[{color: t.palette.primary_500}]}
+          />
+        </Link>
+      </View>
     </View>
   )
 }

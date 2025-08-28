@@ -44,8 +44,8 @@ import {
 import {atoms as a, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
-import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
 import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
@@ -409,7 +409,13 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               </View>
             )}
           </ContentHider>
-          {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
+          {hasHelpfulNotes(post) && (
+            <CommunityNoteWidget
+              post={post}
+              displayMode="rated_helpful"
+              showDisclaimer={true}
+            />
+          )}
           <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}
