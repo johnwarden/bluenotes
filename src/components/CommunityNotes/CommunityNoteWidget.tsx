@@ -1,0 +1,341 @@
+import {useState} from 'react'
+import {View} from 'react-native'
+import {type AppBskyFeedDefs} from '@atproto/api'
+import {msg, Trans} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
+
+import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {useProposalsQuery} from '#/state/queries/community-notes'
+import {atoms as a, useTheme} from '#/alf'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
+import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
+import {Link} from '#/components/Link'
+import {SubtleWebHover} from '#/components/SubtleWebHover'
+import {Text} from '#/components/Typography'
+
+type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
+
+interface CommunityNoteWidgetProps {
+  post: AppBskyFeedDefs.PostView
+  displayMode: DisplayMode
+  showRatingPrompt?: boolean
+  showDisclaimer?: boolean
+}
+
+export function CommunityNoteWidget({
+  post,
+  displayMode,
+  showRatingPrompt = true,
+  showDisclaimer = true,
+}: CommunityNoteWidgetProps) {
+  const t = useTheme()
+  const {_} = useLingui()
+  const [noteHover, setNoteHover] = useState(false)
+
+  // Determine which notes to fetch based on display mode
+  // Embedded mode shows rated_helpful notes, others show their respective types
+  const queryStatus =
+    displayMode === 'needs_more_ratings'
+      ? 'needs_more_ratings'
+      : 'rated_helpful'
+
+  const {
+    data: notes,
+    isLoading,
+    error,
+  } = useProposalsQuery(post.uri, queryStatus)
+
+  // Don't render if loading
+  if (isLoading) {
+    return null
+  }
+
+  // Show error if there's an error or no notes when expected
+  if (error || !notes || notes.length === 0) {
+    return (
+      <View
+        style={[
+          a.mt_md,
+          a.rounded_lg,
+          a.border,
+          t.atoms.bg,
+          t.atoms.border_contrast_low,
+          a.p_md,
+        ]}>
+        <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>⚠️</Text>
+          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
+            {error ? (
+              <Trans>Error loading community note: {error.message}</Trans>
+            ) : (
+              <Trans>No community note found for this post</Trans>
+            )}
+          </Text>
+        </View>
+      </View>
+    )
+  }
+
+  const primaryNote = notes[0]
+
+  // Configure props based on display mode
+  const promptConfig =
+    displayMode === 'rated_helpful'
+      ? {
+          promptText: 'Do you find this helpful?',
+          buttonLabel: 'Rate it',
+          title: 'Readers added context they thought people might want to know',
+        }
+      : displayMode === 'embedded'
+        ? {
+            promptText: 'Do you find this helpful?',
+            buttonLabel: 'Rate it',
+            title: 'Readers added context',
+          }
+        : {
+            promptText: 'Is this proposed note helpful?',
+            buttonLabel: 'Rate',
+            title: 'Rate proposed Community Notes',
+          }
+
+  const textColor =
+    displayMode === 'needs_more_ratings'
+      ? t.atoms.text_contrast_medium
+      : undefined // defaults to black
+
+  const borderStyle = displayMode === 'needs_more_ratings' ? 'dotted' : 'solid'
+
+  // All display modes should be clickable to navigate to Community Notes page
+  const isClickable = true
+
+  // Configure container styles based on mode
+  const containerStyles =
+    displayMode === 'embedded'
+      ? [a.pt_md, a.relative, a.flex_col, a.align_start, a.w_full]
+      : [
+          a.mt_md,
+          a.relative,
+          a.flex_col,
+          a.align_start,
+          a.w_full,
+          t.atoms.bg,
+          {
+            borderWidth: 1,
+            borderStyle: borderStyle,
+            borderColor: t.atoms.border_contrast_low.borderColor,
+            borderRadius: 8,
+          },
+        ]
+
+  // Render the widget content
+  const widgetContent = (
+    <>
+      <Header
+        title={promptConfig.title}
+        statusIndicator={
+          displayMode === 'needs_more_ratings'
+            ? 'needs_more_ratings'
+            : undefined
+        }
+        noBackground={displayMode === 'embedded'}
+      />
+
+      <Content note={primaryNote} textColor={textColor} />
+
+      {/* Horizontal line above rating prompt (for non-embedded modes) */}
+      {displayMode !== 'embedded' && showRatingPrompt && (
+        <View
+          style={[
+            a.w_full,
+            {
+              borderTopWidth: 1,
+              borderTopStyle: borderStyle,
+              borderTopColor: t.atoms.border_contrast_low.borderColor,
+            },
+          ]}
+        />
+      )}
+
+      {showRatingPrompt && (
+        <RatingPrompt
+          post={post}
+          promptText={promptConfig.promptText}
+          buttonLabel={promptConfig.buttonLabel}
+        />
+      )}
+    </>
+  )
+
+  // Wrap in Link for clickable modes, View for non-clickable
+  const widget = isClickable ? (
+    <Link
+      to={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`}
+      style={containerStyles}
+      onPointerEnter={() => setNoteHover(true)}
+      onPointerLeave={() => setNoteHover(false)}
+      onPress={e => {
+        // Stop propagation to prevent post navigation
+        e.stopPropagation()
+      }}>
+      {/* Note hover overlay for clickable modes */}
+      <SubtleWebHover hover={noteHover} />
+      {widgetContent}
+    </Link>
+  ) : (
+    <View style={containerStyles}>{widgetContent}</View>
+  )
+
+  return (
+    <>
+      {widget}
+      {showDisclaimer && <Disclaimer />}
+    </>
+  )
+}
+
+// Private helper functions
+function Header({
+  title,
+  statusIndicator,
+  noBackground,
+}: {
+  title: string
+  statusIndicator?: 'needs_more_ratings'
+  noBackground?: boolean
+}) {
+  const t = useTheme()
+
+  return (
+    <View
+      style={[
+        a.px_md,
+        a.py_sm,
+        a.w_full,
+        // Only add background and rounded corners if not embedded
+        !noBackground && t.atoms.bg_contrast_25,
+        !noBackground && {
+          borderTopLeftRadius: 8,
+          borderTopRightRadius: 8,
+          borderBottomLeftRadius: 0,
+          borderBottomRightRadius: 0,
+        },
+      ]}>
+      <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+        <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
+        <Text style={[a.font_bold, a.text_md, t.atoms.text, a.flex_1]}>
+          {title}
+        </Text>
+      </View>
+
+      {/* Status indicator - only show for needs_more_ratings */}
+      {statusIndicator === 'needs_more_ratings' && (
+        <View style={[a.flex_row, a.align_center, a.gap_sm, a.mt_sm]}>
+          <EyeSlashIcon
+            size="sm"
+            style={[{color: t.atoms.text_contrast_medium.color}]}
+          />
+          <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.font_bold]}>
+            <Trans>Not shown on Bluesky • Needs ratings</Trans>
+          </Text>
+        </View>
+      )}
+    </View>
+  )
+}
+
+function Content({note, textColor}: {note: CommunityNote; textColor?: any}) {
+  return (
+    <View style={[a.px_md, a.py_sm, a.w_full]}>
+      <NoteContent note={note} textColor={textColor} />
+    </View>
+  )
+}
+
+function RatingPrompt({
+  post,
+  promptText,
+  buttonLabel,
+}: {
+  post: AppBskyFeedDefs.PostView
+  promptText: string
+  buttonLabel: string
+}) {
+  const t = useTheme()
+  const {_} = useLingui()
+
+  return (
+    <View
+      style={[
+        a.px_md,
+        a.py_sm,
+        a.flex_row,
+        a.align_center,
+        a.justify_between,
+        a.w_full,
+      ]}>
+      <Text style={[a.text_md, t.atoms.text]}>{promptText}</Text>
+      <Link
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={_(msg`Rate this note`)}
+        style={[
+          {
+            borderWidth: 1,
+            borderColor: t.palette.contrast_200,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        ]}>
+        <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
+          {buttonLabel}
+        </Text>
+      </Link>
+    </View>
+  )
+}
+
+function Disclaimer() {
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
+        <Trans>
+          Context is written by people who use Bluesky, and appears when rated
+          helpful by others.
+        </Trans>{' '}
+        <Text style={[a.text_sm, {color: t.palette.primary_500}]}>
+          <Trans>Find out more.</Trans>
+        </Text>
+      </Text>
+    </View>
+  )
+}
+
+// NoteContent component (simplified since we only show one note)
+interface NoteContentProps {
+  note: CommunityNote
+  textColor?: any
+}
+
+function NoteContent({note, textColor}: NoteContentProps) {
+  const t = useTheme()
+
+  // Use provided textColor or default to black
+  const finalTextColor = textColor || t.atoms.text
+
+  return (
+    <View>
+      {/* Note text */}
+      <View style={[a.mb_sm]}>
+        <Text style={[a.text_md, finalTextColor, {lineHeight: 20}]}>
+          {note.text}
+        </Text>
+      </View>
+    </View>
+  )
+}
