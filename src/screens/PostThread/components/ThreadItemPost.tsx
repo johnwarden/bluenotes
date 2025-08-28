@@ -296,6 +296,7 @@ const ThreadItemPostInner = memo(function ThreadItemPostInner({
                 style={[a.pb_xs]}
               />
               <LabelsOnMyPost post={post} style={[a.pb_xs]} />
+              <DebugLabels post={post} />
               <PostAlerts
                 modui={moderation.ui('contentList')}
                 style={[a.pb_2xs]}
@@ -328,7 +329,6 @@ const ThreadItemPostInner = memo(function ThreadItemPostInner({
                   />
                 </View>
               )}
-              <DebugLabels post={post} />
               <PostControls
                 post={postShadow}
                 record={record}
