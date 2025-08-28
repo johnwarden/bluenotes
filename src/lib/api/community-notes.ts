@@ -58,27 +58,7 @@ export interface CommunityNoteAPIResponse {
   }
 }
 
-// Helpful Notes API Response (from getNotesForSubjects - no status field)
-export interface HelpfulNoteAPIResponse {
-  uri: string
-  cid: string
-  typ: 'label'
-  targetUri: string
-  val: string
-  note: string | {text: string; facets?: any[]} // Required for helpful notes, might be RichText object
-  reasons?: string[]
-  cts: string
-  author: {
-    aid: string
-    pseudonym: string
-  }
-}
-
-export interface GetProposalsForSubjectsResponse {
-  proposals: HelpfulNoteAPIResponse[]
-}
-
-export interface GetProposalsForSubjectResponse {
+export interface GetProposalsAPIResponse {
   proposals: CommunityNoteAPIResponse[]
 }
 
@@ -107,36 +87,7 @@ export interface CreateProposalResponse {
   proposal: CommunityNoteAPIResponse
 }
 
-// Mapping functions
-export function mapHelpfulNoteApiResponseToCommunityNote(
-  apiNote: HelpfulNoteAPIResponse,
-): CommunityNote {
-  return {
-    $type: 'social.pmsky.proposal',
-    typ: 'label',
-    subject: {
-      uri: apiNote.targetUri,
-      cid: apiNote.cid,
-    },
-    label: apiNote.val,
-    text:
-      typeof apiNote.note === 'string'
-        ? apiNote.note
-        : (apiNote.note as any)?.text || String(apiNote.note), // Handle both string and RichText object
-    createdAt: apiNote.cts,
-    noteId: apiNote.uri.split('/').pop() || apiNote.uri,
-    status: 'rated_helpful', // Hardcoded since API call should only return helpful notes
-    uri: apiNote.uri,
-    author: {
-      aid: apiNote.author.aid,
-      pseudonym: apiNote.author.pseudonym,
-      writingImpact: 0, // Not provided in helpful notes API
-      ratingImpact: 0, // Not provided in helpful notes API
-      profileUrl: '#',
-    },
-  }
-}
-
+// Mapping function
 export function mapProposalApiResponseToCommunityNote(
   apiNote: CommunityNoteAPIResponse,
 ): CommunityNote {
@@ -307,14 +258,14 @@ export async function createProposal(
   }
 }
 
-export async function getProposalsForSubjects(
+export async function getProposals(
   agent: BskyAgent | null,
   subjectUris: string | string[],
   options?: {
     status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
     label?: string
   },
-): Promise<GetProposalsForSubjectsResponse> {
+): Promise<GetProposalsAPIResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
   const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
@@ -333,71 +284,7 @@ export async function getProposalsForSubjects(
   }
 
   const allParams = [uriParams, ...filterParams].join('&')
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
-
-  const headers: Record<string, string> = {}
-  if (agent?.session) {
-    headers.Authorization = `Bearer ${agent.session.accessJwt}`
-  }
-
-  try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-    })
-
-    if (!response.ok) {
-      let errorMessage = `HTTP ${response.status}`
-      try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
-      } catch {
-        const errorText = await response.text()
-        errorMessage = errorText || errorMessage
-      }
-
-      if (response.status === 404) {
-        // Return empty proposals array for 404s instead of throwing
-        return {proposals: []}
-      } else if (response.status === 401) {
-        throw new Error('Authentication required. Please log in again.')
-      }
-
-      throw new Error(`Failed to get proposals: ${errorMessage}`)
-    }
-
-    return await response.json()
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error(`Network error while fetching proposals: ${error}`)
-  }
-}
-
-export async function getProposalsForSubject(
-  agent: BskyAgent | null,
-  subjectUri: string,
-  options?: {
-    status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
-    label?: string
-  },
-): Promise<GetProposalsForSubjectResponse> {
-  // Use the agent's service URL if available, otherwise default to bsky.social
-  const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
-  // Add optional filtering parameters
-  const filterParams = []
-  if (options?.status) {
-    filterParams.push(`status=${encodeURIComponent(options.status)}`)
-  }
-  if (options?.label) {
-    filterParams.push(`label=${encodeURIComponent(options.label)}`)
-  }
-
-  const uriParam = `uris=${encodeURIComponent(subjectUri)}`
-  const allParams = [uriParam, ...filterParams].join('&')
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposalsForSubjects?${allParams}`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   const headers: Record<string, string> = {}
   if (agent?.session) {
