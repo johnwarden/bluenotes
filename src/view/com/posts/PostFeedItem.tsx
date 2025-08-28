@@ -39,8 +39,8 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
-import {RatedHelpfulNote} from '#/components/CommunityNotes/RatedHelpfulNote'
 import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
@@ -76,6 +76,10 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }
 
 export function PostFeedItem({
@@ -95,6 +99,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   post: AppBskyFeedDefs.PostView
   rootPost: AppBskyFeedDefs.PostView
@@ -134,6 +139,7 @@ export function PostFeedItem({
         isParentNotFound={isParentNotFound}
         rootPost={rootPost}
         onShowLess={onShowLess}
+        communityNotesDisplayMode={communityNotesDisplayMode}
       />
     )
   }
@@ -158,6 +164,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<AppBskyFeedDefs.PostView>
@@ -384,6 +391,8 @@ let FeedItemInner = ({
             onOpenEmbed={onOpenEmbed}
             post={post}
             threadgateRecord={threadgateRecord}
+            hover={hover}
+            communityNotesDisplayMode={communityNotesDisplayMode}
           />
           <PostControls
             post={post}
@@ -414,6 +423,8 @@ let PostContent = ({
   postAuthor,
   onOpenEmbed,
   threadgateRecord,
+  hover: _hover,
+  communityNotesDisplayMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -422,6 +433,11 @@ let PostContent = ({
   onOpenEmbed: () => void
   post: AppBskyFeedDefs.PostView
   threadgateRecord?: AppBskyFeedThreadgate.Record
+  hover?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -492,8 +508,18 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      {hasHelpfulNotes(post) && <RatedHelpfulNote post={post} />}
-      <RateCommunityNotesPrompt post={post} />
+      {(hasHelpfulNotes(post) || communityNotesDisplayMode) && (
+        <CommunityNoteWidget
+          post={post}
+          displayMode={communityNotesDisplayMode || 'rated_helpful'}
+          showRatingPrompt={true}
+          showDisclaimer={
+            !communityNotesDisplayMode ||
+            communityNotesDisplayMode === 'rated_helpful'
+          }
+        />
+      )}
+      {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
     </ContentHider>
   )
 }
