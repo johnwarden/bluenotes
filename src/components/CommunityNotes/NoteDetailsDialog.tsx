@@ -89,11 +89,19 @@ export function NoteDetailsContent({
           <Trans>Current Status</Trans>
         </Text>
         <View style={styles.statusLine}>
-          <Text style={styles.statusText}>• Needs more ratings</Text>
+          <Text style={styles.statusText}>
+            {note.status === 'rated_helpful' && '• Rated helpful'}
+            {note.status === 'rated_not_helpful' && '• Rated not helpful'}
+            {note.status === 'needs_more_ratings' && '• Needs more ratings'}
+          </Text>
         </View>
         <Text style={styles.description}>
-          This note hasn't yet been rated by enough contributors from different
-          perspectives.
+          {note.status === 'rated_helpful' &&
+            'This note has been rated as helpful by contributors from different perspectives.'}
+          {note.status === 'rated_not_helpful' &&
+            'This note has been rated as not helpful by contributors from different perspectives.'}
+          {note.status === 'needs_more_ratings' &&
+            "This note hasn't yet been rated by enough contributors from different perspectives."}
         </Text>
         <Link
           to="https://communitynotes.x.com/guide/en/contributing/notes-on-twitter"
