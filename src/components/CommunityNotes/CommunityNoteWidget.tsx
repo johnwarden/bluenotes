@@ -43,7 +43,7 @@ export function CommunityNoteWidget({
     data: notes,
     isLoading,
     error,
-  } = useProposalsQuery(post.uri, queryStatus)
+  } = useProposalsQuery(post.uri, queryStatus, 'needs-context')
 
   // Don't render if loading
   if (isLoading) {
