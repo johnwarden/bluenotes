@@ -10,6 +10,7 @@ import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {type NavigationProp} from '#/lib/routes/types'
 import {useGate} from '#/lib/statsig/statsig'
 import {useGeolocationStatus} from '#/state/geolocation'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useIsDrawerOpen, useSetDrawerOpen} from '#/state/shell'
 import {useComposerKeyboardShortcut} from '#/state/shell/composer/useComposerKeyboardShortcut'
 import {useCloseAllActiveElements} from '#/state/util'
@@ -148,9 +149,12 @@ export function Shell() {
       {geolocation?.isAgeBlockedGeo ? (
         <BlockedGeoOverlay />
       ) : (
-        <RoutesContainer>
-          <ShellInner />
-        </RoutesContainer>
+        <>
+          <CommunityNotesConfigLoader />
+          <RoutesContainer>
+            <ShellInner />
+          </RoutesContainer>
+        </>
       )}
     </View>
   )

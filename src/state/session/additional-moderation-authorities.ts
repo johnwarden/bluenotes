@@ -86,11 +86,12 @@ export function configureAdditionalModerationAuthorities() {
     additionalLabelers = []
   }
 
+  const communityNotesLabelerDid = getCommunityNotesLabelerDid()
   const appLabelers = Array.from(
     new Set([
       ...BskyAgent.appLabelers,
       ...additionalLabelers,
-      getCommunityNotesLabelerDid(), // Add Community Notes labeler
+      ...(communityNotesLabelerDid ? [communityNotesLabelerDid] : []), // Add Community Notes labeler if available
     ]),
   )
 

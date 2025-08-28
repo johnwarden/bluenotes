@@ -14,6 +14,7 @@ import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {isAndroid, isIOS} from '#/platform/detection'
 import {useDialogFullyExpandedCountContext} from '#/state/dialogs'
 import {useGeolocationStatus} from '#/state/geolocation'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useSession} from '#/state/session'
 import {
   useIsDrawerOpen,
@@ -204,6 +205,7 @@ export function Shell() {
 
   return (
     <View testID="mobileShellView" style={[a.h_full, t.atoms.bg]}>
+      <CommunityNotesConfigLoader />
       <SystemBars
         style={{
           statusBar:
