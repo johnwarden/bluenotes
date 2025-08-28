@@ -6,11 +6,9 @@ import {useQueryClient} from '@tanstack/react-query'
 import Graphemer from 'graphemer'
 
 import * as apilib from '#/lib/api/community-notes'
-import {RQKEY} from '#/state/queries/community-notes'
 import {usePostQuery} from '#/state/queries/post'
 import {useAgent} from '#/state/session'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
-import {Post} from '#/view/com/post/Post'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Button, ButtonText} from '#/components/Button'
@@ -20,6 +18,8 @@ import * as TextField from '#/components/forms/TextField'
 import * as Toggle from '#/components/forms/Toggle'
 import {CircleInfo_Stroke2_Corner0_Rounded as InfoIcon} from '#/components/icons/CircleInfo'
 import {Person_Stroke2_Corner0_Rounded as PersonIcon} from '#/components/icons/Person'
+import * as Layout from '#/components/Layout'
+import {QuoteEmbed} from '#/components/Post/Embed'
 import {Text} from '#/components/Typography'
 
 const REASONS = [
@@ -175,7 +175,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const handleRefresh = () => {
     // Invalidate the notes query to refresh the list
     queryClient.invalidateQueries({
-      queryKey: RQKEY(postUri),
+      queryKey: ['community-notes-proposals', postUri],
     })
   }
 
@@ -204,7 +204,9 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
       // Store the note URI and create note object for the success dialog
       setSubmittedNoteUri(response.uri)
-      const noteObj = apilib.mapProposalApiResponseToCommunityNote(response.proposal)
+      const noteObj = apilib.mapProposalApiResponseToCommunityNote(
+        response.proposal,
+      )
       setSubmittedNote(noteObj)
 
       // Clear form and close dialog
@@ -237,30 +239,14 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
           <View style={[a.flex_1]}>
             {/* Header */}
             <View style={[a.pb_lg]}>
-              <Text style={[a.text_xl, a.font_bold, a.text_center]}>
-                Add a note
-              </Text>
+              <Layout.Header.TitleText>Add a note</Layout.Header.TitleText>
             </View>
 
             <ScrollView style={[a.flex_1]} showsVerticalScrollIndicator={false}>
               {/* Post Preview Section */}
               {post && (
-                <View
-                  style={[
-                    a.p_md,
-                    a.mb_lg,
-                    a.border,
-                    a.rounded_md,
-                    {
-                      borderStyle: 'dashed',
-                      backgroundColor: t.palette.contrast_25,
-                      borderColor: t.palette.contrast_200,
-                    },
-                  ]}>
-                  <Text style={[a.font_bold, a.mb_md]}>
-                    Post to add note to:
-                  </Text>
-                  <Post post={post} />
+                <View style={[a.mb_lg]}>
+                  <QuoteEmbed post={post} hideCommunityNotes={true} />
                 </View>
               )}
 
