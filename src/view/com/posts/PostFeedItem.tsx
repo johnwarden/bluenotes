@@ -41,10 +41,11 @@ import {Link, TextLinkOnWebOnly} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a} from '#/alf'
+import {atoms as a, useTheme} from '#/alf'
 import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -487,6 +488,7 @@ let FeedItemInner = ({
             onShowLess={onShowLess}
             viaRepost={viaRepost}
           />
+          {communityNotesDisplayMode && <SeeAllNotesLink post={post} />}
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
@@ -598,7 +600,6 @@ let PostContent = ({
             !communityNotesDisplayMode ||
             communityNotesDisplayMode === 'rated_helpful'
           }
-          showSeeAllLink={!!communityNotesDisplayMode}
         />
       )}
       {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
@@ -653,3 +654,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 })
+
+function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
+  const {_} = useLingui()
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <Link
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={_(msg`See all notes on this post`)}
+        style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+        <Text style={[a.text_md, {color: t.palette.primary_500}]}>
+          <Trans>See all notes on this post</Trans>
+        </Text>
+        <ChevronRightIcon size="sm" style={[{color: t.palette.primary_500}]} />
+      </Link>
+    </View>
+  )
+}
