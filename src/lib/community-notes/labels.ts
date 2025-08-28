@@ -16,6 +16,17 @@ export const COMMUNITY_NOTES_LABELER_DID = {
   DEV: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
 } as const
 
+// Dynamic labeler DID management
+let currentLabelerDid: string | null = null // null means no labeler configured
+
+export function updateCommunityNotesLabelerDid(did: string | null) {
+  currentLabelerDid = did
+}
+
+export function getCurrentCommunityNotesLabelerDid(): string | null {
+  return currentLabelerDid
+}
+
 /**
  * Check if a post has a specific Community Notes label
  */
@@ -70,20 +81,22 @@ export function getCommunityNotesLabels(
  * Check if a labeler DID is a Community Notes labeler
  */
 function isCommunityNotesLabeler(labelerDid: string): boolean {
+  const currentDid = getCurrentCommunityNotesLabelerDid()
+
+  // If we have a dynamic labeler DID configured, use only that
+  if (currentDid) {
+    return labelerDid === currentDid
+  }
+
+  // If no dynamic labeler DID is configured, fallback to hardcoded values
+  // This provides backward compatibility when the config endpoint is not available
   return Object.values(COMMUNITY_NOTES_LABELER_DID).includes(labelerDid as any)
 }
 
 /**
  * Get the current environment's Community Notes labeler DID
+ * @deprecated Use getCurrentCommunityNotesLabelerDid() instead
  */
-export function getCommunityNotesLabelerDid(): string {
-  // TODO: This should be determined by the current environment
-  // For now, default to dev
-  if (process.env.NODE_ENV === 'production') {
-    return COMMUNITY_NOTES_LABELER_DID.PROD
-  } else if (process.env.NODE_ENV === 'staging') {
-    return COMMUNITY_NOTES_LABELER_DID.STAGING
-  } else {
-    return COMMUNITY_NOTES_LABELER_DID.DEV
-  }
+export function getCommunityNotesLabelerDid(): string | null {
+  return getCurrentCommunityNotesLabelerDid()
 }
