@@ -18,6 +18,7 @@ import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
 import * as Toggle from '#/components/forms/Toggle'
+import {Eye_Stroke2_Corner0_Rounded as EyeIcon} from '#/components/icons/Eye'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
@@ -33,7 +34,7 @@ const HELPFUL_REASONS = [
   {key: 'addresses_claim', label: msg`Directly addresses the post's claim`},
   {key: 'provides_important_context', label: msg`Provides important context`},
   {key: 'is_unbiased', label: msg`Neutral or unbiased language`},
-  {key: 'other', label: msg`Other`},
+  {key: 'helpful_other', label: msg`Other`},
 ]
 
 const NOT_HELPFUL_REASONS = [
@@ -55,7 +56,7 @@ const NOT_HELPFUL_REASONS = [
   },
   {key: 'note_not_needed', label: msg`Note not needed on this post`},
   {key: 'is_spam_harassment_or_abuse', label: msg`Spam, harassment, or abuse`},
-  {key: 'other', label: msg`Other`},
+  {key: 'not_helpful_other', label: msg`Other`},
 ]
 
 type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
@@ -109,10 +110,28 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
 
     setIsSubmitting(true)
     try {
+      // Clear conflicting reasons before submission
+      const helpfulReasonKeys = HELPFUL_REASONS.map(r => r.key)
+      const notHelpfulReasonKeys = NOT_HELPFUL_REASONS.map(r => r.key)
+
+      let filteredReasons = reasons
+      if (voted === 'helpful') {
+        // Keep only helpful reasons
+        filteredReasons = reasons.filter(reason =>
+          helpfulReasonKeys.includes(reason),
+        )
+      } else if (voted === 'not_helpful') {
+        // Keep only not helpful reasons
+        filteredReasons = reasons.filter(reason =>
+          notHelpfulReasonKeys.includes(reason),
+        )
+      }
+      // For 'somewhat_helpful', keep all reasons as both sections are valid
+
       const newRatingState: NoteRatingState = {
         uri: currentRating?.uri, // Preserve existing URI for updates
         val: voted,
-        reasons: reasons,
+        reasons: filteredReasons,
       }
 
       await submitRating(newRatingState)
@@ -289,6 +308,17 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       fontWeight: 'bold',
       color: t.palette.contrast_950,
     },
+    ratedHelpfulText: {
+      fontWeight: 'bold',
+      color: t.palette.positive_600,
+    },
+    tagsLine: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 6,
+      paddingTop: 4,
+      paddingBottom: 4,
+    },
     statusLineBottom: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -381,33 +411,82 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
 
   return (
     <View style={[t.atoms.bg, styles.card, t.atoms.border_contrast_low]}>
-      <View style={styles.statusLineTop}>
-        <Text style={[t.atoms.text, styles.needsRatingText]}>
-          <Trans>• Needs more ratings</Trans>
-        </Text>
-        <TimeElapsed timestamp={note.createdAt}>
-          {({timeElapsed}) => (
-            <Text style={t.atoms.text_contrast_low} title={timeElapsed}>
-              {timeElapsed}
+      {note.status === 'rated_helpful' ? (
+        // Special display for rated helpful notes
+        <>
+          <View style={styles.statusLineTop}>
+            <Text style={[t.atoms.text, styles.ratedHelpfulText]}>
+              <Trans>✓ Currently rated helpful</Trans>
             </Text>
-          )}
-        </TimeElapsed>
-        <Text style={t.atoms.text_contrast_low}>·</Text>
-        <Pressable
-          onPress={() => noteDetailsControl.open()}
-          accessibilityLabel={_(msg`View Details`)}
-          accessibilityHint="">
-          <Text style={t.atoms.text_contrast_high}>
-            <Trans>View details</Trans>
-          </Text>
-        </Pressable>
-      </View>
-      <View style={styles.statusLineBottom}>
-        <EyeSlashIcon size="sm" style={t.atoms.text_contrast_low} />
-        <Text style={t.atoms.text_contrast_low}>
-          <Trans>Not shown on Bluesky</Trans>
-        </Text>
-      </View>
+            <TimeElapsed timestamp={note.createdAt}>
+              {({timeElapsed}) => (
+                <Text style={t.atoms.text_contrast_low} title={timeElapsed}>
+                  {timeElapsed}
+                </Text>
+              )}
+            </TimeElapsed>
+            <Text style={t.atoms.text_contrast_low}>·</Text>
+            <Pressable
+              onPress={() => noteDetailsControl.open()}
+              accessibilityLabel={_(msg`View Details`)}
+              accessibilityHint="">
+              <Text style={t.atoms.text_contrast_high}>
+                <Trans>View details</Trans>
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.statusLineBottom}>
+            <EyeIcon size="sm" style={t.atoms.text_contrast_low} />
+            <Text style={t.atoms.text_contrast_low}>
+              <Trans>Shown on Bluesky • 79.6K+ views</Trans>
+            </Text>
+          </View>
+          <View style={styles.tagsLine}>
+            <Text style={t.atoms.text_contrast_medium}>💬</Text>
+            <Text style={t.atoms.text_contrast_medium}>
+              <Trans>
+                Directly addresses the post's claim • Cites high-quality sources
+              </Trans>
+            </Text>
+          </View>
+        </>
+      ) : (
+        // Default display for other statuses
+        <>
+          <View style={styles.statusLineTop}>
+            <Text style={[t.atoms.text, styles.needsRatingText]}>
+              {note.status === 'rated_not_helpful' && (
+                <Trans>• Rated not helpful</Trans>
+              )}
+              {note.status === 'needs_more_ratings' && (
+                <Trans>• Needs more ratings</Trans>
+              )}
+            </Text>
+            <TimeElapsed timestamp={note.createdAt}>
+              {({timeElapsed}) => (
+                <Text style={t.atoms.text_contrast_low} title={timeElapsed}>
+                  {timeElapsed}
+                </Text>
+              )}
+            </TimeElapsed>
+            <Text style={t.atoms.text_contrast_low}>·</Text>
+            <Pressable
+              onPress={() => noteDetailsControl.open()}
+              accessibilityLabel={_(msg`View Details`)}
+              accessibilityHint="">
+              <Text style={t.atoms.text_contrast_high}>
+                <Trans>View details</Trans>
+              </Text>
+            </Pressable>
+          </View>
+          <View style={styles.statusLineBottom}>
+            <EyeSlashIcon size="sm" style={t.atoms.text_contrast_low} />
+            <Text style={t.atoms.text_contrast_low}>
+              <Trans>Not shown on Bluesky</Trans>
+            </Text>
+          </View>
+        </>
+      )}
 
       <RichText value={richText} style={[t.atoms.text, {paddingTop: 4}]} />
 
