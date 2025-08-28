@@ -48,6 +48,7 @@ import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/comp
 import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Link as NewLink} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -661,7 +662,7 @@ function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
 
   return (
     <View style={[a.mt_md]}>
-      <Link
+      <NewLink
         to={`/profile/${post.author.handle}/post/${post.uri
           .split('/')
           .pop()}/community-notes`}
@@ -671,7 +672,7 @@ function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
           <Trans>See all notes on this post</Trans>
         </Text>
         <ChevronRightIcon size="sm" style={[{color: t.palette.primary_500}]} />
-      </Link>
+      </NewLink>
     </View>
   )
 }
