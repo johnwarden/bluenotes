@@ -44,6 +44,7 @@ ALso on this pages, the status lines (likes, etc.) is shown below the note
 
 Top-of-page prompts for the three notes pages.
 
+
 add label=needsContext to getProposals queries
 
 view count (currently hardcoded)
@@ -51,4 +52,5 @@ reasons (currently hardcoded with "Directly addresses the posts claim")
 
 make single call to getProposals on feed pages, cache results, NoteWidget gets details from cache
 
+Links like "see examples"
 
