@@ -4,6 +4,15 @@
 	- already have showRatingWarning
 - Check if user has already written note *before* going to write a note screen.
 
+- view count (currently hardcoded)
+- reasons (currently hardcoded with "Directly addresses the posts claim")
+Links like "see examples"
+
+
+STub algo in dev env. Why? Because if you add a note, it won't show up, because the proposed-label: label won't be created. 
+
+Change label values? from needs-context to note?: From proposed-label to proposed:note? or proposal:label:note? What about disputes
+
 Lower Prioirty UI:
 	- Minimum Rating Impact
 	- Sign up flow (can do later)
@@ -25,32 +34,14 @@ Must DO Aggregator
 	- Notes on images
 
 
+## performance
+make single call to getProposals on feed pages, cache results, NoteWidget gets details from cache
+
 In the notes service,
 	
 	- ATP Agent Caching: The Community Notes service was creating multiple AtpAgent instances (one per API request), and each agent was independently managing AT Protocol sessions. When sessions refresh (which happens frequently for security), each agent would log a debug message.. For even better performance, we could implement agent caching to reuse AtpAgent instances instead of creating new ones for each request, but the current fix resolves the immediate logging issue effectively.
 
-rateProposal calls syncToPds, createProposasl doesn't. Create proposal inserts a rating record. Review how this all works.
 
 
-In rated helpful page, we should show the standard RatedHelpfulNote component. Underneaeth that (underneath the status button), "see all notes on this post >" should link to Post with NOtes
 
-
-The status widget should show the actual status.
-
-On the "needs your help" page, it should show "Rate proposed community notes", thenote, and "is this proposed note helpful? rate" underneath. Same with new.
-
-
-ALso on this pages, the status lines (likes, etc.) is shown below the note
-
-Top-of-page prompts for the three notes pages.
-
-
-add label=needsContext to getProposals queries
-
-view count (currently hardcoded)
-reasons (currently hardcoded with "Directly addresses the posts claim")
-
-make single call to getProposals on feed pages, cache results, NoteWidget gets details from cache
-
-Links like "see examples"
 
