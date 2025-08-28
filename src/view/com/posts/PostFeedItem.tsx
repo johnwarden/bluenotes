@@ -517,6 +517,7 @@ let PostContent = ({
             !communityNotesDisplayMode ||
             communityNotesDisplayMode === 'rated_helpful'
           }
+          showSeeAllLink={!!communityNotesDisplayMode}
         />
       )}
       {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
