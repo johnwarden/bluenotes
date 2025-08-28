@@ -143,7 +143,7 @@ export function CommunityNotesSidebar() {
               width={NAV_ICON_WIDTH}
             />
           }
-          label={_(msg`Notes`)}
+          label={_(msg`Community Notes`)}
           isActive={true}
         />
         <SidebarNavItem

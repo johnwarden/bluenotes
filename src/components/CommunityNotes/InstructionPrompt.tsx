@@ -2,7 +2,6 @@ import {View} from 'react-native'
 import {Trans} from '@lingui/macro'
 
 import {atoms as a, useTheme} from '#/alf'
-import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {Text} from '#/components/Typography'
 
 interface InstructionPromptProps {
@@ -25,40 +24,33 @@ export function InstructionPrompt({status}: InstructionPromptProps) {
       case 'new':
         return (
           <Trans>
-            Review the newest proposed Community Notes. Help decide which notes
-            are helpful by rating them.
+            Hot off the press! These are the most recently written notes.
+            Contributors can rate these notes to determine their helpfulness.
           </Trans>
         )
       case 'rated_helpful':
         return (
           <Trans>
-            These notes have been rated helpful by the community. Review them to
-            see examples of quality Community Notes.
+            Community Notes relies on contributors to rate each other's notes.
+            Notes shown on these posts have been rated helpful by contributors
+            of multiple perspectives.
           </Trans>
         )
     }
   }
 
   return (
-    <View
-      style={[
-        a.rounded_lg,
-        a.border,
-        a.p_md,
-        t.atoms.bg_contrast_25,
-        t.atoms.border_contrast_low,
-      ]}>
-      <View style={[a.flex_row, a.align_center, a.gap_sm, a.mb_sm]}>
-        <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
-        <Text style={[a.font_bold, a.text_md, t.atoms.text]}>
-          {status === 'needs_your_help' && (
-            <Trans>Rate these notes chosen for you</Trans>
-          )}
-          {status === 'new' && <Trans>Review new Community Notes</Trans>}
-          {status === 'rated_helpful' && <Trans>Notes rated helpful</Trans>}
-        </Text>
-      </View>
-      <Text style={[a.text_md, t.atoms.text, {lineHeight: 20}]}>
+    <View style={[a.p_lg, a.gap_md]}>
+      <Text style={[a.font_heavy, a.text_2xl, t.atoms.text]}>
+        {status === 'needs_your_help' && (
+          <Trans>Rate these notes chosen for you</Trans>
+        )}
+        {status === 'new' && <Trans>Newest Community Notes</Trans>}
+        {status === 'rated_helpful' && (
+          <Trans>Notes rated helpful by contributors</Trans>
+        )}
+      </Text>
+      <Text style={[a.text_lg, t.atoms.text_contrast_medium, {lineHeight: 24}]}>
         {getInstructionText()}
       </Text>
     </View>
