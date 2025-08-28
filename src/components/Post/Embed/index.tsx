@@ -224,24 +224,33 @@ export function PostDetachedEmbed({
  */
 export function QuoteEmbed({
   embed,
+  post,
   onOpen,
   style,
   isWithinQuote: parentIsWithinQuote,
   allowNestedQuotes: parentAllowNestedQuotes,
+  hideCommunityNotes = false,
 }: Omit<CommonProps, 'viewContext'> & {
-  embed: EmbedType<'post'>
+  embed?: EmbedType<'post'>
+  post?: AppBskyFeedDefs.PostView
   viewContext?: QuoteEmbedViewContext
+  hideCommunityNotes?: boolean
 }) {
   const moderationOpts = useModerationOpts()
-  const quote = React.useMemo<$Typed<AppBskyFeedDefs.PostView>>(
-    () => ({
-      ...embed.view,
+  const quote = React.useMemo<$Typed<AppBskyFeedDefs.PostView>>(() => {
+    if (post) {
+      return {
+        ...post,
+        $type: 'app.bsky.feed.defs#postView',
+      } as $Typed<AppBskyFeedDefs.PostView>
+    }
+    return {
+      ...embed!.view,
       $type: 'app.bsky.feed.defs#postView',
-      record: embed.view.value,
-      embed: embed.view.embeds?.[0],
-    }),
-    [embed],
-  )
+      record: embed!.view.value,
+      embed: embed!.view.embeds?.[0],
+    }
+  }, [post, embed])
   const moderation = React.useMemo(() => {
     return moderationOpts ? moderatePost(quote, moderationOpts) : undefined
   }, [quote, moderationOpts])
@@ -330,12 +339,16 @@ export function QuoteEmbed({
           </>
         )}
       </ContentHider>
-      <View style={[a.border_t, t.atoms.border_contrast_low]} />
-      <CommunityNoteWidget
-        post={quote}
-        displayMode="embedded"
-        showDisclaimer={false}
-      />
+      {!hideCommunityNotes && (
+        <>
+          <View style={[a.border_t, t.atoms.border_contrast_low]} />
+          <CommunityNoteWidget
+            post={quote}
+            displayMode="embedded"
+            showDisclaimer={false}
+          />
+        </>
+      )}
     </View>
   )
 }
