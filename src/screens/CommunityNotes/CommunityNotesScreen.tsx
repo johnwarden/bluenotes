@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -8,13 +8,13 @@ import {useSetTitle} from '#/lib/hooks/useSetTitle'
 import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
-import {usePostFeedQuery} from '#/state/queries/post-feed'
+import {type FeedDescriptor} from '#/state/queries/post-feed'
 import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
-import {CommunityNotesContent} from '#/components/CommunityNotes/CommunityNotesContent'
 import {CommunityNotesHeader} from '#/components/CommunityNotes/CommunityNotesHeader'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
 import {CommunityNotesSidebar} from '#/components/CommunityNotes/CommunityNotesSidebar'
+import {CommunityNotesTab} from '#/components/CommunityNotes/CommunityNotesTab'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
 
@@ -56,9 +56,9 @@ export function CommunityNotesScreen() {
     error: configError,
   } = useCommunityNotesConfig()
 
-  // Get feed URI based on selected tab and config
-  const getFeedUri = useCallback(
-    (tab: TabStatus) => {
+  // Get feed descriptor based on selected tab and config
+  const getFeedDescriptor = useCallback(
+    (tab: TabStatus): FeedDescriptor | null => {
       if (!config?.feedGeneratorDid) return null
 
       // Map tab status to feed rkey patterns (from integration guide)
@@ -70,40 +70,16 @@ export function CommunityNotesScreen() {
 
       // Construct feed URI directly using feedGeneratorDid
       const targetRkey = rkeyPatterns[tab]
-      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${targetRkey}`
+      const feedUri = `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${targetRkey}`
+      return `feedgen|${feedUri}` as const
     },
     [config],
   )
 
-  const feedUri = getFeedUri(selectedTab)
-  const feedDescriptor = feedUri ? (`feedgen|${feedUri}` as const) : null
-
-  const {
-    data: feedData,
-    isLoading,
-    error,
-  } = usePostFeedQuery(feedDescriptor || 'following', undefined, {
-    enabled: !!feedDescriptor,
-  })
-
-  const feedPosts = useMemo(() => {
-    if (!feedData?.pages) return []
-
-    const allPosts = feedData.pages
-      .flatMap(page => page.slices)
-      .flatMap(slice => slice.items)
-      .map(item => item.post)
-
-    console.log('Community Notes Feed:', {
-      totalPages: feedData.pages.length,
-      totalPosts: allPosts.length,
-      selectedTab,
-      feedUri,
-      configVersion: config?.version,
-    })
-
-    return allPosts
-  }, [feedData, selectedTab, feedUri, config])
+  // Get community notes display mode based on tab status
+  const getCommunityNotesDisplayMode = useCallback((tab: TabStatus) => {
+    return tab === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
+  }, [])
 
   const onPageSelected = useCallback((index: number) => {
     const newTab = TAB_ITEMS[index].key
@@ -139,8 +115,8 @@ export function CommunityNotesScreen() {
     [onPressSelected],
   )
 
-  // Show loading state while config or initial feed data is loading
-  if (configLoading || (isLoading && !feedData)) {
+  // Show loading state while config is loading
+  if (configLoading) {
     return (
       <Layout.Screen>
         <Layout.Center>
@@ -154,10 +130,9 @@ export function CommunityNotesScreen() {
 
   // Handle config errors - show unavailable message but still render the UI structure
   const isConfigUnavailable = configError || !config || !config.feedGeneratorDid
-  const isFeedUnavailable = error || !feedDescriptor
 
-  // If both config and feeds are unavailable, show a general unavailable message
-  if (isConfigUnavailable && isFeedUnavailable) {
+  // If config is unavailable, show a general unavailable message
+  if (isConfigUnavailable) {
     return (
       <Layout.Screen>
         <CommunityNotesSidebar />
@@ -195,15 +170,21 @@ export function CommunityNotesScreen() {
           initialPage={selectedIndex}
           onPageSelected={onPageSelected}
           renderTabBar={renderTabBar}>
-          {TAB_ITEMS.map(tab => (
-            <CommunityNotesContent
-              key={tab.key}
-              status={tab.key}
-              posts={isFeedUnavailable ? [] : feedPosts}
-              isActive={selectedTab === tab.key}
-              isUnavailable={!!isFeedUnavailable}
-            />
-          ))}
+          {TAB_ITEMS.map(tab => {
+            const feedDescriptor = getFeedDescriptor(tab.key)
+            const displayMode = getCommunityNotesDisplayMode(tab.key)
+
+            return (
+              <CommunityNotesTab
+                key={tab.key}
+                feedDescriptor={feedDescriptor}
+                displayMode={displayMode}
+                status={tab.key}
+                isPageFocused={selectedTab === tab.key}
+                testID={`communityNotes-${tab.key}`}
+              />
+            )
+          })}
         </Pager>
       </Layout.Center>
       <CommunityNotesRightPane />

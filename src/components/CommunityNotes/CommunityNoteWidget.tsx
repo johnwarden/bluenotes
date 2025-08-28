@@ -144,7 +144,7 @@ export function CommunityNoteWidget({
       <Content note={primaryNote} textColor={textColor} />
 
       {/* Horizontal line above rating prompt (for non-embedded modes) */}
-      {displayMode !== 'embedded' && (
+      {displayMode !== 'embedded' && showRatingPrompt && (
         <View
           style={[
             a.w_full,

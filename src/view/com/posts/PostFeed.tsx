@@ -189,6 +189,7 @@ let PostFeed = ({
   savedFeedConfig,
   initialNumToRender: initialNumToRenderOverride,
   isVideoFeed = false,
+  communityNotesDisplayMode,
 }: {
   feed: FeedDescriptor
   feedParams?: FeedParams
@@ -207,6 +208,10 @@ let PostFeed = ({
   progressViewOffset?: number
   desktopFixedHeightOffset?: number
   ListHeaderComponent?: () => JSX.Element
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
   extraData?: any
   savedFeedConfig?: AppBskyActorDefs.SavedFeed
   initialNumToRender?: number
@@ -748,6 +753,7 @@ let PostFeed = ({
             hideTopBorder={rowIndex === 0 && indexInSlice === 0}
             rootPost={slice.items[0].post}
             onShowLess={onPressShowLess}
+            communityNotesDisplayMode={communityNotesDisplayMode}
           />
         )
       } else if (row.type === 'sliceViewFullThread') {
@@ -801,6 +807,7 @@ let PostFeed = ({
       feedTab,
       feedCacheKey,
       onPressShowLess,
+      communityNotesDisplayMode,
     ],
   )
 

@@ -81,6 +81,10 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }
 
 export function PostFeedItem({
@@ -100,6 +104,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   post: AppBskyFeedDefs.PostView
   rootPost: AppBskyFeedDefs.PostView
@@ -139,6 +144,7 @@ export function PostFeedItem({
         isParentNotFound={isParentNotFound}
         rootPost={rootPost}
         onShowLess={onShowLess}
+        communityNotesDisplayMode={communityNotesDisplayMode}
       />
     )
   }
@@ -163,6 +169,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<AppBskyFeedDefs.PostView>
@@ -465,6 +472,7 @@ let FeedItemInner = ({
             post={post}
             threadgateRecord={threadgateRecord}
             hover={hover}
+            communityNotesDisplayMode={communityNotesDisplayMode}
           />
           <PostControls
             post={post}
@@ -496,6 +504,7 @@ let PostContent = ({
   onOpenEmbed,
   threadgateRecord,
   hover: _hover,
+  communityNotesDisplayMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -505,6 +514,10 @@ let PostContent = ({
   post: AppBskyFeedDefs.PostView
   threadgateRecord?: AppBskyFeedThreadgate.Record
   hover?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -575,14 +588,18 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      {hasHelpfulNotes(post) && (
+      {(hasHelpfulNotes(post) || communityNotesDisplayMode) && (
         <CommunityNoteWidget
           post={post}
-          displayMode="rated_helpful"
-          showDisclaimer={true}
+          displayMode={communityNotesDisplayMode || 'rated_helpful'}
+          showRatingPrompt={true}
+          showDisclaimer={
+            !communityNotesDisplayMode ||
+            communityNotesDisplayMode === 'rated_helpful'
+          }
         />
       )}
-      <RateCommunityNotesPrompt post={post} />
+      {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
     </ContentHider>
   )
 }
