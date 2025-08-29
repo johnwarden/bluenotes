@@ -604,7 +604,9 @@ let PostContent = ({
           parentHover={_hover}
         />
       )}
-      {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
+      {!communityNotesDisplayMode && (
+        <RateCommunityNotesPrompt post={post} parentHover={_hover} />
+      )}
     </ContentHider>
   )
 }
