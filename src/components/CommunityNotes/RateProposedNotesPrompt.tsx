@@ -1,3 +1,4 @@
+import {useState} from 'react'
 import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
@@ -25,15 +26,40 @@ function _RateProposedNotesPromptContent() {
 
 export function RateProposedNotesPromptDefault({
   post,
+  parentHover = false,
 }: {
   post: AppBskyFeedDefs.PostView
+  parentHover?: boolean
 }) {
   const {_} = useLingui()
   const t = useTheme()
+  const [promptHover, setPromptHover] = useState(false)
 
   // Only show prompt if post has proposed notes that need rating
   if (!hasProposedNotes(post) || hasHelpfulNotes(post)) {
     return null
+  }
+
+  // Common overlay positioning
+  const overlayBase = {
+    position: 'absolute' as const,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    pointerEvents: 'none' as const,
+  }
+
+  const baseBackgroundStyle = {
+    ...overlayBase,
+    opacity: 0.3,
+    backgroundColor: t.atoms.bg_contrast_25.backgroundColor,
+  }
+
+  const hoverOverlayStyle = {
+    ...overlayBase,
+    backgroundColor: 'black',
+    opacity: promptHover ? 0.05 : parentHover ? 0.03 : 0.0,
   }
 
   return (
@@ -48,9 +74,20 @@ export function RateProposedNotesPromptDefault({
         a.border,
         a.py_md,
         a.px_lg,
-        t.atoms.bg_contrast_25,
+        a.relative,
+        t.atoms.bg,
         t.atoms.border_contrast_low,
-      ]}>
+      ]}
+      onPointerEnter={() => setPromptHover(true)}
+      onPointerLeave={() => setPromptHover(false)}
+      onPress={e => {
+        // Stop propagation to prevent post navigation
+        e.stopPropagation()
+      }}>
+      {/* Base background */}
+      <View style={baseBackgroundStyle} />
+      {/* Hover overlay */}
+      <View style={hoverOverlayStyle} />
       <View
         style={[
           a.w_full,
@@ -68,15 +105,40 @@ export function RateProposedNotesPromptDefault({
 
 export function RateProposedNotesPromptEmbedded({
   post,
+  parentHover = false,
 }: {
   post: AppBskyFeedDefs.PostView
+  parentHover?: boolean
 }) {
   const {_} = useLingui()
   const t = useTheme()
+  const [promptHover, setPromptHover] = useState(false)
 
   // Only show prompt if post has proposed notes that need rating
   if (!hasProposedNotes(post)) {
     return null
+  }
+
+  // Common overlay positioning
+  const overlayBase = {
+    position: 'absolute' as const,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    pointerEvents: 'none' as const,
+  }
+
+  const baseBackgroundStyle = {
+    ...overlayBase,
+    opacity: 0.3,
+    backgroundColor: t.atoms.bg_contrast_25.backgroundColor,
+  }
+
+  const hoverOverlayStyle = {
+    ...overlayBase,
+    backgroundColor: 'black',
+    opacity: promptHover ? 0.05 : parentHover ? 0.03 : 0.0,
   }
 
   return (
@@ -85,7 +147,17 @@ export function RateProposedNotesPromptEmbedded({
         .split('/')
         .pop()}/community-notes`}
       label={_(msg`Rate proposed community notes`)}
-      style={[a.py_md, a.px_lg, t.atoms.bg_contrast_25]}>
+      style={[a.py_md, a.px_lg, a.relative, t.atoms.bg]}
+      onPointerEnter={() => setPromptHover(true)}
+      onPointerLeave={() => setPromptHover(false)}
+      onPress={e => {
+        // Stop propagation to prevent post navigation
+        e.stopPropagation()
+      }}>
+      {/* Base background */}
+      <View style={baseBackgroundStyle} />
+      {/* Hover overlay */}
+      <View style={hoverOverlayStyle} />
       <View
         style={[
           a.w_full,
