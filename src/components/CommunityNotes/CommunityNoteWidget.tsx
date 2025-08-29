@@ -53,6 +53,12 @@ export function CommunityNoteWidget({
 
   // Show error if there's an error or no notes when expected
   if (error || !notes || notes.length === 0) {
+    // For embedded posts, this widget is always displayed, whether or not the post has helpful notes.
+    // TODO: can callers look at labels to decide whether to display the CommunityNoteWidget?
+    if (displayMode == 'embedded' && notes.length === 0) {
+      return null
+    }
+
     return (
       <View
         style={[
