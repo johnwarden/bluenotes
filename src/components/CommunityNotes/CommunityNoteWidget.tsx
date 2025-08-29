@@ -10,7 +10,6 @@ import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Link} from '#/components/Link'
-import {SubtleWebHover} from '#/components/SubtleWebHover'
 import {Text} from '#/components/Typography'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
@@ -20,6 +19,7 @@ interface CommunityNoteWidgetProps {
   displayMode: DisplayMode
   showRatingPrompt?: boolean
   showDisclaimer?: boolean
+  parentHover?: boolean
 }
 
 export function CommunityNoteWidget({
@@ -27,6 +27,7 @@ export function CommunityNoteWidget({
   displayMode,
   showRatingPrompt = true,
   showDisclaimer = true,
+  parentHover = false,
 }: CommunityNoteWidgetProps) {
   const t = useTheme()
   const {_} = useLingui()
@@ -105,9 +106,6 @@ export function CommunityNoteWidget({
 
   const borderStyle = displayMode === 'needs_more_ratings' ? 'dotted' : 'solid'
 
-  // All display modes should be clickable to navigate to Community Notes page
-  const isClickable = true
-
   // Configure container styles based on mode
   const containerStyles =
     displayMode === 'embedded'
@@ -127,6 +125,28 @@ export function CommunityNoteWidget({
           },
         ]
 
+  // Common overlay positioning
+  const overlayBase = {
+    position: 'absolute' as const,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    top: 0,
+    pointerEvents: 'none' as const,
+  }
+
+  const baseBackgroundStyle = {
+    ...overlayBase,
+    opacity: 0.3,
+    backgroundColor: t.atoms.bg_contrast_25.backgroundColor,
+  }
+
+  const hoverOverlayStyle = {
+    ...overlayBase,
+    backgroundColor: 'black',
+    opacity: noteHover ? 0.05 : parentHover ? 0.03 : 0.0,
+  }
+
   // Render the widget content
   const widgetContent = (
     <>
@@ -137,7 +157,10 @@ export function CommunityNoteWidget({
             ? 'needs_more_ratings'
             : undefined
         }
-        noBackground={displayMode === 'embedded'}
+        backgroundStyle={
+          displayMode === 'embedded' ? undefined : t.atoms.bg_contrast_25
+        }
+        hoverOverlayStyle={hoverOverlayStyle}
       />
 
       <Content note={primaryNote} textColor={textColor} />
@@ -166,8 +189,8 @@ export function CommunityNoteWidget({
     </>
   )
 
-  // Wrap in Link for clickable modes, View for non-clickable
-  const widget = isClickable ? (
+  // Always wrap in Link to navigate to Community Notes page
+  const widget = (
     <Link
       to={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`}
       style={containerStyles}
@@ -177,12 +200,12 @@ export function CommunityNoteWidget({
         // Stop propagation to prevent post navigation
         e.stopPropagation()
       }}>
-      {/* Note hover overlay for clickable modes */}
-      <SubtleWebHover hover={noteHover} />
+      {/* Base background for note body (always present) */}
+      <View style={baseBackgroundStyle} />
+      {/* Hover overlay */}
+      <View style={hoverOverlayStyle} />
       {widgetContent}
     </Link>
-  ) : (
-    <View style={containerStyles}>{widgetContent}</View>
   )
 
   return (
@@ -197,11 +220,13 @@ export function CommunityNoteWidget({
 function Header({
   title,
   statusIndicator,
-  noBackground,
+  backgroundStyle,
+  hoverOverlayStyle,
 }: {
   title: string
   statusIndicator?: 'needs_more_ratings'
-  noBackground?: boolean
+  backgroundStyle?: any
+  hoverOverlayStyle: any
 }) {
   const t = useTheme()
 
@@ -211,15 +236,19 @@ function Header({
         a.px_md,
         a.py_sm,
         a.w_full,
-        // Only add background and rounded corners if not embedded
-        !noBackground && t.atoms.bg_contrast_25,
-        !noBackground && {
+        a.relative,
+        // Base header background
+        backgroundStyle,
+        backgroundStyle && {
           borderTopLeftRadius: 8,
           borderTopRightRadius: 8,
           borderBottomLeftRadius: 0,
           borderBottomRightRadius: 0,
         },
       ]}>
+      {/* Header hover overlay */}
+      {backgroundStyle && <View style={hoverOverlayStyle} />}
+
       <View style={[a.flex_row, a.align_center, a.gap_sm]}>
         <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
         <Text style={[a.font_bold, a.text_md, t.atoms.text, a.flex_1]}>
