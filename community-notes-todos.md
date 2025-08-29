@@ -42,6 +42,7 @@ In the notes service,
 	- ATP Agent Caching: The Community Notes service was creating multiple AtpAgent instances (one per API request), and each agent was independently managing AT Protocol sessions. When sessions refresh (which happens frequently for security), each agent would log a debug message.. For even better performance, we could implement agent caching to reuse AtpAgent instances instead of creating new ones for each request, but the current fix resolves the immediate logging issue effectively.
 
 
+Get rid of .env in atprotoo. Setup tests and dev-env with labeler signing key.
 
 
 
