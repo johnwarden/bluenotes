@@ -520,6 +520,7 @@ let PostContent = ({
             !communityNotesDisplayMode ||
             communityNotesDisplayMode === 'rated_helpful'
           }
+          parentHover={_hover}
         />
       )}
       {!communityNotesDisplayMode && <RateCommunityNotesPrompt post={post} />}
