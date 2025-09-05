@@ -3,10 +3,12 @@ import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
+import {useNavigation} from '@react-navigation/native'
 
 import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
+import {Button} from '#/components/Button'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Link} from '#/components/Link'
@@ -297,6 +299,19 @@ function RatingPrompt({
 }) {
   const t = useTheme()
   const {_} = useLingui()
+  const navigation = useNavigation()
+
+  const handleRatePress = (e: any) => {
+    // Stop propagation to prevent the outer Link from handling the event
+    e.stopPropagation()
+
+    // Navigate to community notes rating page
+    const postId = post.uri.split('/').pop()
+    navigation.navigate('CommunityNotesRating', {
+      name: post.author.handle,
+      rkey: postId,
+    })
+  }
 
   return (
     <View
@@ -309,11 +324,9 @@ function RatingPrompt({
         a.w_full,
       ]}>
       <Text style={[a.text_md, t.atoms.text]}>{promptText}</Text>
-      <Link
-        to={`/profile/${post.author.handle}/post/${post.uri
-          .split('/')
-          .pop()}/community-notes`}
+      <Button
         label={_(msg`Rate this note`)}
+        onPress={handleRatePress}
         style={[
           {
             borderWidth: 1,
@@ -328,7 +341,7 @@ function RatingPrompt({
         <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
           {buttonLabel}
         </Text>
-      </Link>
+      </Button>
     </View>
   )
 }
