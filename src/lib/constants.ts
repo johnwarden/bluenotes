@@ -231,9 +231,9 @@ export const DEV_ENV_APPVIEW = `http://localhost:2584` // always the same
 
 // temp hack for e2e - esb
 export const BLUESKY_PROXY_HEADER = {
-  value: `${BLUESKY_PROXY_DID}#bsky_appview`,
+  value: BLUESKY_PROXY_DID ? `${BLUESKY_PROXY_DID}#bsky_appview` : undefined,
   get() {
-    return this.value as ProxyHeaderValue
+    return this.value as ProxyHeaderValue | undefined
   },
   set(value: string) {
     this.value = value
