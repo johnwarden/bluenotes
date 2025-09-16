@@ -106,3 +106,9 @@ export const BAPP_CONFIG_DEV_URL = process.env.BAPP_CONFIG_DEV_URL
  */
 export const BAPP_CONFIG_DEV_BYPASS_SECRET: string =
   process.env.BAPP_CONFIG_DEV_BYPASS_SECRET
+
+/**
+ * Statsig API endpoint. If undefined, Statsig will be disabled.
+ */
+export const STATSIG_API_ENDPOINT: string | undefined =
+  process.env.EXPO_PUBLIC_STATSIG_API_ENDPOINT
