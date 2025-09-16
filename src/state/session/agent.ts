@@ -306,6 +306,13 @@ class BskyAppAgent extends BskyAgent {
     })
   }
 
+  configureProxy(proxyHeader: ProxyHeaderValue | undefined) {
+    if (proxyHeader) {
+      super.configureProxy(proxyHeader)
+    }
+    // Do nothing if proxyHeader is undefined
+  }
+
   async prepare(
     // Not awaited in the calling code so we can delay blocking on them.
     gates: Promise<void>,
