@@ -76,7 +76,7 @@ export interface RateProposalResponse {
 export interface CreateProposalRequest {
   typ: 'label'
   uri: string // target post URI
-  val: 'needs-context'
+  val: 'annotation'
   note: string
   reasons: string[]
 }
@@ -206,7 +206,7 @@ export async function createProposal(
   const requestBody: CreateProposalRequest = {
     typ: 'label',
     uri: targetUri,
-    val: 'needs-context',
+    val: 'annotation',
     note: noteText,
     reasons: reasons,
   }
