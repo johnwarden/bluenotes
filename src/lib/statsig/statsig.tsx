@@ -60,7 +60,8 @@ function createStatsigOptions(prefetchUsers: StatsigUser[]) {
     initTimeoutMs: 1,
     // Get fresh flags for other accounts as well, if any.
     prefetchUsers,
-    api: 'https://events.bsky.app/v2',
+    // Only set API endpoint if configured, otherwise Statsig will be effectively disabled
+    ...(env.STATSIG_API_ENDPOINT && {api: env.STATSIG_API_ENDPOINT}),
   }
 }
 
@@ -107,13 +108,16 @@ export function logEvent<E extends keyof MetricEvents>(
   try {
     const fullMetadata = toStringRecord(rawMetadata)
     fullMetadata.routeName = getCurrentRouteName() ?? '(Uninitialized)'
-    if (Statsig.initializeCalled()) {
+
+    // Only send to Statsig if it's enabled and initialized
+    if (env.STATSIG_API_ENDPOINT && Statsig.initializeCalled()) {
       let ev: string = eventName
       if (options.lake) {
         ev = `lake:${ev}`
       }
       Statsig.logEvent(ev, null, fullMetadata)
     }
+
     /**
      * All datalake events should be sent using `logger.metric`, and we don't
      * want to double-emit logs to other transports.
@@ -247,6 +251,11 @@ export async function tryFetchGates(
   strategy: 'prefer-low-latency' | 'prefer-fresh-gates',
 ) {
   try {
+    // Skip if Statsig is disabled
+    if (!env.STATSIG_API_ENDPOINT) {
+      return
+    }
+
     let timeoutMs = 250 // Don't block the UI if we can't do this fast.
     if (strategy === 'prefer-fresh-gates') {
       // Use this for less common operations where the user would be OK with a delay.
@@ -265,7 +274,13 @@ export async function tryFetchGates(
 }
 
 export function initialize() {
-  return Statsig.initialize(SDK_KEY, null, createStatsigOptions([]))
+  // Only initialize Statsig if API endpoint is configured
+  if (env.STATSIG_API_ENDPOINT) {
+    return Statsig.initialize(SDK_KEY, null, createStatsigOptions([]))
+  } else {
+    // Return a resolved promise when Statsig is disabled
+    return Promise.resolve()
+  }
 }
 
 export function Provider({children}: {children: React.ReactNode}) {
@@ -299,15 +314,22 @@ export function Provider({children}: {children: React.ReactNode}) {
   // These changes are prefetched and stored, but don't get applied until the active DID changes.
   // This ensures that when you switch an account, it already has fresh results by then.
   const handleIntervalTick = useNonReactiveCallback(() => {
-    if (Statsig.initializeCalled()) {
+    if (env.STATSIG_API_ENDPOINT && Statsig.initializeCalled()) {
       // Note: Only first five will be taken into account by Statsig.
       Statsig.prefetchUsers([currentStatsigUser, ...otherStatsigUsers])
     }
   })
   React.useEffect(() => {
-    const id = setInterval(handleIntervalTick, 60e3 /* 1 min */)
-    return () => clearInterval(id)
+    if (env.STATSIG_API_ENDPOINT) {
+      const id = setInterval(handleIntervalTick, 60e3 /* 1 min */)
+      return () => clearInterval(id)
+    }
   }, [handleIntervalTick])
+
+  // If Statsig is disabled, just provide the cache context without StatsigProvider
+  if (!env.STATSIG_API_ENDPOINT) {
+    return <GateCache.Provider value={gateCache}>{children}</GateCache.Provider>
+  }
 
   return (
     <GateCache.Provider value={gateCache}>
