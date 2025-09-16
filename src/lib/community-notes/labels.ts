@@ -1,5 +1,7 @@
 import {type AppBskyFeedDefs, type ComAtprotoLabelDefs} from '@atproto/api'
 
+import {dangerousGetPostShadow} from '#/state/cache/post-shadow'
+
 // Community Notes label values
 export const COMMUNITY_NOTES_LABELS = {
   NOTE: 'annotation',
@@ -55,6 +57,13 @@ export function hasHelpfulNotes(post: AppBskyFeedDefs.PostView): boolean {
  * Check if a post has proposed Community Notes that need rating (proposed-annotation label)
  */
 export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
+  // Check shadow cache first for optimistic state
+  const shadow = dangerousGetPostShadow(post)
+  if (shadow?.hasOptimisticProposedNote) {
+    return true
+  }
+
+  // Fall back to actual labels
   return hasLabel(post, COMMUNITY_NOTES_LABELS.PROPOSED_NOTE)
 }
 
