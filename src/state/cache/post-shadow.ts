@@ -26,6 +26,7 @@ export interface PostShadow {
   pinned: boolean
   optimisticReplyCount: number | undefined
   bookmarked: boolean | undefined
+  hasOptimisticProposedNote: boolean | undefined
 }
 
 export const POST_TOMBSTONE = Symbol('PostTombstone')
@@ -36,12 +37,23 @@ const shadows: WeakMap<
   Partial<PostShadow>
 > = new WeakMap()
 
+// Fallback storage for shadows by URI (for cases where object references don't match)
+const shadowsByUri: Map<string, Partial<PostShadow>> = new Map()
+
 /**
  * Use with caution! This function returns the raw shadow data for a post.
  * Prefer using `usePostShadow`.
  */
 export function dangerousGetPostShadow(post: AppBskyFeedDefs.PostView) {
-  return shadows.get(post)
+  // First try to get shadow by object reference (preferred)
+  let shadow = shadows.get(post)
+
+  // If not found, try fallback by URI
+  if (!shadow) {
+    shadow = shadowsByUri.get(post.uri)
+  }
+
+  return shadow
 }
 
 export function usePostShadow(
@@ -161,6 +173,11 @@ export function updatePostShadow(
   for (let post of cachedPosts) {
     shadows.set(post, {...shadows.get(post), ...value})
   }
+
+  // Also store by URI as fallback for cases where object references don't match
+  const existingShadowByUri = shadowsByUri.get(uri)
+  shadowsByUri.set(uri, {...existingShadowByUri, ...value})
+
   batchedUpdates(() => {
     emitter.emit(uri)
   })
