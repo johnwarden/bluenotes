@@ -6,6 +6,7 @@ import {useQueryClient} from '@tanstack/react-query'
 import Graphemer from 'graphemer'
 
 import * as apilib from '#/lib/api/community-notes'
+import {updatePostShadow} from '#/state/cache/post-shadow'
 import {usePostQuery} from '#/state/queries/post'
 import {useAgent} from '#/state/session'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
@@ -192,6 +193,11 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
     setIsSubmitting(true)
     setSubmissionError('')
 
+    // OPTIMISTIC UPDATE: Immediately show "Rate proposed Community Notes" prompt
+    updatePostShadow(queryClient, postUri, {
+      hasOptimisticProposedNote: true,
+    })
+
     try {
       const response = await apilib.propose(
         agent,
@@ -209,6 +215,9 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       )
       setSubmittedNote(noteObj)
 
+      // Success - keep optimistic state until real label arrives
+      // The optimistic state will be cleared when the post is re-hydrated with actual labels
+
       // Clear form and close dialog
       setSelectedReasons([])
       setNoteText('')
@@ -220,6 +229,12 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       submittedDialogControl.open()
     } catch (error) {
       console.error('Failed to create note:', error)
+
+      // ROLLBACK: Remove optimistic state on error
+      updatePostShadow(queryClient, postUri, {
+        hasOptimisticProposedNote: undefined,
+      })
+
       if (error instanceof Error) {
         setSubmissionError(error.message)
       } else {
