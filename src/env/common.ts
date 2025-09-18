@@ -71,8 +71,8 @@ export const BLUESKY_PROXY_DID: Did | undefined =
 /**
  * The DID of the chat service to proxy to
  */
-export const CHAT_PROXY_DID: Did =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || 'did:web:api.bsky.chat'
+export const CHAT_PROXY_DID: Did | undefined =
+  process.env.EXPO_PUBLIC_CHAT_PROXY_DID
 
 /**
  * Sentry DSN for telemetry

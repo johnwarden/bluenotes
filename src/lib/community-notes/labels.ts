@@ -40,10 +40,22 @@ export function hasLabel(
     return false
   }
 
-  return post.labels.some(
+  const result = post.labels.some(
     (label: ComAtprotoLabelDefs.Label) =>
       label.val === labelValue && isCommunityNotesLabeler(label.src),
   )
+
+  // Temporary debugging
+  if (labelValue === COMMUNITY_NOTES_LABELS.PROPOSED_NOTE) {
+    console.log('hasLabel check for PROPOSED_NOTE:', {
+      postUri: post.uri,
+      labelValue,
+      labels: post.labels.map(l => ({val: l.val, src: l.src})),
+      result,
+    })
+  }
+
+  return result
 }
 
 /**
@@ -64,7 +76,18 @@ export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
   }
 
   // Fall back to actual labels
-  return hasLabel(post, COMMUNITY_NOTES_LABELS.PROPOSED_NOTE)
+  const hasActualLabel = hasLabel(post, COMMUNITY_NOTES_LABELS.PROPOSED_NOTE)
+
+  // Temporary debugging for posts with actual labels
+  if (hasActualLabel) {
+    console.log(
+      'Post has actual proposed note label:',
+      post.uri,
+      'returning true',
+    )
+  }
+
+  return hasActualLabel
 }
 
 /**
