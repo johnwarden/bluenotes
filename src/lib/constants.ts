@@ -15,8 +15,8 @@ export const DEFAULT_SERVICE = BSKY_SERVICE
 // Community Notes service URLs
 export const LOCAL_DEV_COMMUNITY_NOTES_SERVICE =
   Platform.OS === 'android' ? 'http://10.0.2.2:2595' : 'http://localhost:2595'
-export const STAGING_COMMUNITY_NOTES_SERVICE = 'https://service.c10t.es'
-export const PROD_COMMUNITY_NOTES_SERVICE = 'https://service.c10t.es'
+export const STAGING_COMMUNITY_NOTES_SERVICE = 'https://api.c10t.es'
+export const PROD_COMMUNITY_NOTES_SERVICE = 'https://api.c10t.es'
 
 export function COMMUNITY_NOTES_SERVICE(serviceUrl: string) {
   if (IS_PROD_SERVICE(serviceUrl)) {
