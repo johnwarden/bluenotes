@@ -72,14 +72,14 @@ pendingLabels (id, scoreEventId, targetUri, labelValue, negative, createdAt)
 When a proposal is first created:
 1. User creates proposal → auto-rating generated (note authors automatically rate their own note as helpful)
 2. Algorithm Service detects new proposal → calls `score(status: "needs_more_ratings")`
-3. Trigger creates `proposal:label:needs-context` label
+3. Trigger creates `proposed-annotation` label
 4. Community Notes-enabled frontends add "Readers Added Context..." prompt to posts with this label.
 
 ### Approved Labels (Algorithmic)
 
 When algorithm has sufficient data:
 1. Algorithm Service processes ratings → calls `score(status: "rated_helpful")`
-2. Trigger creates label (positive). For community notes, label is 'needs-context'.
+2. Trigger creates label (positive). For community notes, label is 'annotation'.
 3. Both proposed and final labels coexist
 4. If algorithm later changes status (e.g. to rated_not_helpful), negative label is emitted.
 
@@ -127,7 +127,7 @@ POST /score
   "targetUri": "at://...",
   "status": "rated_helpful",
   "score": 0.85,
-  "labelValue": "needs-context"
+  "labelValue": "annotation"
 }
 ```
 
@@ -153,8 +153,8 @@ When users see a community-notes-enabled client:
 
 ### Label Display
 
-- **Proposed labels**: `proposal:label:needs-context` → "Rate proposed community notes" prompt
-- **Final labels**: `needs-context` → Shows "Readers added context heading" with actual note text.
+- **Proposed labels**: `proposed-annotation` → "Rate proposed community notes" prompt
+- **Final labels**: `annotation` → Shows "Readers added context heading" with actual note text.
 -
 ## Deployment Architecture
 
@@ -242,14 +242,14 @@ pendingLabels (id, scoreEventId, targetUri, labelValue, negative, createdAt)
 When a proposal is first created:
 1. User creates proposal → auto-rating generated (note authors automatically rate their own note as helpful)
 2. Algorithm Service detects new proposal → calls `score(status: "needs_more_ratings")`
-3. Trigger creates `proposal:label:needs-context` label
+3. Trigger creates `proposed-annotation` label
 4. Community Notes-enabled frontends add "Readers Added Context..." prompt to posts with this label.
 
 ### Approved Labels (Algorithmic)
 
 When algorithm has sufficient data:
 1. Algorithm Service processes ratings → calls `score(status: "rated_helpful")`
-2. Trigger creates label (positive). For community notes, label is 'needs-context'.
+2. Trigger creates label (positive). For community notes, label is 'annotation'.
 3. Both proposed and final labels coexist
 4. If algorithm later changes status (e.g. to rated_not_helpful), negative label is emitted.
 
@@ -297,7 +297,7 @@ POST /score
   "targetUri": "at://...",
   "status": "rated_helpful",
   "score": 0.85,
-  "labelValue": "needs-context"
+  "labelValue": "annotation"
 }
 ```
 
@@ -324,8 +324,8 @@ When users see a community-notes-enabled client:
 
 ### Label Display
 
-- **Proposed labels**: `proposal:label:needs-context` → "Rate proposed community notes" prompt
-- **Final labels**: `needs-context` → Shows "Readers added context heading" with actual note text.
+- **Proposed labels**: `proposed-annotation` → "Rate proposed community notes" prompt
+- **Final labels**: `annotation` → Shows "Readers added context heading" with actual note text.
 -
 ## Deployment Architecture
 
