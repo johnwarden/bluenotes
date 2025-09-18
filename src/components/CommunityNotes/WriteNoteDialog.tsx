@@ -56,7 +56,7 @@ const REASONS = [
 
 // Community Notes constants (matching X/Twitter)
 const COMMUNITY_NOTES_MAX_LENGTH = 280
-const URL_LENGTH = 23 // Twitter's standard URL length
+const URL_LENGTH = 1 // Community Notes count URLs as 1 character (different from regular tweets which use 23)
 
 // URL detection utility
 const COMPLETE_URL_REGEX = /https?:\/\/[^\s]+/gi
@@ -67,7 +67,7 @@ function hasValidUrls(text: string): boolean {
   return urls !== null && urls.length > 0
 }
 
-// Calculate character count with URLs counted as 23 characters each
+// Calculate character count with URLs counted as 1 character each (Community Notes standard)
 function calculateNoteLength(text: string): number {
   const graphemer = new Graphemer()
 
@@ -75,9 +75,10 @@ function calculateNoteLength(text: string): number {
   const urlMatches = text.match(URL_START_REGEX) || []
 
   // Replace each URL pattern with a placeholder of URL_LENGTH characters
+  // Use replaceAll to ensure all occurrences of each URL are replaced
   let processedText = text
   urlMatches.forEach(url => {
-    processedText = processedText.replace(url, 'x'.repeat(URL_LENGTH))
+    processedText = processedText.replaceAll(url, 'x'.repeat(URL_LENGTH))
   })
 
   return graphemer.countGraphemes(processedText)
