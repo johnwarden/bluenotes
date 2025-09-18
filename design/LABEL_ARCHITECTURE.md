@@ -19,8 +19,8 @@ The Community Notes labeler will be configured as an **App Labeler** rather than
 - The Community Notes labeler DID will be added to `BskyAgent.appLabelers` configuration
 - This ensures all users automatically receive Community Notes labels without any subscription process
 - Labels from app labelers are automatically sent in PostView objects returned by the bsky service (the app view)
-- For posts with a 'proposal:label:needs-context' label, the front-end will display a "rate proposed community notes" prompt
-- For posts with a 'needs-context' label, the front-end will lookup the proposals by calling getProposals in the Community Notes service
+- For posts with a 'proposed-annotation' label, the front-end will display a "rate proposed community notes" prompt
+- For posts with a 'annotation' label, the front-end will lookup the proposals by calling getProposals in the Community Notes service
 
 This approach:
 - ✅ Requires no user action or subscription management
@@ -35,19 +35,19 @@ This approach:
   - This service has access to:
     - the `score` table
     - the proposals table with all proposed notes
-  - getProposals supports filtering by status (needs_more_ratings, rated_helpful, rated_not_helpful) and label (needs-context, etc.)
+  - getProposals supports filtering by status (needs_more_ratings, rated_helpful, rated_not_helpful) and label (annotation, etc.)
   - By default returns ALL proposals - frontend must explicitly filter for rated_helpful if only approved proposals are desired
 
 ## Community Notes Labeler Service
 
-- The community notes labeler service will implement the /xrpc/com.atproto.label.queryLabels endpoint and publish "needs-context" and "proposal:label:needs-context" labels
+- The community notes labeler service will implement the /xrpc/com.atproto.label.queryLabels endpoint and publish "annotation" and "proposed-annotation" labels
 - These labels will not contain the text of the proposal (Bsky app views will ignore these). The getProposals endpoint will provide this instead.
 - There will be a database with `scoreEvent` table.
 - The `scoreEvent` will include a proposal URI and status "created", "needs_more_ratings", "rated_helpful" and "rated_not_helpful". Possibly also "deleted". These should also have some score metadata so that when there is more than one helpful proposal the most helpful can be selected.
 - The aggregator service will run the algorithm and bulk-insert `scoreEvents` into the DB -- sharing the DB table.
 - A sql trigger, perhaps, maintains a `score` table, with the latest label status
 - The getProposals endpoint will read the `score` table.
-- Another trigger will update the "label" table, inserting "needs-context" and "proposal:label:needs-context" labels, and "neg" labels when status changes *from* "rated_helpful". The queryLabels endpoint will return the content of the label table.
+- Another trigger will update the "label" table, inserting "annotation" and "proposed-annotation" labels, and "neg" labels when status changes *from* "rated_helpful". The queryLabels endpoint will return the content of the label table.
 
 
 ## Dev-env Setup
@@ -55,5 +55,5 @@ This approach:
 Changes to dev-env
   - The actually code for subscribing to labelers and importing labels is *not* implemented by the open source app view in the atproto repo (the bsky package)
   - Instead, there is a database with labels, and labelers are inserted during mock data setup.
-  - The mock data setup inserts proposals for some of the mock posts, with "proposal:label:needs-context" labels for proposals needing ratings, "needs-context" labels for approved proposals, and some posts with both.
+  - The mock data setup inserts proposals for some of the mock posts, with "proposed-annotation" labels for proposals needing ratings, "annotation" labels for approved proposals, and some posts with both.
   - Maybe eventually we make the labeler service directly insert into the bsky app view DB table in dev environments?

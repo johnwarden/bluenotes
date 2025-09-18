@@ -43,7 +43,7 @@ export function RateNotesScreen() {
     data: notes,
     isLoading: isLoadingNotes,
     error: notesError,
-  } = useProposalsQuery(uri, undefined, 'needs-context') // No status filter - show all proposals with needs-context label
+  } = useProposalsQuery(uri, undefined, 'annotation') // No status filter - show all proposals with annotation label
 
   // Create a version of the post without community notes labels
   // This prevents RatedHelpfulNote and RateCommunityNotesPrompt from showing

@@ -47,7 +47,7 @@ REPO_PASSWORD=your-repo-password
 **Role**: Community Notes labeling service
 
 **Responsibilities**:
-- **Label Generation**: Creates Community Notes labels (`needs-context`, etc.)
+- **Label Generation**: Creates Community Notes labels (`annotation`, etc.)
 - **Label Signing**: Signs labels with labeler signing key
 - **Actor Account**: Must be an actor (DID with PDS account) for `getActors()` to work
 - **Label Service**: Has `AtprotoLabeler` service in DID document

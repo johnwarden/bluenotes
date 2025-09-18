@@ -4,8 +4,8 @@ import {dangerousGetPostShadow} from '#/state/cache/post-shadow'
 
 // Community Notes label values
 export const COMMUNITY_NOTES_LABELS = {
-  NOTE: 'needs-context',
-  PROPOSED_NOTE: 'proposal:label:needs-context',
+  NOTE: 'annotation',
+  PROPOSED_NOTE: 'proposed-annotation',
 } as const
 
 export type CommunityNotesLabelValue =
@@ -66,7 +66,7 @@ export function hasHelpfulNotes(post: AppBskyFeedDefs.PostView): boolean {
 }
 
 /**
- * Check if a post has proposed Community Notes that need rating (proposal:label:needs-context label)
+ * Check if a post has proposed Community Notes that need rating (proposed-annotation label)
  */
 export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
   // Check shadow cache first for optimistic state
