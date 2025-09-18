@@ -11,13 +11,6 @@ export const COMMUNITY_NOTES_LABELS = {
 export type CommunityNotesLabelValue =
   (typeof COMMUNITY_NOTES_LABELS)[keyof typeof COMMUNITY_NOTES_LABELS]
 
-// Community Notes labeler DID (will be environment-specific)
-export const COMMUNITY_NOTES_LABELER_DID = {
-  PROD: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-  STAGING: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-  DEV: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-} as const
-
 // Dynamic labeler DID management
 let currentLabelerDid: string | null = null // null means no labeler configured
 
@@ -118,11 +111,9 @@ function isCommunityNotesLabeler(labelerDid: string): boolean {
   // If we have a dynamic labeler DID configured, use only that
   if (currentDid) {
     return labelerDid === currentDid
+  } else {
+    throw new Error("Coudln't get labeler did")
   }
-
-  // If no dynamic labeler DID is configured, fallback to hardcoded values
-  // This provides backward compatibility when the config endpoint is not available
-  return Object.values(COMMUNITY_NOTES_LABELER_DID).includes(labelerDid as any)
 }
 
 /**

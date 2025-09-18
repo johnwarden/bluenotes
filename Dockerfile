@@ -107,7 +107,7 @@ COPY --from=build-env /bskyweb /usr/bin/bskyweb
 CMD ["/usr/bin/bskyweb"]
 
 LABEL org.opencontainers.image.source=https://github.com/bluesky-social/social-app
-LABEL org.opencontainers.image.description="bsky.app Web App"
+LABEL org.opencontainers.image.description="bluenotes.social Web App"
 LABEL org.opencontainers.image.licenses=MIT
 
 # NOOP
