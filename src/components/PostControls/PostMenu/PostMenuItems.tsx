@@ -662,10 +662,10 @@ let PostMenuItems = ({
 
                   <Menu.Item
                     testID="postDropdownWriteNoteBtn"
-                    label={_(msg`Write a Community note`)}
+                    label={_(msg`Write a Community Note`)}
                     onPress={() => writeNoteDialogControl.open()}>
                     <Menu.ItemText>
-                      {_(msg`Write a Community note`)}
+                      {_(msg`Write a Community Note`)}
                     </Menu.ItemText>
                     <Menu.ItemIcon icon={CommunityNotes} position="right" />
                   </Menu.Item>
