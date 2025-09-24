@@ -17,7 +17,7 @@ This document outlines the deployment plan for "Bluenotes" - a fork of the Blues
 1. **AT Protocol Services**: App defaults to `https://public.api.bsky.app` (production Bluesky infrastructure)
 2. **Localhost Switching**: When users choose localhost PDS, it automatically switches to localhost AppView
 3. **Community Notes Integration**: Already configured with service URL switching based on environment
-4. **OGCard Service**: Uses Bluesky's OGCard service (needs investigation for cross-domain usage)
+4. **OGCard Service**: Uses Bluesky's OGCard service (confirmed cross-domain compatible via `<img>` tags)
 5. **Data Persistence**: Sessions stored in browser localStorage/MMKV - no server-side persistence needed initially
 
 ## Deployment Strategy
@@ -155,17 +155,52 @@ EXPO_PUBLIC_SENTRY_DSN=<sentry-dsn>
 ### Docker Labels (`Dockerfile`)
 - [ ] Update image source and description labels
 
-## OGCard Service Investigation
+### Logo Assets (23+ files to replace)
+- [ ] **App Icons** - Replace all variants in `assets/app-icons/`:
+  - [ ] `ios_icon_default_light.png` (primary iOS app icon)
+  - [ ] `ios_icon_default_dark.png` (iOS dark mode)
+  - [ ] `android_icon_default_light.png` (primary Android app icon)
+  - [ ] `android_icon_default_dark.png` (Android dark mode)
+  - [ ] `icon_default_next.png` (beta/next variant)
+  - [ ] 18 themed variants (aurora, bonfire, sunrise, sunset, midnight, flat variants, etc.)
 
-### Questions to Resolve
-1. **Cross-domain support**: Does Bluesky's OGCard service accept requests from `bluenotes.social`?
-2. **Rate limiting**: Are there usage limits for external domains?
-3. **Fallback strategy**: What happens if OGCard requests are blocked?
+- [ ] **Splash Screen Assets**:
+  - [ ] `assets/splash.png` (light mode splash background)
+  - [ ] `assets/splash-dark.png` (dark mode splash background)
+  - [ ] `assets/splash-android-icon.png` (Android splash icon)
+  - [ ] `assets/splash-android-icon-dark.png` (Android dark splash icon)
 
-### Options
-1. **Use Bluesky's service**: If cross-domain requests are allowed
-2. **Deploy own OGCard service**: Use the existing `bskyogcard` codebase
-3. **Disable OGCard**: Graceful degradation without link previews
+- [ ] **Web Assets**:
+  - [ ] `assets/favicon.png` (browser favicon)
+  - [ ] `assets/logo.png` (general logo file)
+  - [ ] `web/index.html` - Update inline SVG in splash div (line 150)
+
+- [ ] **Kawaii Mode Assets** (if keeping feature):
+  - [ ] `assets/kawaii.png` (large kawaii variant)
+  - [ ] `assets/kawaii_smol.png` (small kawaii variant)
+
+### Logo Code Components (SVG paths to update)
+- [ ] `src/view/icons/Logo.tsx` - Update SVG path and accessibility label
+- [ ] `src/view/icons/Logomark.tsx` - Update SVG path for logo mark only
+- [ ] `src/view/icons/Logotype.tsx` - Update SVG path for "Bluenotes" text
+- [ ] `src/Splash.tsx` - Update Logo component SVG path (line 42-45)
+
+### Accessibility Labels
+- [ ] `src/view/icons/Logo.tsx` line 41: `accessibilityLabel="Bluesky"` → `accessibilityLabel="Bluenotes"`
+- [ ] Review all logo components for any remaining "Bluesky" accessibility references
+
+## OGCard Service Integration ✅
+
+### Confirmed Compatibility
+1. **Cross-domain support**: ✅ Works from `bluenotes.social` via `<img>` tags (no CORS needed)
+2. **Usage method**: Server-side rendering for social media cards and starter pack images
+3. **Implementation**: Already integrated and working in current build
+
+### Service Details
+- **Endpoint**: `https://ogcard.cdn.bsky.app`
+- **Method**: Used via `<img src="...">` tags, no CORS restrictions
+- **Functionality**: Social sharing images, starter pack image generation
+- **Status**: Ready for production use
 
 ## Community Notes Service Integration
 
