@@ -1,3 +1,10 @@
+Disable the create account flow (we don't have email configured?)
+Found a bug. 
+	this post was i the new feed
+		http://localhost:19006/profile/piyushmittal.bsky.social/post/3lyyx7mlh5s2h
+		http://localhost:19006/community-notes/needs_your_help
+	but it has been rated helpful. So there is a 'no community note fouhd' error	
+
 Labeler doesn't support http:// URLs
 
 Regular labels also appearing
