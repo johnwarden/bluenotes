@@ -13,8 +13,6 @@ import {Image} from 'expo-image'
 import {colors} from '#/lib/styles'
 import {useKawaiiMode} from '#/state/preferences/kawaii'
 
-const ratio = 57 / 64
-
 type Props = {
   fill?: PathProps['fill']
   style?: TextProps['style']
@@ -30,6 +28,8 @@ export const Logo = React.forwardRef(function LogoImpl(props: Props, ref) {
 
   const isKawaii = useKawaiiMode()
 
+  const ratio = 57 / 64
+
   if (isKawaii) {
     return (
       <Image
@@ -38,7 +38,7 @@ export const Logo = React.forwardRef(function LogoImpl(props: Props, ref) {
             ? require('../../../assets/kawaii.png')
             : require('../../../assets/kawaii_smol.png')
         }
-        accessibilityLabel="Bluesky"
+        accessibilityLabel="Bluenotes"
         accessibilityHint=""
         accessibilityIgnoresInvertColors
         style={[{height: size, aspectRatio: 1.4}]}
@@ -51,7 +51,7 @@ export const Logo = React.forwardRef(function LogoImpl(props: Props, ref) {
       fill="none"
       // @ts-ignore it's fiiiiine
       ref={ref}
-      viewBox="0 0 64 57"
+      viewBox="0 0 500 441"
       {...rest}
       style={[{width: size, height: size * ratio}, styles]}>
       {gradient && (
@@ -65,7 +65,7 @@ export const Logo = React.forwardRef(function LogoImpl(props: Props, ref) {
 
       <Path
         fill={_fill}
-        d="M13.873 3.805C21.21 9.332 29.103 20.537 32 26.55v15.882c0-.338-.13.044-.41.867-1.512 4.456-7.418 21.847-20.923 7.944-7.111-7.32-3.819-14.64 9.125-16.85-7.405 1.264-15.73-.825-18.014-9.015C1.12 23.022 0 8.51 0 6.55 0-3.268 8.579-.182 13.873 3.805ZM50.127 3.805C42.79 9.332 34.897 20.537 32 26.55v15.882c0-.338.13.044.41.867 1.512 4.456 7.418 21.847 20.923 7.944 7.111-7.32 3.819-14.64-9.125-16.85 7.405 1.264 15.73-.825 18.014-9.015C62.88 23.022 64 8.51 64 6.55c0-9.818-8.578-6.732-13.873-2.745Z"
+        d="M471.19 1.022c-3 1-21 4-41 8-21 4-40 7-42 8s-11 2-20 4c-13 2-71 14-144 28-17 4-27 7-34 14-7 6-7-1-7 109 0 54 0 99-1 100 0 1-1 1-8-1-37-10-84-5-115 14-94 56-72 156 35 156 63 0 117-37 133-91 2-9 2-9 3-109 1-110 0-103 6-107 3-2 196-41 215-44 5 0 5 0 5 69s0 69-4 67c-60-21-134 2-168 52-46 69 26 134 120 109 45-13 85-45 94-78 4-11 3-304-1-307-3-2-18-3-26-1z"
       />
     </Svg>
   )
