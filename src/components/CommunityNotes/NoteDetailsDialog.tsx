@@ -2,7 +2,7 @@ import {StyleSheet, Text, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {niceDate} from '#/lib/strings/time'
 import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {useTheme} from '#/alf'
