@@ -1,3 +1,20 @@
+Labeler doesn't support http:// URLs
+
+Regular labels also appearing
+
+When you create a note, you don't immediately see label.
+
+Drew about schema for createProposal, rateProposal, etc.
+
+
+Back button on post-with-notes wrong link
+Please be sure to:
+
+- Change all branding in the repository and UI to clearly differentiate from Bluesky.
+- Change any support links (feedback, email, terms of service, etc) to your own systems.
+- Replace any analytics or error-collection systems with your own so we don't get super confused.
+
+
 - get rid of a lot of backend debug logging
 - How we are handling CIDs in the databse and with all the lookups etc.
 - "Please rate at least one note" functionality
@@ -9,9 +26,9 @@
 Links like "see examples"
 
 
-STub algo in dev env. Why? Because if you add a note, it won't show up, because the proposed-label: label won't be created. 
+STub algo in dev env. Why? Because if you add a note, it won't show up, because the proposed-: label won't be created. 
 
-Change label values? from needs-context to note?: From proposed-label to proposed:note? or proposal:label:note? What about disputes
+Change label values? from note to note?: What about disputes
 
 Lower Prioirty UI:
 	- Minimum Rating Impact
