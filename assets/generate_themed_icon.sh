@@ -53,7 +53,7 @@ case "$THEME" in
 esac
 
 # Extract path data from logo shape and create template
-PATH_DATA=$(grep -o 'd="[^"]*"' tmp/Logo_shape.svg | sed 's/d="//;s/"//')
+PATH_DATA=$(grep -o 'd="[^"]*"' logo.svg | sed 's/d="//;s/"//')
 sed "s/\$(PATH_DATA)/$PATH_DATA/g; s/\$(LOGO_TRANSFORM)/$LOGO_TRANSFORM/g; s/\$(LOGO_COLOR)/$LOGO_COLOR/g" templates/themed-icon-template.svg > "$TEMPLATE_FILE"
 
 # Create background (gradient or solid)

@@ -7,7 +7,7 @@ ALL_LOGOS: APP_ICONS ICONS LOGO_COMPONENTS WEB_FAVICONS
 
 # Build all icon variants
 .PHONY: ICONS
-ICONS: splash-android-icon.png splash-android-icon-dark.png icon-android-notification.png icon-android-foreground.png default-avatar.png
+ICONS: splash-android-icon.png splash-android-icon-dark.png icon-android-notification.png icon-android-foreground.png default-avatar.png logo.png logotype.png favicon.png
 
 # Build web favicon variants
 .PHONY: WEB_FAVICONS
@@ -20,7 +20,7 @@ LOGO_COMPONENTS: ../src/view/icons/Logo.tsx ../src/view/icons/Logomark.tsx ../sr
 
 tmp/logo_black_unflattened.svg: logo_master.png
 	mkdir -p tmp
-	magick convert $< -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --tight --unit 1  -s --invert --turdsize 20 --opttolerance 1.0 --alphamax 4 -o $@
+	magick convert $< -resize 501x441 -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --tight --unit 1  -s --invert --turdsize 20 --opttolerance 1.0 --alphamax 4 -o $@
 
 tmp/logo_black.svg: tmp/logo_black_unflattened.svg
 	svgo --multipass -o $@ --input $<
@@ -37,7 +37,7 @@ favicon.png: logo.svg
 
 tmp/logotype_black_unflattened.svg: logotype_master.png
 	mkdir -p tmp
-	magick convert $< -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --tight --unit 1  -s --invert --turdsize 20 --opttolerance 1.0 --alphamax 1.2 -o $@
+	magick convert $< -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --tight --unit 1  -s --invert --turdsize 20 --opttolerance 0.6 --alphamax 1.2 -o $@
 
 tmp/logotype_black.svg: tmp/logotype_black_unflattened.svg
 	svgo --multipass -o $@ --input $<
