@@ -272,7 +272,7 @@ function Header({
             style={[{color: t.atoms.text_contrast_medium.color}]}
           />
           <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.font_bold]}>
-            <Trans>Not shown on X • Needs ratings</Trans>
+            <Trans>Not shown on Bluenotes • Needs ratings</Trans>
           </Text>
         </View>
       )}

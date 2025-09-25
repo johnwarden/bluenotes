@@ -482,7 +482,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
           <View style={styles.statusLineBottom}>
             <EyeSlashIcon size="sm" style={t.atoms.text_contrast_low} />
             <Text style={t.atoms.text_contrast_low}>
-              <Trans>Not shown on Bluesky</Trans>
+              <Trans>Not shown on Bluenotes</Trans>
             </Text>
           </View>
         </>
