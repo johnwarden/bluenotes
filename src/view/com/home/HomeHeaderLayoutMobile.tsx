@@ -11,7 +11,7 @@ import {useMinimalShellHeaderTransform} from '#/lib/hooks/useMinimalShellTransfo
 import {emitSoftReset} from '#/state/events'
 import {useSession} from '#/state/session'
 import {useShellLayout} from '#/state/shell/shell-layout'
-import {Logo} from '#/view/icons/Logo'
+import {Logotype} from '#/view/icons/Logotype'
 import {atoms as a, useTheme} from '#/alf'
 import {ButtonIcon} from '#/components/Button'
 import {Hashtag_Stroke2_Corner0_Rounded as FeedsIcon} from '#/components/icons/Hashtag'
@@ -59,7 +59,7 @@ export function HomeHeaderLayoutMobile({
               playHaptic('Light')
               emitSoftReset()
             }}>
-            <Logo width={30} />
+            <Logotype width={90} fill="#1185FE" />
           </PressableScale>
         </View>
 

@@ -8,7 +8,7 @@ import {useKawaiiMode} from '#/state/preferences/kawaii'
 import {useSession} from '#/state/session'
 import {useShellLayout} from '#/state/shell/shell-layout'
 import {HomeHeaderLayoutMobile} from '#/view/com/home/HomeHeaderLayoutMobile'
-import {Logo} from '#/view/icons/Logo'
+import {Logotype} from '#/view/icons/Logotype'
 import {atoms as a, useBreakpoints, useGutters, useTheme} from '#/alf'
 import {ButtonIcon} from '#/components/Button'
 import {Hashtag_Stroke2_Corner0_Rounded as FeedsIcon} from '#/components/icons/Hashtag'
@@ -49,7 +49,7 @@ function HomeHeaderLayoutDesktopAndTablet({
             style={[a.flex_row, a.align_center, gutters, a.pt_md, t.atoms.bg]}>
             <View style={{width: 34}} />
             <View style={[a.flex_1, a.align_center, a.justify_center]}>
-              <Logo width={kawaii ? 60 : 28} />
+              <Logotype width={kawaii ? 180 : 84} fill="#1185FE" />
             </View>
             <Link
               to="/feeds"
