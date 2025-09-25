@@ -1,7 +1,7 @@
 import {type BskyAgent} from '@atproto/api'
 
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {COMMUNITY_NOTES_SERVICE} from '#/lib/constants'
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {type NoteRatingState} from '#/state/cache/community-notes-shadow'
 
 type VoteValue = 'helpful' | 'somewhat_helpful' | 'not_helpful'

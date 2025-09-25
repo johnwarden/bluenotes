@@ -2,7 +2,7 @@ import {View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'

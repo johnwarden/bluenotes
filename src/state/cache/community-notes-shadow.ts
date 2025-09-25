@@ -3,7 +3,7 @@ import {useEffect, useMemo, useState} from 'react'
 import EventEmitter from 'eventemitter3'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {castAsShadow, type Shadow} from './types'
 export type {Shadow} from './types'
 

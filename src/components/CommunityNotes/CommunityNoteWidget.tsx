@@ -5,7 +5,7 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {Button} from '#/components/Button'
