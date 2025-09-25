@@ -2,8 +2,8 @@ import {useCallback, useEffect} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 
 import * as apilib from '#/lib/api/community-notes'
+import {type CommunityNote} from '#/lib/community-notes/types'
 import {useComplexMutationQueue} from '#/lib/hooks/useComplexMutationQueue'
-import {type CommunityNote} from '#/lib/mock-data/community-notes'
 import {
   type NoteRatingState,
   updateNoteShadow,
