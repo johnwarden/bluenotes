@@ -31,6 +31,7 @@ import {buildStateObject} from '#/lib/routes/helpers'
 import {
   type AllNavigatorParams,
   type BottomTabNavigatorParams,
+  type CommunityNotesTabNavigatorParams,
   type FlatNavigatorParams,
   type HomeTabNavigatorParams,
   type MessagesTabNavigatorParams,
@@ -145,6 +146,8 @@ const navigationRef = createNavigationContainerRef<AllNavigatorParams>()
 
 const HomeTab = createNativeStackNavigatorWithAuth<HomeTabNavigatorParams>()
 const SearchTab = createNativeStackNavigatorWithAuth<SearchTabNavigatorParams>()
+const CommunityNotesTab =
+  createNativeStackNavigatorWithAuth<CommunityNotesTabNavigatorParams>()
 const NotificationsTab =
   createNativeStackNavigatorWithAuth<NotificationsTabNavigatorParams>()
 const MyProfileTab =
@@ -652,6 +655,10 @@ function TabsNavigator() {
       <Tab.Screen name="HomeTab" getComponent={() => HomeTabNavigator} />
       <Tab.Screen name="SearchTab" getComponent={() => SearchTabNavigator} />
       <Tab.Screen
+        name="CommunityNotesTab"
+        getComponent={() => CommunityNotesTabNavigator}
+      />
+      <Tab.Screen
         name="MessagesTab"
         getComponent={() => MessagesTabNavigator}
       />
@@ -696,6 +703,21 @@ function SearchTabNavigator() {
       <SearchTab.Screen name="Search" getComponent={() => SearchScreen} />
       {commonScreens(SearchTab as typeof Flat)}
     </SearchTab.Navigator>
+  )
+}
+
+function CommunityNotesTabNavigator() {
+  const t = useTheme()
+  return (
+    <CommunityNotesTab.Navigator
+      screenOptions={screenOptions(t)}
+      initialRouteName="CommunityNotes">
+      <CommunityNotesTab.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+      />
+      {commonScreens(CommunityNotesTab as typeof Flat)}
+    </CommunityNotesTab.Navigator>
   )
 }
 

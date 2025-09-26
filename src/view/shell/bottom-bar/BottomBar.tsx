@@ -40,6 +40,7 @@ import {
   Bell_Filled_Corner0_Rounded as BellFilled,
   Bell_Stroke2_Corner0_Rounded as Bell,
 } from '#/components/icons/Bell'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {
   HomeOpen_Filled_Corner0_Rounded as HomeFilled,
   HomeOpen_Stoke2_Corner0_Rounded as Home,
@@ -53,7 +54,13 @@ import {
 import {useDemoMode} from '#/storage/hooks/demo-mode'
 import {styles} from './BottomBarStyles'
 
-type TabOptions = 'Home' | 'Search' | 'Messages' | 'Notifications' | 'MyProfile'
+type TabOptions =
+  | 'Home'
+  | 'Search'
+  | 'CommunityNotes'
+  | 'Messages'
+  | 'Notifications'
+  | 'MyProfile'
 
 export function BottomBar({navigation}: BottomTabBarProps) {
   const {hasSession, currentAccount} = useSession()
@@ -61,8 +68,14 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   const {_} = useLingui()
   const safeAreaInsets = useSafeAreaInsets()
   const {footerHeight} = useShellLayout()
-  const {isAtHome, isAtSearch, isAtNotifications, isAtMyProfile, isAtMessages} =
-    useNavigationTabState()
+  const {
+    isAtHome,
+    isAtSearch,
+    isAtCommunityNotes,
+    isAtNotifications,
+    isAtMyProfile,
+    isAtMessages,
+  } = useNavigationTabState()
   const numUnreadNotifications = useUnreadNotifications()
   const numUnreadMessages = useUnreadMessageCount()
   const footerMinimalShellTransform = useMinimalShellFooterTransform()
@@ -131,6 +144,9 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   const onPressMessages = useCallback(() => {
     onPressTab('Messages')
   }, [onPressTab])
+  const onPressCommunityNotes = useCallback(() => {
+    onPressTab('CommunityNotes')
+  }, [onPressTab])
 
   const onLongPressProfile = useCallback(() => {
     playHaptic()
@@ -196,6 +212,22 @@ export function BottomBar({navigation}: BottomTabBarProps) {
               onPress={onPressSearch}
               accessibilityRole="search"
               accessibilityLabel={_(msg`Search`)}
+              accessibilityHint=""
+            />
+            <Btn
+              testID="bottomBarCommunityNotesBtn"
+              icon={
+                <CommunityNotesIcon
+                  width={iconWidth}
+                  style={[
+                    styles.ctrlIcon,
+                    isAtCommunityNotes ? {color: pal.colors.primary} : pal.text,
+                  ]}
+                />
+              }
+              onPress={onPressCommunityNotes}
+              accessibilityRole="tab"
+              accessibilityLabel={_(msg`Community Notes`)}
               accessibilityHint=""
             />
             <Btn
