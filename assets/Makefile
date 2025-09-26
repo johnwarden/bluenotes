@@ -1,5 +1,5 @@
 .PHONY: ALL_LOGOS
-ALL_LOGOS: APP_ICONS ICONS LOGO_COMPONENTS WEB_FAVICONS
+ALL_LOGOS: APP_ICONS ICONS LOGO_COMPONENTS WEB_FAVICONS BSKYWEB_FAVICONS APPLE_TOUCH_ICONS
 
 # Build all themed icons
 .PHONY: APP_ICONS 
@@ -12,6 +12,14 @@ ICONS: splash-android-icon.png splash-android-icon-dark.png icon-android-notific
 # Build web favicon variants
 .PHONY: WEB_FAVICONS
 WEB_FAVICONS: ../web-build/favicon-16.png ../web-build/favicon-32.png ../web-build/favicon.ico
+
+# Build bskyweb favicon variants
+.PHONY: BSKYWEB_FAVICONS
+BSKYWEB_FAVICONS: ../bskyweb/static/favicon.png ../bskyweb/static/favicon-16x16.png ../bskyweb/static/favicon-32x32.png ../bskyweb/embedr-static/favicon.png ../bskyweb/embedr-static/favicon-16x16.png ../bskyweb/embedr-static/favicon-32x32.png
+
+# Build apple touch icon variants
+.PHONY: APPLE_TOUCH_ICONS
+APPLE_TOUCH_ICONS: ../bskyweb/static/apple-touch-icon.png ../web-build/pwa/apple-touch-icon/apple-touch-icon-180.png
 
 # Update all source files with new logo
 .PHONY: LOGO_COMPONENTS
@@ -246,5 +254,40 @@ default-avatar.png: templates/default-avatar-template.svg tmp/logo_black.svg
 	magick $< -resize 48x48 tmp/favicon-48.png
 	magick tmp/favicon-16.png tmp/favicon-32.png tmp/favicon-48.png $@
 	rm -f tmp/favicon-16.png tmp/favicon-32.png tmp/favicon-48.png
+
+# Bskyweb static favicon files
+../bskyweb/static/favicon.png: favicon.png
+	mkdir -p ../bskyweb/static
+	cp $< $@
+
+../bskyweb/static/favicon-16x16.png: favicon.png
+	mkdir -p ../bskyweb/static
+	magick $< -resize 16x16 $@
+
+../bskyweb/static/favicon-32x32.png: favicon.png
+	mkdir -p ../bskyweb/static
+	magick $< -resize 32x32 $@
+
+# Bskyweb embedr-static favicon files
+../bskyweb/embedr-static/favicon.png: favicon.png
+	mkdir -p ../bskyweb/embedr-static
+	cp $< $@
+
+../bskyweb/embedr-static/favicon-16x16.png: favicon.png
+	mkdir -p ../bskyweb/embedr-static
+	magick $< -resize 16x16 $@
+
+../bskyweb/embedr-static/favicon-32x32.png: favicon.png
+	mkdir -p ../bskyweb/embedr-static
+	magick $< -resize 32x32 $@
+
+# Apple touch icon files (180x180 for iOS)
+../bskyweb/static/apple-touch-icon.png: logo.svg
+	mkdir -p ../bskyweb/static
+	magick -background none $< -resize 180x180 $@
+
+../web-build/pwa/apple-touch-icon/apple-touch-icon-180.png: logo.svg
+	mkdir -p ../web-build/pwa/apple-touch-icon
+	magick -background none $< -resize 180x180 $@
 
 
