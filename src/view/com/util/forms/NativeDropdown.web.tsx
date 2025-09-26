@@ -172,7 +172,7 @@ function DropdownContent({
 
   return (
     <DropdownMenu.Content
-      ref={menuRef}
+      ref={menuRef as React.RefObject<HTMLDivElement>}
       style={
         StyleSheet.flatten([
           styles.content,

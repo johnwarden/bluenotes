@@ -1,4 +1,4 @@
-import {useState} from 'react'
+// import {useState} from 'react' // Unused after removing hover state
 import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {msg, Trans} from '@lingui/macro'
@@ -33,7 +33,7 @@ export function RateProposedNotesPromptDefault({
 }) {
   const {_} = useLingui()
   const t = useTheme()
-  const [promptHover, setPromptHover] = useState(false)
+  // const [promptHover, setPromptHover] = useState(false) // Unused after removing hover handlers
 
   // Only show prompt if post has proposed notes that need rating
   if (!hasProposedNotes(post) || hasHelpfulNotes(post)) {
@@ -78,8 +78,6 @@ export function RateProposedNotesPromptDefault({
         t.atoms.bg,
         t.atoms.border_contrast_low,
       ]}
-      onPointerEnter={() => setPromptHover(true)}
-      onPointerLeave={() => setPromptHover(false)}
       onPress={e => {
         // Stop propagation to prevent post navigation
         e.stopPropagation()
@@ -112,7 +110,7 @@ export function RateProposedNotesPromptEmbedded({
 }) {
   const {_} = useLingui()
   const t = useTheme()
-  const [promptHover, setPromptHover] = useState(false)
+  // const [promptHover, setPromptHover] = useState(false) // Unused after removing hover handlers
 
   // Only show prompt if post has proposed notes that need rating
   if (!hasProposedNotes(post)) {
@@ -148,8 +146,6 @@ export function RateProposedNotesPromptEmbedded({
         .pop()}/community-notes`}
       label={_(msg`Rate proposed community notes`)}
       style={[a.py_md, a.px_lg, a.relative, t.atoms.bg]}
-      onPointerEnter={() => setPromptHover(true)}
-      onPointerLeave={() => setPromptHover(false)}
       onPress={e => {
         // Stop propagation to prevent post navigation
         e.stopPropagation()

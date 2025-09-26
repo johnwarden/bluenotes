@@ -6,6 +6,7 @@ import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
+import {type NavigationProp} from '#/lib/routes/types'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {Button} from '#/components/Button'
@@ -57,7 +58,7 @@ export function CommunityNoteWidget({
   if (error || !notes || notes.length === 0) {
     // For embedded posts, this widget is always displayed, whether or not the post has helpful notes.
     // TODO: can callers look at labels to decide whether to display the CommunityNoteWidget?
-    if (displayMode == 'embedded' && notes.length === 0) {
+    if (displayMode === 'embedded' && (!notes || notes.length === 0)) {
       return null
     }
 
@@ -112,7 +113,7 @@ export function CommunityNoteWidget({
       ? t.atoms.text_contrast_medium
       : undefined // defaults to black
 
-  const borderStyle = displayMode === 'needs_more_ratings' ? 'dotted' : 'solid'
+  // const borderStyle = displayMode === 'needs_more_ratings' ? 'dotted' : 'solid' // Unused - borderStyle not supported in React Native
 
   // Configure container styles based on mode
   const containerStyles =
@@ -127,7 +128,6 @@ export function CommunityNoteWidget({
           t.atoms.bg,
           {
             borderWidth: 1,
-            borderStyle: borderStyle,
             borderColor: t.atoms.border_contrast_low.borderColor,
             borderRadius: 8,
           },
@@ -180,7 +180,6 @@ export function CommunityNoteWidget({
             a.w_full,
             {
               borderTopWidth: 1,
-              borderTopStyle: borderStyle,
               borderTopColor: t.atoms.border_contrast_low.borderColor,
             },
           ]}
@@ -202,6 +201,8 @@ export function CommunityNoteWidget({
     <Link
       to={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`}
       style={containerStyles}
+      label="Community Notes"
+      // @ts-expect-error - onPointerEnter/Leave not in Link types but work on web
       onPointerEnter={() => setNoteHover(true)}
       onPointerLeave={() => setNoteHover(false)}
       onPress={e => {
@@ -299,7 +300,7 @@ function RatingPrompt({
 }) {
   const t = useTheme()
   const {_} = useLingui()
-  const navigation = useNavigation()
+  const navigation = useNavigation<NavigationProp>()
 
   const handleRatePress = (e: any) => {
     // Stop propagation to prevent the outer Link from handling the event
@@ -307,6 +308,10 @@ function RatingPrompt({
 
     // Navigate to community notes rating page
     const postId = post.uri.split('/').pop()
+    if (!postId) {
+      console.error('Could not extract post ID from URI:', post.uri)
+      return
+    }
     navigation.navigate('CommunityNotesRating', {
       name: post.author.handle,
       rkey: postId,

@@ -28,7 +28,7 @@ export function AppIconSettingsScreen({}: Props) {
     getAppIconName(DynamicAppIcon.getAppIcon()),
   )
 
-  const onSetAppIcon = (icon: DynamicAppIcon.IconName) => {
+  const onSetAppIcon = (icon: string) => {
     if (isAndroid) {
       const next =
         sets.defaults.find(i => i.id === icon) ??
@@ -119,7 +119,7 @@ export function AppIconSettingsScreen({}: Props) {
   )
 }
 
-function setAppIcon(icon: DynamicAppIcon.IconName) {
+function setAppIcon(icon: string) {
   if (icon === 'default_light') {
     return getAppIconName(DynamicAppIcon.setAppIcon(null))
   } else {
@@ -127,11 +127,11 @@ function setAppIcon(icon: DynamicAppIcon.IconName) {
   }
 }
 
-function getAppIconName(icon: string | false): DynamicAppIcon.IconName {
+function getAppIconName(icon: string | false): string {
   if (!icon || icon === 'DEFAULT') {
     return 'default_light'
   } else {
-    return icon as DynamicAppIcon.IconName
+    return icon as string
   }
 }
 
@@ -143,8 +143,8 @@ function Group({
 }: {
   children: React.ReactNode
   label: string
-  value: DynamicAppIcon.IconName
-  onChange: (value: DynamicAppIcon.IconName) => void
+  value: string
+  onChange: (value: string) => void
 }) {
   return (
     <Toggle.Group
@@ -153,7 +153,7 @@ function Group({
       values={[value]}
       maxSelections={1}
       onChange={vals => {
-        if (vals[0]) onChange(vals[0] as DynamicAppIcon.IconName)
+        if (vals[0]) onChange(vals[0] as string)
       }}>
       <View style={[a.flex_1, a.rounded_md, a.overflow_hidden]}>
         {children}

@@ -26,7 +26,7 @@ import {
   usePostShadow,
 } from '#/state/cache/post-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
-import {useSession} from '#/state/session'
+// import {useSession} from '#/state/session' // Unused after removing isThreadAuthor
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
@@ -238,7 +238,7 @@ let CommunityNotesFeedItemInner = ({
       : undefined
   }, [rootPost])
 
-  const live = useActorStatus(post.author.did)
+  const live = useActorStatus(post.author)
 
   return (
     <Link
@@ -266,7 +266,7 @@ let CommunityNotesFeedItemInner = ({
             moderation={moderation.ui('avatar')}
             type={post.author.associated?.labeler ? 'labeler' : 'user'}
             onBeforePress={onOpenAuthor}
-            live={live}
+            live={live.isActive}
           />
           {isThreadParent && (
             <View
@@ -315,7 +315,7 @@ let CommunityNotesFeedItemInner = ({
             record={record}
             richText={richText}
             onPressReply={onPressReply}
-            logContext="CommunityNotes"
+            logContext="Post"
           />
         </View>
       </View>
@@ -345,13 +345,12 @@ let CommunityNotesPostContent = ({
   hover?: boolean
   displayMode: 'rated_helpful' | 'needs_more_ratings'
 }): React.ReactNode => {
-  const {currentAccount} = useSession()
+  // const {currentAccount} = useSession() // Unused after removing isThreadAuthor
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText.text) >= MAX_POST_LINES,
   )
   const threadgateHiddenReplies = useMergedThreadgateHiddenReplies({
     threadgateRecord,
-    isThreadAuthor: post.author.did === currentAccount?.did,
   })
 
   const additionalPostAlerts: AppModerationCause[] = useMemo(() => {
@@ -430,10 +429,10 @@ function CommunityNotesSeeAllLink({post}: {post: AppBskyFeedDefs.PostView}) {
   return (
     <View style={[a.mt_md]}>
       <Link
-        to={`/profile/${post.author.handle}/post/${post.uri
+        href={`/profile/${post.author.handle}/post/${post.uri
           .split('/')
           .pop()}/community-notes`}
-        label={_(msg`See all notes on this post`)}
+        title={_(msg`See all notes on this post`)}
         style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
         <Text style={[a.text_md, {color: t.palette.primary_500}]}>
           <Trans>See all notes on this post</Trans>

@@ -1,4 +1,4 @@
-import {type ComponentPropsWithRef} from 'react'
+import {type ComponentPropsWithRef, type ForwardedRef} from 'react'
 import {ScrollView} from 'react-native'
 
 import {useDraggableScroll} from '#/lib/hooks/useDraggableScrollView'
@@ -10,7 +10,7 @@ export function DraggableScrollView({
   ...props
 }: ComponentPropsWithRef<typeof ScrollView>) {
   const {refs} = useDraggableScroll<ScrollView>({
-    outerRef: ref,
+    outerRef: ref as ForwardedRef<ScrollView>,
     cursor: 'grab', // optional, default
   })
 

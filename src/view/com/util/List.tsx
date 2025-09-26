@@ -179,5 +179,5 @@ let List = React.forwardRef<ListMethods, ListProps>(
 )
 List.displayName = 'List'
 
-List = memo(List)
+List = memo(List) as typeof List
 export {List}

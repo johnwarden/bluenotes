@@ -314,7 +314,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   }, [agent])
 
   return (
-    <AgentContext.Provider value={agent}>
+    <AgentContext.Provider value={agent as BskyAgent}>
       <StateContext.Provider value={stateContext}>
         <ApiContext.Provider value={api}>{children}</ApiContext.Provider>
       </StateContext.Provider>

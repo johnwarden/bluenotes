@@ -39,7 +39,7 @@ export function createPublicAgent() {
   configureModerationForGuest() // Side effect but only relevant for tests
 
   const agent = new BskyAppAgent({service: PUBLIC_BSKY_SERVICE})
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get() ?? null)
   return agent
 }
 
@@ -56,7 +56,10 @@ export async function createAgentAndResume(
     agent.sessionManager.pdsUrl = new URL(storedAccount.pdsUrl)
   }
   const gates = tryFetchGates(storedAccount.did, 'prefer-low-latency')
-  const moderation = configureModerationForAccount(agent, storedAccount)
+  const moderation = configureModerationForAccount(
+    agent as BskyAgent,
+    storedAccount,
+  )
   const prevSession: AtpSessionData = sessionAccountToSession(storedAccount)
   if (isSessionExpired(storedAccount)) {
     await networkRetry(1, () => agent.resumeSession(prevSession))
@@ -77,7 +80,7 @@ export async function createAgentAndResume(
     }
   }
 
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get() ?? null)
 
   return agent.prepare(gates, moderation, onSessionChange)
 }
@@ -108,11 +111,11 @@ export async function createAgentAndLogin(
     allowTakendown: true,
   })
 
-  const account = agentToSessionAccountOrThrow(agent)
+  const account = agentToSessionAccountOrThrow(agent as BskyAgent)
   const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
-  const moderation = configureModerationForAccount(agent, account)
+  const moderation = configureModerationForAccount(agent as BskyAgent, account)
 
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get() ?? null)
 
   return agent.prepare(gates, moderation, onSessionChange)
 }
@@ -152,9 +155,9 @@ export async function createAgentAndCreateAccount(
     verificationPhone,
     verificationCode,
   })
-  const account = agentToSessionAccountOrThrow(agent)
+  const account = agentToSessionAccountOrThrow(agent as BskyAgent)
   const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
-  const moderation = configureModerationForAccount(agent, account)
+  const moderation = configureModerationForAccount(agent as BskyAgent, account)
 
   // Not awaited so that we can still get into onboarding.
   // This is OK because we won't let you toggle adult stuff until you set the date.
@@ -201,7 +204,7 @@ export async function createAgentAndCreateAccount(
     logger.error(e, {message: `session: failed snoozeEmailConfirmationPrompt`})
   }
 
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get() ?? null)
 
   return agent.prepare(gates, moderation, onSessionChange)
 }
@@ -306,11 +309,8 @@ class BskyAppAgent extends BskyAgent {
     })
   }
 
-  configureProxy(proxyHeader: ProxyHeaderValue | undefined) {
-    if (proxyHeader) {
-      super.configureProxy(proxyHeader)
-    }
-    // Do nothing if proxyHeader is undefined
+  configureProxy(proxyHeader: ProxyHeaderValue | null) {
+    super.configureProxy(proxyHeader)
   }
 
   async prepare(
@@ -327,7 +327,7 @@ class BskyAppAgent extends BskyAgent {
     await Promise.all([gates, moderation])
 
     // Now the agent is ready.
-    const account = agentToSessionAccountOrThrow(this)
+    const account = agentToSessionAccountOrThrow(this as BskyAgent)
     let lastSession = this.sessionManager.session
     this.persistSessionHandler = event => {
       if (this.sessionManager.session) {
@@ -337,7 +337,7 @@ class BskyAppAgent extends BskyAgent {
         this.sessionManager.session = lastSession
       }
 
-      onSessionChange(this, account.did, event)
+      onSessionChange(this as BskyAgent, account.did, event)
       if (event !== 'create' && event !== 'update') {
         addSessionErrorLog(account.did, event)
       }
