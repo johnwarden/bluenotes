@@ -59,7 +59,7 @@ export function RateProposedNotesPromptDefault({
   const hoverOverlayStyle = {
     ...overlayBase,
     backgroundColor: 'black',
-    opacity: promptHover ? 0.05 : parentHover ? 0.03 : 0.0,
+    opacity: parentHover ? 0.03 : 0.0,
   }
 
   return (
@@ -138,7 +138,7 @@ export function RateProposedNotesPromptEmbedded({
   const hoverOverlayStyle = {
     ...overlayBase,
     backgroundColor: 'black',
-    opacity: promptHover ? 0.05 : parentHover ? 0.03 : 0.0,
+    opacity: parentHover ? 0.03 : 0.0,
   }
 
   return (
