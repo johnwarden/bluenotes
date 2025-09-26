@@ -34,12 +34,42 @@ const outputFile = entrypoints
 fs.writeFileSync(templateFile, outputFile)
 
 function copyFiles(sourceDir, targetDir) {
-  const files = fs.readdirSync(path.join(projectRoot, sourceDir))
+  const sourceDirPath = path.join(projectRoot, sourceDir)
+  const targetDirPath = path.join(projectRoot, targetDir)
+
+  // Ensure target directory exists
+  if (!fs.existsSync(targetDirPath)) {
+    fs.mkdirSync(targetDirPath, {recursive: true})
+  }
+
+  // Check if source directory exists
+  if (!fs.existsSync(sourceDirPath)) {
+    console.log(
+      `Warning: Source directory ${sourceDirPath} does not exist, skipping...`,
+    )
+    return
+  }
+
+  const files = fs.readdirSync(sourceDirPath)
   files.forEach(file => {
-    const sourcePath = path.join(projectRoot, sourceDir, file)
-    const targetPath = path.join(projectRoot, targetDir, file)
-    fs.copyFileSync(sourcePath, targetPath)
-    console.log(`Copied ${sourcePath} to ${targetPath}`)
+    const sourcePath = path.join(sourceDirPath, file)
+    const targetPath = path.join(targetDirPath, file)
+
+    // Check if source file exists and is a file (not directory)
+    if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isFile()) {
+      try {
+        fs.copyFileSync(sourcePath, targetPath)
+        console.log(`Copied ${sourcePath} to ${targetPath}`)
+      } catch (error) {
+        console.error(
+          `Failed to copy ${sourcePath} to ${targetPath}:`,
+          error.message,
+        )
+        // Don't throw - continue with other files
+      }
+    } else {
+      console.log(`Skipping ${sourcePath} (not a file or doesn't exist)`)
+    }
   })
 }
 
