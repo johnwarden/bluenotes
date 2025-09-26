@@ -613,6 +613,7 @@ function ChatNavItem() {
 export function DesktopLeftNav() {
   const {hasSession, currentAccount} = useSession()
   const pal = usePalette('default')
+  const t = useTheme()
   const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
   const {leftNavMinimal, centerColumnOffset} = useLayoutBreakpoints()
@@ -772,14 +773,14 @@ export function DesktopLeftNav() {
             href="/community-notes/needs_your_help"
             icon={
               <CommunityNotesIcon
-                style={pal.text}
+                style={{color: t.palette.primary_500}}
                 aria-hidden={true}
                 width={NAV_ICON_WIDTH}
               />
             }
             iconFilled={
               <CommunityNotesIcon
-                style={pal.text}
+                style={{color: t.palette.primary_500}}
                 aria-hidden={true}
                 width={NAV_ICON_WIDTH}
               />
