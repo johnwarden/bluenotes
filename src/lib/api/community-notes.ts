@@ -126,7 +126,7 @@ export function mapApiRatingToNoteRatingState(
   }
 }
 
-export async function rateProposal(
+export async function vote(
   agent: BskyAgent,
   noteUri: string,
   value: VoteValue,
@@ -142,7 +142,7 @@ export async function rateProposal(
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateProposal`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
     const response = await fetch(url, {
@@ -188,7 +188,7 @@ export async function rateProposal(
   }
 }
 
-export async function createProposal(
+export async function propose(
   agent: BskyAgent,
   targetUri: string,
   noteText: string,
@@ -201,7 +201,7 @@ export async function createProposal(
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.createProposal`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.propose`
 
   const requestBody: CreateProposalRequest = {
     typ: 'label',
@@ -334,7 +334,7 @@ export async function createNoteRating(
   reasons: string[],
 ) {
   // Map to new API
-  const result = await rateProposal(agent, note.uri, value, reasons)
+  const result = await vote(agent, note.uri, value, reasons)
   return {
     uri: result.rating.uri,
   }
@@ -347,8 +347,8 @@ export async function updateNoteRating(
   value: VoteValue,
   reasons: string[],
 ) {
-  // For updates, we still call rateProposal with the note URI
-  const result = await rateProposal(agent, note.uri, value, reasons)
+  // For updates, we still call vote with the note URI
+  const result = await vote(agent, note.uri, value, reasons)
   return result
 }
 
@@ -360,7 +360,7 @@ export async function deleteNoteRating(agent: BskyAgent, noteUri: string) {
   const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
     agent.service.toString(),
   )
-  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.rateProposal`
+  const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
     const response = await fetch(url, {
@@ -403,3 +403,7 @@ export async function deleteNoteRating(agent: BskyAgent, noteUri: string) {
     throw new Error(`Network error while deleting rating: ${error}`)
   }
 }
+
+// Backward compatibility exports
+export const createProposal = propose
+export const rateProposal = vote
