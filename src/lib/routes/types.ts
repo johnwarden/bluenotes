@@ -94,6 +94,7 @@ export type CommonNavigatorParams = {
 export type BottomTabNavigatorParams = CommonNavigatorParams & {
   HomeTab: undefined
   SearchTab: undefined
+  CommunityNotesTab: undefined
   NotificationsTab: undefined
   MyProfileTab: undefined
   MessagesTab: undefined
@@ -105,6 +106,10 @@ export type HomeTabNavigatorParams = CommonNavigatorParams & {
 
 export type SearchTabNavigatorParams = CommonNavigatorParams & {
   Search: {q?: string}
+}
+
+export type CommunityNotesTabNavigatorParams = CommonNavigatorParams & {
+  CommunityNotes: undefined
 }
 
 export type NotificationsTabNavigatorParams = CommonNavigatorParams & {
