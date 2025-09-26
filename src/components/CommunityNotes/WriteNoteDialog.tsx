@@ -200,7 +200,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
     })
 
     try {
-      const response = await apilib.createProposal(
+      const response = await apilib.propose(
         agent,
         postUri,
         noteText,

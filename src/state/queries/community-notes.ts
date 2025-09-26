@@ -141,7 +141,7 @@ export function useNoteRatingMutationQueue(
       if (prevState.val === null && nextState.val !== null) {
         // Case 1: Create
 
-        const response = await apilib.rateProposal(
+        const response = await apilib.vote(
           agent,
           noteUri,
           nextState.val,
@@ -161,7 +161,7 @@ export function useNoteRatingMutationQueue(
         if (valChanged || reasonsChanged) {
           // Case 2: Update
 
-          const response = await apilib.rateProposal(
+          const response = await apilib.vote(
             agent,
             noteUri,
             nextState.val,
