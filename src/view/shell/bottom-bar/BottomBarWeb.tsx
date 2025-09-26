@@ -27,6 +27,7 @@ import {
   Bell_Filled_Corner0_Rounded as BellFilled,
   Bell_Stroke2_Corner0_Rounded as Bell,
 } from '#/components/icons/Bell'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {
   HomeOpen_Filled_Corner0_Rounded as HomeFilled,
   HomeOpen_Stoke2_Corner0_Rounded as Home,
@@ -109,6 +110,19 @@ export function BottomBarWeb() {
                   aria-hidden={true}
                   width={iconWidth + 2}
                   style={[styles.ctrlIcon, t.atoms.text, styles.searchIcon]}
+                />
+              )
+            }}
+          </NavItem>
+          <NavItem
+            routeName="CommunityNotes"
+            href="/community-notes/needs_your_help">
+            {({isActive: _isActive}) => {
+              return (
+                <CommunityNotesIcon
+                  aria-hidden={true}
+                  width={iconWidth}
+                  style={[styles.ctrlIcon, {color: t.palette.primary_500}]}
                 />
               )
             }}
