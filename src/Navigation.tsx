@@ -622,14 +622,6 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
           requireAuth: true,
         })}
       />
-      <Stack.Screen
-        name="CommunityNotes"
-        getComponent={() => CommunityNotesScreen}
-        options={{
-          title: title(msg`Community Notes`),
-          requireAuth: true,
-        }}
-      />
     </>
   )
 }
@@ -812,6 +804,14 @@ const FlatNavigator = () => {
         name="Start"
         getComponent={() => HomeScreen}
         options={{title: title(msg`Home`)}}
+      />
+      <Flat.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        options={{
+          title: title(msg`Community Notes`),
+          requireAuth: true,
+        }}
       />
       {commonScreens(Flat, numUnread)}
     </Flat.Navigator>
