@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/netip"
@@ -336,6 +337,9 @@ func serve(cctx *cli.Context) error {
 
 	// ipcc
 	e.GET("/ipcc", server.WebIpCC)
+
+	// geolocation config proxy
+	e.GET("/ipcc-config", server.WebGeolocationConfig)
 
 	if linkHost != "" {
 		linkUrl, err := url.Parse(linkHost)
@@ -706,4 +710,35 @@ func (srv *Server) WebIpCC(c echo.Context) error {
 		return c.JSON(500, IPCCResponse{})
 	}
 	return c.JSON(200, outResponse)
+}
+
+// WebGeolocationConfig proxies geolocation configuration requests to avoid CORS issues
+func (srv *Server) WebGeolocationConfig(c echo.Context) error {
+	configUrl := srv.cfg.ipccHost + "/config"
+
+	response, err := srv.ipccClient.Get(configUrl)
+	if err != nil {
+		log.Warnf("geolocation config backend error %s", err)
+		return c.JSON(500, map[string]interface{}{
+			"countryCode":       "",
+			"regionCode":        "",
+			"ageRestrictedGeos": []interface{}{},
+			"ageBlockedGeos":    []interface{}{},
+		})
+	}
+	defer response.Body.Close()
+
+	// Simply proxy the response as-is since it's already in the correct format
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		log.Warnf("geolocation config read error %s", err)
+		return c.JSON(500, map[string]interface{}{
+			"countryCode":       "",
+			"regionCode":        "",
+			"ageRestrictedGeos": []interface{}{},
+			"ageBlockedGeos":    []interface{}{},
+		})
+	}
+
+	return c.JSONBlob(response.StatusCode, body)
 }

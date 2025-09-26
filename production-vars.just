@@ -16,7 +16,7 @@ EXPO_PUBLIC_BUNDLE_IDENTIFIER := "bluenotes-production"
 EXPO_PUBLIC_SENTRY_DSN := ""
 
 # Geolocation Configuration (use local proxy to avoid CORS issues)
-BAPP_CONFIG_URL := "https://bluenotes.social/ipcc"
+BAPP_CONFIG_URL := "https://bluenotes.social/ipcc-config"
 IPCC_HOST := "https://ip.bsky.app"
 
 # =============================================================================
