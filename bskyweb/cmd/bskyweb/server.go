@@ -335,6 +335,11 @@ func serve(cctx *cli.Context) error {
 	// bookmarks
 	e.GET("/saved", server.WebGeneric)
 
+	// favicon.ico redirect to PNG favicon
+	e.GET("/favicon.ico", func(c echo.Context) error {
+		return c.Redirect(301, "/static/favicon-32x32.png")
+	})
+
 	// ipcc
 	e.GET("/ipcc", server.WebIpCC)
 
