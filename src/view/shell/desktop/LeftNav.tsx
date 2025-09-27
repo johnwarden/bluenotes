@@ -773,7 +773,7 @@ export function DesktopLeftNav() {
             href="/community-notes/needs_your_help"
             icon={
               <CommunityNotesIcon
-                style={{color: t.palette.primary_500}}
+                style={pal.text}
                 aria-hidden={true}
                 width={NAV_ICON_WIDTH}
               />

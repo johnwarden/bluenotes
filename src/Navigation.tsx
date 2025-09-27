@@ -72,6 +72,8 @@ import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
 import {BookmarksScreen} from '#/screens/Bookmarks'
 import {CommunityNotesScreen} from '#/screens/CommunityNotes'
+import {CommunityNotesAboutScreen} from '#/screens/CommunityNotes/AboutScreen'
+import {CommunityNotesProfileScreen} from '#/screens/CommunityNotes/ProfileScreen'
 import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
 import HashtagScreen from '#/screens/Hashtag'
@@ -810,6 +812,22 @@ const FlatNavigator = () => {
         getComponent={() => CommunityNotesScreen}
         options={{
           title: title(msg`Community Notes`),
+          requireAuth: true,
+        }}
+      />
+      <Flat.Screen
+        name="CommunityNotesAbout"
+        getComponent={() => CommunityNotesAboutScreen}
+        options={{
+          title: title(msg`About Community Notes`),
+          requireAuth: true,
+        }}
+      />
+      <Flat.Screen
+        name="CommunityNotesProfile"
+        getComponent={() => CommunityNotesProfileScreen}
+        options={{
+          title: title(msg`Your Community Notes Profile`),
           requireAuth: true,
         }}
       />

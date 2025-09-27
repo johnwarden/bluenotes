@@ -132,7 +132,7 @@ export function CommunityNotesSidebar() {
         <SidebarNavItem
           icon={
             <CommunityNotesIcon
-              style={{color: t.palette.primary_500}}
+              style={pal.text}
               aria-hidden={true}
               width={NAV_ICON_WIDTH}
             />
@@ -146,6 +146,9 @@ export function CommunityNotesSidebar() {
           }
           label={_(msg`Community Notes`)}
           isActive={true}
+          onPress={() => {
+            navigation.navigate('CommunityNotes')
+          }}
         />
         <SidebarNavItem
           icon={
@@ -164,7 +167,7 @@ export function CommunityNotesSidebar() {
           }
           label={_(msg`Your profile`)}
           onPress={() => {
-            // TODO: Navigate to user's community notes profile
+            navigation.navigate('CommunityNotesProfile')
           }}
         />
         <SidebarNavItem
@@ -176,7 +179,7 @@ export function CommunityNotesSidebar() {
           }
           label={_(msg`About`)}
           onPress={() => {
-            // TODO: Navigate to community notes about page
+            navigation.navigate('CommunityNotesAbout')
           }}
         />
       </View>

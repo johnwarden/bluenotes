@@ -267,6 +267,22 @@ let PostFeed = ({
     isFetchingNextPage,
     fetchNextPage,
   } = usePostFeedQuery(feed, feedParams, opts)
+
+  console.log(`🔍 PostFeed ${testID} query state:`, {
+    feed,
+    enabled,
+    isFetching,
+    isFetched,
+    isError,
+    error: error?.message,
+    hasData: !!data,
+    pageCount: data?.pages?.length,
+    totalSlices: data?.pages?.reduce(
+      (acc, page) => acc + page.slices.length,
+      0,
+    ),
+  })
+
   const lastFetchedAt = data?.pages[0].fetchedAt
   if (lastFetchedAt) {
     lastFetchRef.current = lastFetchedAt
@@ -275,6 +291,13 @@ let PostFeed = ({
     () => !isFetching && !data?.pages?.some(page => page.slices.length),
     [isFetching, data],
   )
+
+  console.log(`🔍 PostFeed ${testID} render state:`, {
+    isEmpty,
+    isFetching,
+    isError,
+    communityNotesDisplayMode,
+  })
 
   const checkForNew = useNonReactiveCallback(async () => {
     if (!data?.pages[0] || isFetching || !onHasNew || !enabled || disablePoll) {
@@ -366,6 +389,14 @@ let PostFeed = ({
   const [isCurrentFeedAtStartupSelected] = useState(selectedFeed === feed)
 
   const feedItems: FeedRow[] = useMemo(() => {
+    console.log(`🔍 PostFeed ${testID} constructing feedItems:`, {
+      hasData: !!data,
+      pageCount: data?.pages?.length,
+      isEmpty,
+      isFetching,
+      isError,
+    })
+
     // wraps a slice item, and replaces it with a showLessFollowup item
     // if the user has pressed show less on it
     const sliceItem = (row: Extract<FeedRow, {type: 'sliceItem'}>) => {
@@ -617,9 +648,19 @@ let PostFeed = ({
       }
     }
 
+    console.log(`🔍 PostFeed ${testID} feedItems constructed:`, {
+      totalItems: arr.length,
+      itemTypes: arr.map(item => item.type),
+      hasEmptyState: arr.some(item => item.type === 'empty'),
+      hasLoadingState: arr.some(item => item.type === 'loading'),
+      hasErrorState: arr.some(item => item.type === 'error'),
+      hasSliceItems: arr.some(item => item.type === 'sliceItem'),
+    })
+
     return arr
   }, [
     isFetched,
+    isFetching,
     isError,
     isEmpty,
     lastFetchedAt,
@@ -638,6 +679,7 @@ let PostFeed = ({
     hasPressedShowLessUris,
     ageAssuranceBannerState,
     isCurrentFeedAtStartupSelected,
+    testID,
   ])
 
   // events
