@@ -188,7 +188,7 @@ func serve(cctx *cli.Context) error {
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: corsOrigins,
-		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodOptions},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPost},
 	}))
 
 	//
@@ -341,6 +341,12 @@ func serve(cctx *cli.Context) error {
 	// geolocation config proxy
 	e.GET("/ipcc-config", server.WebGeolocationConfig)
 
+	// captcha gate endpoints for signup - proxy to Bluesky's service
+	e.GET("/gate/signup", server.WebCaptchaProxy)
+	e.POST("/gate/signup", server.WebCaptchaProxy)
+	e.GET("/gate/signup/attempt-attest", server.WebCaptchaProxy)
+	e.POST("/gate/signup/attempt-attest", server.WebCaptchaProxy)
+
 	if linkHost != "" {
 		linkUrl, err := url.Parse(linkHost)
 		if err != nil {
@@ -460,6 +466,58 @@ func (srv *Server) WebHome(c echo.Context) error {
 	data := srv.NewTemplateContext()
 	return c.Render(http.StatusOK, "home.html", data)
 }
+
+func (srv *Server) WebCaptchaProxy(c echo.Context) error {
+	// Proxy to Bluesky's captcha service
+	targetURL := "https://bsky.social" + c.Request().URL.Path
+	if c.Request().URL.RawQuery != "" {
+		targetURL += "?" + c.Request().URL.RawQuery
+	}
+
+	// Create request to Bluesky's service
+	req, err := http.NewRequest(c.Request().Method, targetURL, c.Request().Body)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "Failed to create proxy request")
+	}
+
+	// Copy headers from original request
+	for name, values := range c.Request().Header {
+		// Skip hop-by-hop headers
+		if name == "Connection" || name == "Upgrade" || name == "Proxy-Connection" {
+			continue
+		}
+		for _, value := range values {
+			req.Header.Add(name, value)
+		}
+	}
+
+	// Make request to Bluesky
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return c.String(http.StatusBadGateway, "Failed to reach captcha service")
+	}
+	defer resp.Body.Close()
+
+	// Copy response headers
+	for name, values := range resp.Header {
+		// Skip hop-by-hop headers
+		if name == "Connection" || name == "Upgrade" || name == "Transfer-Encoding" {
+			continue
+		}
+		for _, value := range values {
+			c.Response().Header().Add(name, value)
+		}
+	}
+
+	// Set status code
+	c.Response().WriteHeader(resp.StatusCode)
+
+	// Copy response body
+	_, err = io.Copy(c.Response().Writer, resp.Body)
+	return err
+}
+
 
 func (srv *Server) WebPost(c echo.Context) error {
 	ctx := c.Request().Context()
