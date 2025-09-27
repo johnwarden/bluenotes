@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -9,7 +9,11 @@ import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {type FeedDescriptor} from '#/state/queries/post-feed'
-import {Pager, type RenderTabBarFnProps} from '#/view/com/pager/Pager'
+import {
+  Pager,
+  type PagerRef,
+  type RenderTabBarFnProps,
+} from '#/view/com/pager/Pager'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesHeader} from '#/components/CommunityNotes/CommunityNotesHeader'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
@@ -47,6 +51,23 @@ export function CommunityNotesScreen() {
   const [selectedTab, setSelectedTab] = useState<TabStatus>(initialTab)
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, initialIndex))
 
+  // Add pager ref and initialization logic (like Home screen)
+  const pagerRef = useRef<PagerRef>(null)
+  const lastPagerReportedIndexRef = useRef(selectedIndex)
+
+  useEffect(() => {
+    // Force pager to correct initial page on mount (iOS fix)
+    pagerRef.current?.setPage(selectedIndex)
+  }, [selectedIndex])
+
+  useEffect(() => {
+    // Keep pager in sync with selected index (like Home screen)
+    if (selectedIndex !== lastPagerReportedIndexRef.current) {
+      lastPagerReportedIndexRef.current = selectedIndex
+      pagerRef.current?.setPage(selectedIndex)
+    }
+  }, [selectedIndex])
+
   useSetTitle(_(msg`Community Notes`))
 
   // Load Community Notes configuration
@@ -83,6 +104,7 @@ export function CommunityNotesScreen() {
 
   const onPageSelected = useCallback((index: number) => {
     const newTab = TAB_ITEMS[index].key
+    lastPagerReportedIndexRef.current = index
     setSelectedIndex(index)
     setSelectedTab(newTab)
 
@@ -165,28 +187,27 @@ export function CommunityNotesScreen() {
   return (
     <Layout.Screen>
       <CommunityNotesSidebar />
-      <Layout.Center>
-        <Pager
-          initialPage={selectedIndex}
-          onPageSelected={onPageSelected}
-          renderTabBar={renderTabBar}>
-          {TAB_ITEMS.map(tab => {
-            const feedDescriptor = getFeedDescriptor(tab.key)
-            const displayMode = getCommunityNotesDisplayMode(tab.key)
+      <Pager
+        ref={pagerRef}
+        initialPage={selectedIndex}
+        onPageSelected={onPageSelected}
+        renderTabBar={renderTabBar}>
+        {TAB_ITEMS.map(tab => {
+          const feedDescriptor = getFeedDescriptor(tab.key)
+          const displayMode = getCommunityNotesDisplayMode(tab.key)
 
-            return (
-              <CommunityNotesTab
-                key={tab.key}
-                feedDescriptor={feedDescriptor}
-                displayMode={displayMode}
-                status={tab.key}
-                isPageFocused={selectedTab === tab.key}
-                testID={`communityNotes-${tab.key}`}
-              />
-            )
-          })}
-        </Pager>
-      </Layout.Center>
+          return (
+            <CommunityNotesTab
+              key={tab.key}
+              feedDescriptor={feedDescriptor}
+              displayMode={displayMode}
+              status={tab.key}
+              isPageFocused={selectedTab === tab.key}
+              testID={`communityNotes-${tab.key}`}
+            />
+          )
+        })}
+      </Pager>
       <CommunityNotesRightPane />
     </Layout.Screen>
   )
