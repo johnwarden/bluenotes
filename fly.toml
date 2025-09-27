@@ -6,7 +6,7 @@ primary_region = "sjc"
   # Disable automatic retries to save time on failed builds
   auto_retry = false
   # Set reasonable timeout
-  build-timeout = "15m"
+  build-timeout = "30m"
 
 [env]
   # HTTP_ADDRESS must match internal_port and be hardcoded here

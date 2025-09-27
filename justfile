@@ -141,7 +141,11 @@ fly-dashboard:
 
 # Show recent live application logs
 app-logs:
-    fly logs
+    fly logs -j \
+    | jq --unbuffered -c -r 'select(.meta.Event.Provider=="app") \
+        | .message \
+        | (fromjson? // empty)' \
+    | pino-pretty --colorize --translateTime 'SYS:yyyy-mm-dd HH:MM:ss.l'
 
 # Show recent live HTTP logs with filtering
 http-logs:

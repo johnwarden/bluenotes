@@ -53,6 +53,7 @@ yarn-error.log
 stats.json
 justfile
 Makefile
+fly.toml
 assets/Makefile
 assets/tmp
 
