@@ -1,3 +1,26 @@
+Signing page:
+	Remove "Join the Conversation"
+	Use logotype with "Bluenotes with Community NOtes" logo	
+	"Sign Up with Bluesky"
+	"Sign In with Bluesky Account"
+
+
+ Update these:
+ 	<Link to="/community-notes/about" label="Learn more about our values">
+ 	label="Send us a DM @CommunityNotes">
+
+
+possible bug:
+	feed endpoint returns posts with "needs_more_ratings" status
+	scoring service changes status to "rated_helpful"
+	frontend calls getProposals?status=needs_more_ratings. Nothing returned
+		Solution: simply omit that post from the community notes feed page .
+
+enabel push notifications for mobile: proper google-services.json
+/ipcc endpoint really working
+code signing for enhanced features like push notifications, deep links 
+i8n
+About page
 Disable the create account flow (we don't have email configured?)
 Found a bug. 
 	this post was i the new feed
