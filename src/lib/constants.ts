@@ -215,18 +215,20 @@ export const DEV_ENV_APPVIEW = `http://localhost:2584` // always the same
 
 // temp hack for e2e - esb
 export const BLUESKY_PROXY_HEADER = {
-  value: `${BLUESKY_PROXY_DID}#bsky_appview`,
+  value: BLUESKY_PROXY_DID ? `${BLUESKY_PROXY_DID}#bsky_appview` : null,
   get() {
-    return this.value as ProxyHeaderValue
+    return this.value as ProxyHeaderValue | null
   },
   set(value: string) {
     this.value = value
   },
 }
 
-export const DM_SERVICE_HEADERS = {
-  'atproto-proxy': `${CHAT_PROXY_DID}#bsky_chat`,
-}
+export const DM_SERVICE_HEADERS = CHAT_PROXY_DID
+  ? {
+      'atproto-proxy': `${CHAT_PROXY_DID}#bsky_chat`,
+    }
+  : {}
 
 export const BLUESKY_MOD_SERVICE_HEADERS = {
   'atproto-proxy': `${BSKY_LABELER_DID}#atproto_labeler`,
