@@ -30,10 +30,7 @@ export function CommunityNotesTab({
 }: CommunityNotesTabProps) {
   const {hasSession} = useSession()
   const t = useTheme()
-  const feedFeedback = useFeedFeedback(
-    feedDescriptor || 'following',
-    hasSession,
-  )
+  const feedFeedback = useFeedFeedback(undefined, hasSession)
 
   // Empty state renderer for each tab
   const renderEmptyState = useCallback(() => {
