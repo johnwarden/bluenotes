@@ -37,6 +37,8 @@ export const router = new Router<AllNavigatableRoutes>({
     '/community-notes/new',
     '/community-notes/rated_helpful',
   ],
+  CommunityNotesAbout: '/about',
+  CommunityNotesProfile: '/community-notes/profile',
   PostRepostedBy: '/profile/:name/post/:rkey/reposted-by',
   PostQuotes: '/profile/:name/post/:rkey/quotes',
   ProfileFeed: '/profile/:name/feed/:rkey',
