@@ -25,6 +25,8 @@ export type CommonNavigatorParams = {
   PostLikedBy: {name: string; rkey: string}
   CommunityNotesRating: {name: string; rkey: string}
   CommunityNotes: undefined
+  CommunityNotesAbout: undefined
+  CommunityNotesProfile: undefined
   PostRepostedBy: {name: string; rkey: string}
   PostQuotes: {name: string; rkey: string}
   ProfileFeed: {

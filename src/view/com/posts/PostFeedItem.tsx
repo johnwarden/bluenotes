@@ -116,6 +116,7 @@ export function PostFeedItem({
       }),
     [record],
   )
+
   if (postShadowed === POST_TOMBSTONE) {
     return null
   }

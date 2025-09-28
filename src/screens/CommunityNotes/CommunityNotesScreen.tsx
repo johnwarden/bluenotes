@@ -17,7 +17,6 @@ import {
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesHeader} from '#/components/CommunityNotes/CommunityNotesHeader'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
-import {CommunityNotesSidebar} from '#/components/CommunityNotes/CommunityNotesSidebar'
 import {CommunityNotesTab} from '#/components/CommunityNotes/CommunityNotesTab'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
@@ -157,7 +156,6 @@ export function CommunityNotesScreen() {
   if (isConfigUnavailable) {
     return (
       <Layout.Screen>
-        <CommunityNotesSidebar />
         <Layout.Center>
           <View
             style={[
@@ -186,7 +184,6 @@ export function CommunityNotesScreen() {
 
   return (
     <Layout.Screen>
-      <CommunityNotesSidebar />
       <Pager
         ref={pagerRef}
         initialPage={selectedIndex}

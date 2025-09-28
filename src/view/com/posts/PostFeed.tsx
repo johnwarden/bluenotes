@@ -268,6 +268,7 @@ let PostFeed = ({
     isFetchingNextPage,
     fetchNextPage,
   } = usePostFeedQuery(feed, feedParams, opts)
+
   const lastFetchedAt = data?.pages[0].fetchedAt
   if (lastFetchedAt) {
     lastFetchRef.current = lastFetchedAt
