@@ -207,6 +207,11 @@ func serve(cctx *cli.Context) error {
 		return http.FS(fsys)
 	}())
 
+	// favicon.ico redirect to PNG favicon
+	e.GET("/favicon.ico", func(c echo.Context) error {
+		return c.Redirect(301, "/static/favicon-32x32.png")
+	})
+
 	// enable some special endpoints for the "canonical" deployment (bsky.app). not having these enabled should *not* impact regular operation
 	if canonicalInstance {
 		e.GET("/ips-v4", echo.WrapHandler(staticHandler))
