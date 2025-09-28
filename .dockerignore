@@ -1,0 +1,165 @@
+# ============================================================================
+# Docker Build Context Optimization for Bluenotes Social App
+# ============================================================================
+# Build context: project root
+# Dockerfile: ./Dockerfile
+
+# CRITICAL: Exclude ALL node_modules directories
+node_modules/
+**/node_modules/
+bskyembed/node_modules/
+bskyogcard/node_modules/
+bskylink/node_modules/
+# Explicitly exclude each subproject's node_modules
+./bskyembed/node_modules/
+./bskyogcard/node_modules/
+./bskylink/node_modules/
+
+# Exclude Git repository (.git is 234MB)
+.git/
+.gitignore
+.github/
+
+# Exclude built artifacts (will be rebuilt in Docker)
+dist/
+build/
+**/dist/
+**/build/
+*.jsbundle
+
+# Exclude pre-existing web build artifacts (but allow build process to create them)
+web-build/
+**/web-build/
+
+# Keep bskyweb/static/ directory (needed for Go embed)
+# bskyweb/static/ - KEEP for go:embed static/*
+# Exclude the compiled Go binary (will be rebuilt)
+bskyweb/bskyweb
+./bskyweb/bskyweb
+# Keep embedr static files (needed for Go embed)
+# bskyweb/embedr-static/ - KEEP for go:embed
+
+# Exclude development and cache files
+.expo/
+.vscode/
+.cursor/
+.DS_Store
+**/.DS_Store
+.eslintcache
+*.log
+npm-debug.log
+yarn-error.log
+.metro-health-check*
+stats.json
+justfile
+Makefile
+fly.toml
+assets/Makefile
+assets/tmp
+
+# Exclude environment files (use build args instead)
+.env
+.env.*
+.envrc
+production-vars.just
+
+# Exclude mobile platform directories (not needed for web build)
+ios/
+android/
+
+# Exclude entire subprojects that aren't needed for main app build
+bskyembed/
+bskyogcard/
+bskylink/
+# Keep only what's needed from bskyembed for the main build
+!bskyembed/package.json
+
+# Exclude testing and coverage
+coverage/
+junit.xml
+artifacts/
+__tests__/
+**/*.test.*
+**/*.spec.*
+.perf/
+
+# Exclude documentation and design files
+docs/
+design/
+**/docs/
+**/design/
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Exclude development tools and configs
+.venv/
+devbox.json
+devbox.log
+devbox.lock
+.devbox/
+
+# Exclude backup and temporary files
+**/*.backup
+**/*.original
+**/*.tmp
+**/*.temp
+*.sqlite
+*.sqlite3
+*.db
+
+# Exclude mobile certificates and keys
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+!debug.keystore
+
+# Exclude fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+
+# Exclude Ruby/CocoaPods
+Gemfile.lock
+vendor/
+
+# Exclude local builds
+*.apk
+*.aab
+*.ipa
+
+# Exclude i18n build artifacts (keep source .po files, exclude generated .js files)
+src/locale/locales/_build/
+src/locale/locales/**/*.js
+# Keep the locale source files (.po) but exclude generated files (.js)
+!src/locale/locales/
+!src/locale/locales/*/
+!src/locale/locales/*/messages.po
+
+# Exclude ogcard assets
+bskyogcard/src/assets/fonts/noto-*
+
+# Keep essential files (explicit includes)
+!package.json
+!yarn.lock
+!babel.config.js
+!metro.config.js
+!webpack.config.js
+!app.config.js
+!tsconfig*.json
+!lingui.config.js
+!patches/
+!plugins/
+!src/
+!assets/
+!web/
+!bskyweb/
+!modules/
+!index.js
+!index.web.js
+!Dockerfile
+!.dockerignore
