@@ -117,12 +117,15 @@ export function BottomBarWeb() {
           <NavItem
             routeName="CommunityNotes"
             href="/community-notes/needs_your_help">
-            {({isActive: _isActive}) => {
+            {({isActive}) => {
               return (
                 <CommunityNotesIcon
                   aria-hidden={true}
                   width={iconWidth}
-                  style={[styles.ctrlIcon, {color: t.palette.primary_500}]}
+                  style={[
+                    styles.ctrlIcon,
+                    isActive ? {color: t.palette.primary_500} : t.atoms.text,
+                  ]}
                 />
               )
             }}
