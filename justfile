@@ -16,3 +16,6 @@ ios:
 deps:
 	yarn install --frozen-lockfile
 	cd bskyembed && yarn install --frozen-lockfile
+
+bskyweb:
+	cd bskyweb/; go mod tidy; go build -v -tags timetzdata -o bskyweb ./cmd/bskyweb; ./bskyweb serve --appview-host=https://public.api.bsky.app
