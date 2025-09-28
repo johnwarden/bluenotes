@@ -29,63 +29,25 @@ export function useProposalsQuery(
   const query = useQuery<CommunityNote[]>({
     queryKey: ['community-notes-proposals', subjectUri, status, label],
     queryFn: async () => {
-      try {
-        console.log(
-          'useProposalsQuery: Fetching proposals for',
-          subjectUri,
-          'with status',
-          status,
-        )
-        const response = await apilib.getProposals(agent, subjectUri, {
-          status,
-          label,
-        })
+      const response = await apilib.getProposals(agent, subjectUri, {
+        status,
+        label,
+      })
 
-        console.log(
-          'useProposalsQuery: Response for',
-          subjectUri,
-          'with status',
-          status,
-          ':',
-          response,
-        )
+      // Map the response to notes
+      const notes = response.proposals.map(apiNote => {
+        return apilib.mapProposalApiResponseToCommunityNote(apiNote)
+      })
 
-        // Map the response to notes
-        const notes = response.proposals.map(apiNote => {
-          return apilib.mapProposalApiResponseToCommunityNote(apiNote)
-        })
+      // Store the rating data for later processing
+      const viewerRatings = response.proposals.map(apiNote => ({
+        noteUri: apiNote.uri,
+        viewerRating: apiNote.viewer?.rating,
+      }))
 
-        console.log(
-          'useProposalsQuery: Mapped notes for',
-          subjectUri,
-          'with status',
-          status,
-          ':',
-          notes,
-        )
+      ;(notes as any)._viewerRatings = viewerRatings
 
-        // Store the rating data for later processing
-        const viewerRatings = response.proposals.map(apiNote => ({
-          noteUri: apiNote.uri,
-          viewerRating: apiNote.viewer?.rating,
-        }))
-
-        ;(notes as any)._viewerRatings = viewerRatings
-
-        return notes
-      } catch (error) {
-        console.error(
-          'useProposalsQuery: Failed to fetch proposals for',
-          subjectUri,
-          'with status',
-          status,
-          ':',
-          error,
-        )
-        // Fallback to empty array for now
-        // TODO: Implement proper error handling
-        return []
-      }
+      return notes
     },
     enabled: !!subjectUri,
   })
