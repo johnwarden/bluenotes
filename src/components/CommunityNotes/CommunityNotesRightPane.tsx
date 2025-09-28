@@ -85,9 +85,7 @@ export function CommunityNotesRightPane() {
           </Text>
         </View>
 
-        <Link
-          to="/community-notes/about"
-          style={[{color: t.palette.primary_500}]}>
+        <Link to="/community-notes/about" label="Learn more about our values">
           <Text style={[a.text_md, {color: t.palette.primary_500}]}>
             <Trans>Learn more about our values</Trans>
           </Text>
@@ -111,7 +109,7 @@ export function CommunityNotesRightPane() {
           <Trans>Ideas or suggestions to improve Community Notes?</Trans>{' '}
           <Link
             to="https://bsky.app/profile/communitynotes.bsky.social"
-            style={[{color: t.palette.primary_500}]}>
+            label="Send us a DM @CommunityNotes">
             <Text style={[a.text_md, {color: t.palette.primary_500}]}>
               <Trans>Send us a DM @CommunityNotes</Trans>
             </Text>
