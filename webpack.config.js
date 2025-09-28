@@ -28,6 +28,34 @@ module.exports = async function (env, argv) {
     ...(config.module.rules || []),
     reactNativeWebWebviewConfiguration,
   ]
+
+  // Configure webpack to ignore warnings from packages with platform-specific code
+  config.ignoreWarnings = [
+    ...(config.ignoreWarnings || []),
+    // Ignore source map warnings from react-native-root-siblings
+    {
+      module: /react-native-root-siblings/,
+      message: /Failed to parse source map/,
+    },
+    // Ignore requireNativeComponent warnings from react-native-uitextview (iOS-only component)
+    {
+      module: /react-native-uitextview/,
+      message: /export 'requireNativeComponent'.*was not found/,
+    },
+    // Function-based fallback for react-native-uitextview warnings
+    warning => {
+      return (
+        warning.message &&
+        warning.message.includes('requireNativeComponent') &&
+        warning.message.includes('react-native-web/dist/index')
+      )
+    },
+    // Suppress Babel scope tracker warnings from React Compiler plugin
+    {
+      message:
+        /The exported identifier .* is not declared in Babel's scope tracker/,
+    },
+  ]
   if (env.mode === 'development') {
     config.plugins.push(new ReactRefreshWebpackPlugin())
   } else {
