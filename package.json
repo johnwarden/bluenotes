@@ -1,6 +1,6 @@
 {
-  "name": "bsky.app",
-  "version": "1.109.0",
+  "name": "bluenotes.social",
+  "version": "0.1.0-alpha.1",
   "private": true,
   "engines": {
     "node": ">=20"
