@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Default avatar - blue logo on light gray background -->
+  <rect width="512" height="512" fill="#F3F4F6"/>
+  
+  <!-- Centered blue logo -->
+  <path fill="#1185FE" d="$(PATH_DATA)" transform="translate(79, 100) scale(0.71)"/>
+</svg>
