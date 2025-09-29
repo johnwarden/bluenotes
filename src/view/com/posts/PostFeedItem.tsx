@@ -15,7 +15,7 @@ import {useQueryClient} from '@tanstack/react-query'
 
 import {useActorStatus} from '#/lib/actor-status'
 import {isReasonFeedSource, type ReasonFeedSource} from '#/lib/api/feed/types'
-import {hasHelpfulNotes} from '#/lib/community-notes/labels'
+import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -593,7 +593,8 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      {(hasHelpfulNotes(post) || communityNotesDisplayMode) && (
+      {(hasHelpfulNotes(post) ||
+        (communityNotesDisplayMode && hasProposedNotes(post))) && (
         <CommunityNoteWidget
           post={post}
           displayMode={communityNotesDisplayMode || 'rated_helpful'}
