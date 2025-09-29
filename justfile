@@ -48,11 +48,18 @@ prod-env:
     @echo "EXPO_PUBLIC_ENV: {{EXPO_PUBLIC_ENV}}"
     @echo "EXPO_PUBLIC_RELEASE_VERSION: {{EXPO_PUBLIC_RELEASE_VERSION}}"
     @echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER: {{EXPO_PUBLIC_BUNDLE_IDENTIFIER}}"
+    @echo "EXPO_PUBLIC_SENTRY_DSN: {{EXPO_PUBLIC_SENTRY_DSN}}"
     @echo "ATP_APPVIEW_HOST: {{ATP_APPVIEW_HOST}}"
     @echo "OGCARD_HOST: {{OGCARD_HOST}}"
+    @echo "LINK_HOST: {{LINK_HOST}}"
     @echo "DOMAIN: {{DOMAIN}}"
     @echo "DEBUG: {{DEBUG}}"
+    @echo "CORS_ALLOWED_ORIGINS: {{CORS_ALLOWED_ORIGINS}}"
+    @echo "STATIC_CDN_HOST: {{STATIC_CDN_HOST}}"
+    @echo "BSKY_CANONICAL_INSTANCE: {{BSKY_CANONICAL_INSTANCE}}"
+    @echo "ROBOTS_DISALLOW_ALL: {{ROBOTS_DISALLOW_ALL}}"
     @echo "GOLOG_LOG_LEVEL: {{GOLOG_LOG_LEVEL}}"
+    @echo "GEOLOCATION_URL: {{GEOLOCATION_URL}}"
 
 allocate-ips:
 	fly ips allocate
@@ -78,17 +85,17 @@ deploy:
         --build-arg EXPO_PUBLIC_RELEASE_VERSION={{EXPO_PUBLIC_RELEASE_VERSION}} \
         --build-arg EXPO_PUBLIC_BUNDLE_IDENTIFIER={{EXPO_PUBLIC_BUNDLE_IDENTIFIER}} \
         --build-arg EXPO_PUBLIC_SENTRY_DSN={{EXPO_PUBLIC_SENTRY_DSN}} \
-        --build-arg BAPP_CONFIG_URL={{BAPP_CONFIG_URL}} \
         --env ATP_APPVIEW_HOST={{ATP_APPVIEW_HOST}} \
         --env OGCARD_HOST={{OGCARD_HOST}} \
         --env LINK_HOST={{LINK_HOST}} \
         --env DEBUG={{DEBUG}} \
+        --env DOMAIN={{DOMAIN}} \
         --env CORS_ALLOWED_ORIGINS={{CORS_ALLOWED_ORIGINS}} \
         --env STATIC_CDN_HOST={{STATIC_CDN_HOST}} \
         --env BSKY_CANONICAL_INSTANCE={{BSKY_CANONICAL_INSTANCE}} \
         --env ROBOTS_DISALLOW_ALL={{ROBOTS_DISALLOW_ALL}} \
         --env GOLOG_LOG_LEVEL={{GOLOG_LOG_LEVEL}} \
-        --env IPCC_HOST={{IPCC_HOST}}
+        --env GEOLOCATION_URL={{GEOLOCATION_URL}}
 
 # Build Docker image locally for testing
 docker-build:
@@ -98,7 +105,6 @@ docker-build:
         --build-arg EXPO_PUBLIC_RELEASE_VERSION={{EXPO_PUBLIC_RELEASE_VERSION}} \
         --build-arg EXPO_PUBLIC_BUNDLE_IDENTIFIER={{EXPO_PUBLIC_BUNDLE_IDENTIFIER}} \
         --build-arg EXPO_PUBLIC_SENTRY_DSN={{EXPO_PUBLIC_SENTRY_DSN}} \
-        --build-arg BAPP_CONFIG_URL={{BAPP_CONFIG_URL}} \
         --progress=plain \
         -t bluenotes-web .
 
