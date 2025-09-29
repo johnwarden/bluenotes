@@ -490,7 +490,10 @@ let FeedItemInner = ({
             onShowLess={onShowLess}
             viaRepost={viaRepost}
           />
-          {communityNotesDisplayMode && <SeeAllNotesLink post={post} />}
+          {communityNotesDisplayMode &&
+            (hasHelpfulNotes(post) || hasProposedNotes(post)) && (
+              <SeeAllNotesLink post={post} />
+            )}
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
