@@ -15,7 +15,8 @@ EXPO_PUBLIC_BUNDLE_IDENTIFIER := "bluenotes-production"
 # Sentry Configuration (disabled for now)
 EXPO_PUBLIC_SENTRY_DSN := ""
 
-IPCC_HOST := "https://ip.bsky.app"
+# Geolocation Configuration (use our own IPCC service)
+GEOLOCATION_URL := "/ipcc"
 
 # =============================================================================
 # RUNTIME VARIABLES (passed via fly deploy --env)

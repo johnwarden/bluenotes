@@ -41,8 +41,8 @@ ARG SENTRY_AUTH_TOKEN
 ENV SENTRY_AUTH_TOKEN=${SENTRY_AUTH_TOKEN}
 ARG EXPO_PUBLIC_SENTRY_DSN
 ENV EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN
-ARG BAPP_CONFIG_URL
-ENV BAPP_CONFIG_URL=$BAPP_CONFIG_URL
+ARG GEOLOCATION_URL
+ENV GEOLOCATION_URL=$GEOLOCATION_URL
 
 #
 # Copy everything into the container
@@ -67,7 +67,7 @@ RUN \. "$NVM_DIR/nvm.sh" && \
   echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER=$EXPO_PUBLIC_BUNDLE_IDENTIFIER" >> .env && \
   echo "EXPO_PUBLIC_BUNDLE_DATE=$(date -u +"%y%m%d%H")" >> .env && \
   echo "EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN" >> .env && \
-  echo "BAPP_CONFIG_URL=$BAPP_CONFIG_URL" >> .env && \
+  echo "GEOLOCATION_URL=$GEOLOCATION_URL" >> .env && \
   npm install --global yarn && \
   yarn && \
   yarn intl:build 2>&1 | tee i18n.log && \
