@@ -1,23 +1,16 @@
 import {networkRetry} from '#/lib/async/retry'
 import {
   DEFAULT_GEOLOCATION_CONFIG,
-  GEOLOCATION_CONFIG_URL,
+  GEOLOCATION_URL,
 } from '#/state/geolocation/const'
 import {emitGeolocationConfigUpdate} from '#/state/geolocation/events'
 import {logger} from '#/state/geolocation/logger'
-import {BAPP_CONFIG_DEV_BYPASS_SECRET, IS_DEV} from '#/env'
 import {type Device, device} from '#/storage'
 
 async function getGeolocationConfig(
   url: string,
 ): Promise<Device['geolocation']> {
-  const res = await fetch(url, {
-    headers: IS_DEV
-      ? {
-          'x-dev-bypass-secret': BAPP_CONFIG_DEV_BYPASS_SECRET,
-        }
-      : undefined,
-  })
+  const res = await fetch(url)
 
   if (!res.ok) {
     throw new Error(`config: fetch failed ${res.status}`)
@@ -72,7 +65,7 @@ export function beginResolveGeolocationConfig() {
 
     try {
       // Try once, fail fast
-      const config = await getGeolocationConfig(GEOLOCATION_CONFIG_URL)
+      const config = await getGeolocationConfig(GEOLOCATION_URL)
       if (config) {
         device.set(['geolocation'], config)
         emitGeolocationConfigUpdate(config)
@@ -93,7 +86,7 @@ export function beginResolveGeolocationConfig() {
       device.set(['geolocation'], DEFAULT_GEOLOCATION_CONFIG)
 
       // retry 3 times, but don't await, proceed with default
-      networkRetry(3, () => getGeolocationConfig(GEOLOCATION_CONFIG_URL))
+      networkRetry(3, () => getGeolocationConfig(GEOLOCATION_URL))
         .then(config => {
           if (config) {
             device.set(['geolocation'], config)
