@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Starry overlay - white dots of various sizes scattered across the entire canvas -->
+  
+  <!-- Edge stars - very close to borders -->
+  <circle cx="20" cy="30" r="2" fill="white"/>
+  <circle cx="50" cy="15" r="1" fill="white"/>
+  <circle cx="1000" cy="25" r="2" fill="white"/>
+  <circle cx="980" cy="50" r="1" fill="white"/>
+  <circle cx="15" cy="500" r="2" fill="white"/>
+  <circle cx="1010" cy="480" r="1" fill="white"/>
+  <circle cx="30" cy="1000" r="2" fill="white"/>
+  <circle cx="1000" cy="990" r="1" fill="white"/>
+  <circle cx="500" cy="10" r="1" fill="white"/>
+  <circle cx="480" cy="1015" r="2" fill="white"/>
+  
+  <!-- Corner area stars -->
+  <circle cx="80" cy="80" r="2" fill="white"/>
+  <circle cx="950" cy="70" r="2" fill="white"/>
+  <circle cx="70" cy="950" r="2" fill="white"/>
+  <circle cx="960" cy="940" r="2" fill="white"/>
+  
+  <!-- Top edge area -->
+  <circle cx="150" cy="40" r="2" fill="white"/>
+  <circle cx="300" cy="60" r="2" fill="white"/>
+  <circle cx="450" cy="35" r="2" fill="white"/>
+  <circle cx="600" cy="55" r="2" fill="white"/>
+  <circle cx="750" cy="25" r="2" fill="white"/>
+  <circle cx="850" cy="45" r="2" fill="white"/>
+  
+  <!-- Left edge area -->
+  <circle cx="40" cy="200" r="2" fill="white"/>
+  <circle cx="25" cy="350" r="1" fill="white"/>
+  <circle cx="35" cy="650" r="2" fill="white"/>
+  <circle cx="50" cy="800" r="1" fill="white"/>
+  
+  <!-- Right edge area -->
+  <circle cx="990" cy="180" r="2" fill="white"/>
+  <circle cx="1005" cy="320" r="1" fill="white"/>
+  <circle cx="985" cy="620" r="2" fill="white"/>
+  <circle cx="995" cy="780" r="1" fill="white"/>
+  
+  <!-- Bottom edge area -->
+  <circle cx="120" cy="990" r="2" fill="white"/>
+  <circle cx="280" cy="1000" r="1" fill="white"/>
+  <circle cx="420" cy="995" r="2" fill="white"/>
+  <circle cx="600" cy="1010" r="1" fill="white"/>
+  <circle cx="780" cy="985" r="2" fill="white"/>
+  <circle cx="900" cy="1005" r="1" fill="white"/>
+  
+  <!-- Original interior stars -->
+  <circle cx="150" cy="180" r="2" fill="white"/>
+  <circle cx="300" cy="220" r="2" fill="white"/>
+  <circle cx="450" cy="190" r="2" fill="white"/>
+  <circle cx="600" cy="210" r="2" fill="white"/>
+  <circle cx="750" cy="170" r="2" fill="white"/>
+  <circle cx="850" cy="240" r="2" fill="white"/>
+  
+  <circle cx="80" cy="350" r="2" fill="white"/>
+  <circle cx="200" cy="380" r="2" fill="white"/>
+  <circle cx="380" cy="320" r="2" fill="white"/>
+  <circle cx="520" cy="360" r="2" fill="white"/>
+  <circle cx="680" cy="340" r="2" fill="white"/>
+  <circle cx="820" cy="390" r="2" fill="white"/>
+  
+  <!-- Medium stars (3px radius) -->
+  <circle cx="250" cy="280" r="3" fill="white"/>
+  <circle cx="550" cy="260" r="3" fill="white"/>
+  <circle cx="780" cy="300" r="3" fill="white"/>
+  <circle cx="120" cy="450" r="3" fill="white"/>
+  <circle cx="420" cy="480" r="3" fill="white"/>
+  <circle cx="720" cy="440" r="3" fill="white"/>
+  <circle cx="900" cy="420" r="3" fill="white"/>
+  
+  <!-- More small stars in middle area -->
+  <circle cx="180" cy="550" r="2" fill="white"/>
+  <circle cx="350" cy="580" r="2" fill="white"/>
+  <circle cx="580" cy="520" r="2" fill="white"/>
+  <circle cx="750" cy="560" r="2" fill="white"/>
+  <circle cx="920" cy="540" r="2" fill="white"/>
+  
+  <circle cx="100" cy="680" r="2" fill="white"/>
+  <circle cx="280" cy="720" r="2" fill="white"/>
+  <circle cx="480" cy="660" r="2" fill="white"/>
+  <circle cx="650" cy="700" r="2" fill="white"/>
+  <circle cx="850" cy="680" r="2" fill="white"/>
+  
+  <!-- Large stars (4px radius) -->
+  <circle cx="400" cy="400" r="4" fill="white"/>
+  <circle cx="700" cy="600" r="4" fill="white"/>
+  <circle cx="200" cy="800" r="4" fill="white"/>
+  
+  <!-- Bottom area stars -->
+  <circle cx="120" cy="850" r="2" fill="white"/>
+  <circle cx="320" cy="880" r="2" fill="white"/>
+  <circle cx="520" cy="820" r="2" fill="white"/>
+  <circle cx="720" cy="860" r="2" fill="white"/>
+  <circle cx="880" cy="840" r="2" fill="white"/>
+  
+  <circle cx="180" cy="750" r="3" fill="white"/>
+  <circle cx="450" cy="780" r="3" fill="white"/>
+  <circle cx="650" cy="720" r="3" fill="white"/>
+  <circle cx="800" cy="760" r="3" fill="white"/>
+  
+  <!-- Additional scattered stars for fuller coverage -->
+  <circle cx="350" cy="150" r="1" fill="white"/>
+  <circle cx="650" cy="130" r="1" fill="white"/>
+  <circle cx="150" cy="300" r="1" fill="white"/>
+  <circle cx="850" cy="280" r="1" fill="white"/>
+  <circle cx="300" cy="500" r="1" fill="white"/>
+  <circle cx="700" cy="480" r="1" fill="white"/>
+  <circle cx="450" cy="650" r="1" fill="white"/>
+  <circle cx="550" cy="750" r="1" fill="white"/>
+  <circle cx="250" cy="600" r="1" fill="white"/>
+  <circle cx="750" cy="580" r="1" fill="white"/>
+</svg>

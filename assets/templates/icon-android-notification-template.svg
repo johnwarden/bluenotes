@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android notification icon - white logo on transparent background -->
+  <rect width="96" height="96" fill="transparent"/>
+  
+  <!-- Centered white logo -->
+  <path fill="white" d="$(PATH_DATA)" transform="translate(7, 15) scale(0.16)"/>
+</svg>
