@@ -18,9 +18,11 @@ module.exports = function (_config) {
   const IS_DEV = !IS_TESTFLIGHT || !IS_PRODUCTION
 
   const ASSOCIATED_DOMAINS = [
-    'applinks:bsky.app',
+    'applinks:bluenotes.social',
+    'applinks:bsky.app', // Keep for compatibility
     'applinks:staging.bsky.app',
-    'appclips:bsky.app',
+    'appclips:bluenotes.social',
+    'appclips:bsky.app', // Keep for compatibility
     'appclips:go.bsky.app', // Allows App Clip to work when scanning QR codes
     // When testing local services, enter an ngrok (et al) domain here. It must use a standard HTTP/HTTPS port.
     ...(IS_DEV || IS_TESTFLIGHT ? [] : []),
@@ -33,10 +35,10 @@ module.exports = function (_config) {
   return {
     expo: {
       version: VERSION,
-      name: 'Bluesky',
-      slug: 'bluesky',
-      scheme: 'bluesky',
-      owner: 'blueskysocial',
+      name: 'Bluenotes',
+      slug: 'bluenotes',
+      scheme: 'bluenotes',
+      owner: 'johnwarden',
       runtimeVersion: {
         policy: 'appVersion',
       },
@@ -46,7 +48,7 @@ module.exports = function (_config) {
       newArchEnabled: false,
       ios: {
         supportsTablet: false,
-        bundleIdentifier: 'xyz.blueskyweb.app',
+        bundleIdentifier: 'social.bluenotes.app',
         config: {
           usesNonExemptEncryption: false,
         },
@@ -60,7 +62,7 @@ module.exports = function (_config) {
             'Used to save images to your library.',
           NSPhotoLibraryUsageDescription:
             'Used for profile pictures, posts, and other kinds of content',
-          CFBundleSpokenName: 'Blue Sky',
+          CFBundleSpokenName: 'Blue Notes',
           CFBundleLocalizations: [
             'en',
             'an',
@@ -151,7 +153,7 @@ module.exports = function (_config) {
           backgroundColor: '#1185FE',
         },
         googleServicesFile: './google-services.json',
-        package: 'xyz.blueskyweb.app',
+        package: 'social.bluenotes.app',
         intentFilters: [
           {
             action: 'VIEW',
@@ -159,7 +161,7 @@ module.exports = function (_config) {
             data: [
               {
                 scheme: 'https',
-                host: 'bsky.app',
+                host: 'bluenotes.social',
               },
               IS_DEV && {
                 scheme: 'http',
@@ -172,9 +174,10 @@ module.exports = function (_config) {
       },
       web: {
         favicon: './assets/favicon.png',
+        name: 'Bluenotes',
       },
       updates: {
-        url: 'https://updates.bsky.app/manifest',
+        url: 'https://updates.bsky.app/manifest', // Keep using Bluesky's update service
         enabled: UPDATES_ENABLED,
         fallbackToCacheTimeout: 30000,
         codeSigningCertificate: UPDATES_ENABLED
@@ -370,8 +373,9 @@ module.exports = function (_config) {
               ios: {
                 appExtensions: [
                   {
-                    targetName: 'Share-with-Bluesky',
-                    bundleIdentifier: 'xyz.blueskyweb.app.Share-with-Bluesky',
+                    targetName: 'Share-with-Bluenotes',
+                    bundleIdentifier:
+                      'social.bluenotes.app.Share-with-Bluenotes',
                     entitlements: {
                       'com.apple.security.application-groups': [
                         'group.app.bsky',
@@ -379,8 +383,8 @@ module.exports = function (_config) {
                     },
                   },
                   {
-                    targetName: 'BlueskyNSE',
-                    bundleIdentifier: 'xyz.blueskyweb.app.BlueskyNSE',
+                    targetName: 'BluenotesNSE',
+                    bundleIdentifier: 'social.bluenotes.app.BluenotesNSE',
                     entitlements: {
                       'com.apple.security.application-groups': [
                         'group.app.bsky',
@@ -388,8 +392,8 @@ module.exports = function (_config) {
                     },
                   },
                   {
-                    targetName: 'BlueskyClip',
-                    bundleIdentifier: 'xyz.blueskyweb.app.AppClip',
+                    targetName: 'BluenotesClip',
+                    bundleIdentifier: 'social.bluenotes.app.AppClip',
                   },
                 ],
               },
