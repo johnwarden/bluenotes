@@ -62,6 +62,19 @@ func serve(cctx *cli.Context) error {
 	ipccHost := cctx.String("ipcc-host")
 	basicAuthPassword := cctx.String("basic-auth-password")
 	corsOrigins := cctx.StringSlice("cors-allowed-origins")
+
+	// Auto-detect development environment and add localhost origins
+	// Development is detected when ATP_APPVIEW_HOST points to localhost
+	isDev := strings.Contains(appviewHost, "localhost") || strings.Contains(appviewHost, "127.0.0.1")
+	if isDev {
+		corsOrigins = append(corsOrigins, "http://localhost:19006")
+		// Also add the backend server's own address for self-referencing requests
+		if strings.HasPrefix(httpAddress, ":") {
+			corsOrigins = append(corsOrigins, "http://localhost"+httpAddress)
+		}
+		log.Infof("Development environment detected (ATP_APPVIEW_HOST=%s), added localhost CORS origins", appviewHost)
+	}
+
 	staticCDNHost := cctx.String("static-cdn-host")
 	staticCDNHost = strings.TrimSuffix(staticCDNHost, "/")
 	canonicalInstance := cctx.Bool("bsky-canonical-instance")
@@ -340,8 +353,8 @@ func serve(cctx *cli.Context) error {
 	// bookmarks
 	e.GET("/saved", server.WebGeneric)
 
-	// ipcc
-	e.GET("/ipcc", server.WebIpCC)
+	// geolocation config
+	e.GET("/ipcc", server.WebGeolocationConfig)
 
 	if linkHost != "" {
 		linkUrl, err := url.Parse(linkHost)
