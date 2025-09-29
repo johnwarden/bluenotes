@@ -24,7 +24,7 @@ import (
 	"github.com/bluesky-social/indigo/atproto/syntax"
 	"github.com/bluesky-social/indigo/util/cliutil"
 	"github.com/bluesky-social/indigo/xrpc"
-	"github.com/bluesky-social/social-app/bskyweb"
+	"github.com/johnwarden/social-app/bskyweb"
 
 	"github.com/flosch/pongo2/v6"
 	"github.com/klauspost/compress/gzhttp"

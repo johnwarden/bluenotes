@@ -95,7 +95,7 @@
   "submit": {
     "production": {
       "ios": {
-        "ascAppId": "6444370199"
+        "ascAppId": "YOUR_NEW_APP_ID_HERE"
       }
     }
   }

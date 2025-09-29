@@ -1,4 +1,4 @@
-module github.com/bluesky-social/social-app/bskyweb
+module github.com/johnwarden/social-app/bskyweb
 
 go 1.24.5
 
