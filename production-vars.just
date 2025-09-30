@@ -12,6 +12,9 @@ EXPO_PUBLIC_ENV := "production"
 EXPO_PUBLIC_RELEASE_VERSION := `node -p "require('./package.json').version"`
 EXPO_PUBLIC_BUNDLE_IDENTIFIER := "bluenotes-production"
 
+EXPO_PUBLIC_CHAT_PROXY_DID := "did:web:api.bsky.chat"
+EXPO_PUBLIC_BLUESKY_PROXY_DID:= "did:web:api.bsky.app"
+
 # Sentry Configuration (disabled for now)
 EXPO_PUBLIC_SENTRY_DSN := ""
 
