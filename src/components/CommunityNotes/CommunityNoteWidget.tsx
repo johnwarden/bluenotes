@@ -1,15 +1,12 @@
 import {useState} from 'react'
 import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useNavigation} from '@react-navigation/native'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
-import {type NavigationProp} from '#/lib/routes/types'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
-import {Button} from '#/components/Button'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Link} from '#/components/Link'
@@ -188,7 +185,6 @@ export function CommunityNoteWidget({
 
       {showRatingPrompt && (
         <RatingPrompt
-          post={post}
           promptText={promptConfig.promptText}
           buttonLabel={promptConfig.buttonLabel}
         />
@@ -200,6 +196,7 @@ export function CommunityNoteWidget({
   const widget = (
     <Link
       to={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`}
+      action="navigate"
       style={containerStyles}
       label="Community Notes"
       // @ts-expect-error - onPointerEnter/Leave not in Link types but work on web
@@ -290,33 +287,13 @@ function Content({note, textColor}: {note: CommunityNote; textColor?: any}) {
 }
 
 function RatingPrompt({
-  post,
   promptText,
   buttonLabel,
 }: {
-  post: AppBskyFeedDefs.PostView
   promptText: string
   buttonLabel: string
 }) {
   const t = useTheme()
-  const {_} = useLingui()
-  const navigation = useNavigation<NavigationProp>()
-
-  const handleRatePress = (e: any) => {
-    // Stop propagation to prevent the outer Link from handling the event
-    e.stopPropagation()
-
-    // Navigate to community notes rating page
-    const postId = post.uri.split('/').pop()
-    if (!postId) {
-      console.error('Could not extract post ID from URI:', post.uri)
-      return
-    }
-    navigation.navigate('CommunityNotesRating', {
-      name: post.author.handle,
-      rkey: postId,
-    })
-  }
 
   return (
     <View
@@ -329,9 +306,7 @@ function RatingPrompt({
         a.w_full,
       ]}>
       <Text style={[a.text_md, t.atoms.text]}>{promptText}</Text>
-      <Button
-        label={_(msg`Rate this note`)}
-        onPress={handleRatePress}
+      <View
         style={[
           {
             borderWidth: 1,
@@ -346,7 +321,7 @@ function RatingPrompt({
         <Text style={[a.text_md, a.font_bold, t.atoms.text]}>
           {buttonLabel}
         </Text>
-      </Button>
+      </View>
     </View>
   )
 }
