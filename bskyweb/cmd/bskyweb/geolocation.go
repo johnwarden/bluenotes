@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"net"
+	"strings"
 	"github.com/labstack/echo/v4"
 )
 
@@ -52,8 +54,12 @@ func (srv *Server) WebGeolocationConfig(c echo.Context) error {
 
 // getLocationFromIP returns country and region code for an IP address
 func (srv *Server) getLocationFromIP(ip string) (countryCode, regionCode string) {
-	// For now, use a simple IP-to-country service
-	// In production, you'd want to use MaxMind GeoLite2 or similar
+	// Check if this is a local/private IP address
+	if isLocalIP(ip) {
+		log.Debugf("Detected local IP %s, using fallback public IP for development", ip)
+		// Use a known public IP for development (Google DNS)
+		ip = "8.8.8.8"
+	}
 
 	// Try ipapi.co first (free tier: 30,000 requests/month)
 	if country, region := srv.queryIPAPI(ip); country != "" {
@@ -67,6 +73,42 @@ func (srv *Server) getLocationFromIP(ip string) (countryCode, regionCode string)
 
 	// Default fallback
 	return "", ""
+}
+
+// isLocalIP checks if an IP address is local/private
+func isLocalIP(ipStr string) bool {
+	// Handle common local development cases
+	if ipStr == "" || ipStr == "::1" || ipStr == "127.0.0.1" || strings.HasPrefix(ipStr, "127.") {
+		return true
+	}
+
+	ip := net.ParseIP(ipStr)
+	if ip == nil {
+		return true // If we can't parse it, treat as local
+	}
+
+	// Check for private IP ranges
+	privateRanges := []string{
+		"10.0.0.0/8",     // RFC1918
+		"172.16.0.0/12",  // RFC1918
+		"192.168.0.0/16", // RFC1918
+		"169.254.0.0/16", // RFC3927 link-local
+		"::1/128",        // IPv6 loopback
+		"fc00::/7",       // IPv6 unique local
+		"fe80::/10",      // IPv6 link-local
+	}
+
+	for _, rangeStr := range privateRanges {
+		_, cidr, err := net.ParseCIDR(rangeStr)
+		if err != nil {
+			continue
+		}
+		if cidr.Contains(ip) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // queryIPAPI queries ipapi.co for geolocation data
