@@ -17,12 +17,14 @@ interface DebugLabelsProps {
   post: AppBskyFeedDefs.PostView
 }
 
+const enableDebugLabels = false
+
 export function DebugLabels({post}: DebugLabelsProps) {
   const t = useTheme()
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Only show in development
-  if (!__DEV__) {
+  if (!__DEV__ || !enableDebugLabels) {
     return null
   }
 
