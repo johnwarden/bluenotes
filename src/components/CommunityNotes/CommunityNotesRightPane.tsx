@@ -107,10 +107,10 @@ export function CommunityNotesRightPane() {
         <Text style={[a.text_md, t.atoms.text]}>
           <Trans>Ideas or suggestions to improve Community Notes?</Trans>{' '}
           <Link
-            to="https://bsky.app/profile/communitynotes.bsky.social"
-            label="Send us a DM @CommunityNotes">
-            <Text style={[a.text_md, {color: t.palette.primary_500}]}>
-              <Trans>Send us a DM @CommunityNotes</Trans>
+            to="https://bsky.app/profile/bluenotes.social"
+            label="Send us a DM @bluenotes.social">
+            <Text style={[a.text_md, {color: t.palette.primary_500}, a.mt_md]}>
+              <Trans>Send us a DM @bluenotes.social</Trans>
             </Text>
           </Link>
         </Text>
