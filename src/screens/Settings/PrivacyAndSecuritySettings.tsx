@@ -124,10 +124,12 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
                   <Admonition.Text>
                     <InlineLinkText
                       label={_(
-                        msg`Learn more about what is public on Bluesky.`,
+                        msg`Learn more about what is public on Bluenotes.`,
                       )}
-                      to="https://blueskyweb.zendesk.com/hc/en-us/articles/15835264007693-Data-Privacy">
-                      <Trans>Learn more about what is public on Bluesky.</Trans>
+                      to="/about/support/privacy-policy">
+                      <Trans>
+                        Learn more about what is public on Bluenotes.
+                      </Trans>
                     </InlineLinkText>
                   </Admonition.Text>
                 </Admonition.Content>
