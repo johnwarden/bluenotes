@@ -40,3 +40,13 @@ nvm-setup: ## Use NVM to install and activate node+yarn
 	nvm install 20
 	nvm use 20
 	npm install --global yarn
+
+.PHONY: ALL_LOGOS
+ALL_LOGOS:
+	cd ./assets && make ALL_LOGOS && make clean;
+
+
+.PHONY: SUPPORT_PAGES
+SUPPORT_PAGES:
+	cd ./src/view/screens && make SUPPORT_PAGES && make clean;
+
