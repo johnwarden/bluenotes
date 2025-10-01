@@ -1,53 +1,44 @@
-import React from 'react'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
-import {useFocusEffect} from '@react-navigation/native'
+import {createSupportPageScreen} from '#/components/SupportPage'
 
-import {HELP_DESK_URL} from '#/lib/constants'
-import {usePalette} from '#/lib/hooks/usePalette'
-import {
-  type CommonNavigatorParams,
-  type NativeStackScreenProps,
-} from '#/lib/routes/types'
-import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
-import {TextLink} from '#/view/com/util/Link'
-import {Text} from '#/view/com/util/text/Text'
-import {ViewHeader} from '#/view/com/util/ViewHeader'
-import {CenteredView} from '#/view/com/util/Views'
-import * as Layout from '#/components/Layout'
+// HTML content for the Support
+const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-6 support-page">
 
-type Props = NativeStackScreenProps<CommonNavigatorParams, 'Support'>
-export const SupportScreen = (_props: Props) => {
-  const pal = usePalette('default')
-  const setMinimalShellMode = useSetMinimalShellMode()
-  const {_} = useLingui()
+<p>
+  Bluenotes is a fork of Bluesky. If you need help, try looking in the <a href="https://blueskyweb.zendesk.com/hc/en-us">Bluesky Help Pages</a>.
+</p>
 
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
+<p>
+  If you can't find a solution there, email us at<!-- --> <a href="mailto:support@bluenotes.social">support@bluenotes.social</a> with a description of your issue and information about how we can help you.
+</p>
 
-  return (
-    <Layout.Screen>
-      <ViewHeader title={_(msg`Support`)} />
-      <CenteredView>
-        <Text type="title-xl" style={[pal.text, s.p20, s.pb5]}>
-          <Trans>Support</Trans>
-        </Text>
-        <Text style={[pal.text, s.p20]}>
-          <Trans>
-            The support form has been moved. If you need help, please{' '}
-            <TextLink
-              href={HELP_DESK_URL}
-              text={_(msg`click here`)}
-              style={pal.link}
-            />{' '}
-            or visit {HELP_DESK_URL} to get in touch with us.
-          </Trans>
-        </Text>
-      </CenteredView>
-    </Layout.Screen>
-  )
-}
+<ul>
+
+  <li>
+    <a href="/about/support/community-guidelines">Community Guidelines</a>
+  </li>
+
+  <li>
+    <a href="/about/support/tos">Terms of Service</a>
+  </li>
+
+  <li>
+    <a href="/about/support/tos-gov">Terms of Service Amendment for Government Users</a>
+  </li>
+
+  <li>
+    <a href="/about/support/privacy-policy">Bluenotes App Privacy Policy</a>
+  </li>
+
+  <li>
+    <a href="https://bsky.social/about/support/network-services-privacy-policy">Bluesky AT Protocol Network Services Privacy Policy</a>
+  </li>
+
+  <li>
+    <a href="/about/support/copyright">Copyright Policy</a>
+  </li>
+
+</ul>
+
+</section>`
+
+export const SupportScreen = createSupportPageScreen('Support', supportPageHTML)
