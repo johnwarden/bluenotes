@@ -70,11 +70,12 @@ export const router = new Router<AllNavigatableRoutes>({
   ActivityNotificationSettings: '/settings/notifications/activity',
   MiscellaneousNotificationSettings: '/settings/notifications/miscellaneous',
   // support
-  Support: '/support',
-  PrivacyPolicy: '/support/privacy',
-  TermsOfService: '/support/tos',
-  CommunityGuidelines: '/support/community-guidelines',
-  CopyrightPolicy: '/support/copyright',
+  Support: '/about/support',
+  PrivacyPolicy: '/about/support/privacy-policy',
+  TermsOfService: '/about/support/tos',
+  GovernmentTermsOfService: '/about/support/tos-gov',
+  CommunityGuidelines: '/about/support/community-guidelines',
+  CopyrightPolicy: '/about/support/copyright',
   // hashtags
   Hashtag: '/hashtag/:tag',
   Topic: '/topic/:topic',

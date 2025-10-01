@@ -53,6 +53,7 @@ import {CommunityGuidelinesScreen} from '#/view/screens/CommunityGuidelines'
 import {CopyrightPolicyScreen} from '#/view/screens/CopyrightPolicy'
 import {DebugModScreen} from '#/view/screens/DebugMod'
 import {FeedsScreen} from '#/view/screens/Feeds'
+import {GovernmentTermsOfServiceScreen} from '#/view/screens/GovernmentTermsOfService'
 import {HomeScreen} from '#/view/screens/Home'
 import {ListsScreen} from '#/view/screens/Lists'
 import {ModerationBlockedAccounts} from '#/view/screens/ModerationBlockedAccounts'
@@ -323,7 +324,7 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
       <Stack.Screen
         name="Support"
         getComponent={() => SupportScreen}
-        options={{title: title(msg`Support`)}}
+        options={{title: title(msg`Help & Support`)}}
       />
       <Stack.Screen
         name="PrivacyPolicy"
@@ -334,6 +335,13 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="TermsOfService"
         getComponent={() => TermsOfServiceScreen}
         options={{title: title(msg`Terms of Service`)}}
+      />
+      <Stack.Screen
+        name="GovernmentTermsOfService"
+        getComponent={() => GovernmentTermsOfServiceScreen}
+        options={{
+          title: title(msg`Terms of Service Amendment for Government Users`),
+        }}
       />
       <Stack.Screen
         name="CommunityGuidelines"

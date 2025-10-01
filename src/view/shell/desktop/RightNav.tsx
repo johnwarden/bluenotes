@@ -24,6 +24,8 @@ import {InlineLinkText} from '#/components/Link'
 import {ProgressGuideList} from '#/components/ProgressGuide/List'
 import {Text} from '#/components/Typography'
 
+const disableFeedbackForm = true
+
 function useWebQueryParams() {
   const navigation = useNavigation()
   const [params, setParams] = useState<Record<string, string>>({})
@@ -96,7 +98,7 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
       {showTrending && <SidebarTrendingTopics />}
 
       <Text style={[a.leading_snug, t.atoms.text_contrast_low]}>
-        {hasSession && (
+        {!disableFeedbackForm && hasSession && (
           <>
             <InlineLinkText
               to={FEEDBACK_FORM_URL({
@@ -110,14 +112,12 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
           </>
         )}
         <InlineLinkText
-          to="https://bsky.social/about/support/privacy-policy"
+          to="/about/support/privacy-policy"
           label={_(msg`Privacy`)}>
           {_(msg`Privacy`)}
         </InlineLinkText>
         {' • '}
-        <InlineLinkText
-          to="https://bsky.social/about/support/tos"
-          label={_(msg`Terms`)}>
+        <InlineLinkText to="/about/support/tos" label={_(msg`Terms`)}>
           {_(msg`Terms`)}
         </InlineLinkText>
         {' • '}
