@@ -2,7 +2,6 @@ import {View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
-import {HELP_DESK_URL} from '#/lib/constants'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {
   atoms as a,
@@ -120,18 +119,16 @@ export function CommunityNotesRightPane() {
       {/* Footer Links - Same as main app */}
       <Text style={[a.leading_snug, t.atoms.text_contrast_low]}>
         <InlineLinkText
-          to="https://bsky.social/about/support/privacy-policy"
+          to="/about/support/privacy-policy"
           label={_(msg`Privacy`)}>
           {_(msg`Privacy`)}
         </InlineLinkText>
         {' • '}
-        <InlineLinkText
-          to="https://bsky.social/about/support/tos"
-          label={_(msg`Terms`)}>
+        <InlineLinkText to="/about/support/tos" label={_(msg`Terms`)}>
           {_(msg`Terms`)}
         </InlineLinkText>
         {' • '}
-        <InlineLinkText label={_(msg`Help`)} to={HELP_DESK_URL}>
+        <InlineLinkText to="/about/support" label={_(msg`Help`)}>
           {_(msg`Help`)}
         </InlineLinkText>
       </Text>
