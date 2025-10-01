@@ -23,7 +23,7 @@ The Authenticated Transfer Protocol ("AT Protocol" or "atproto") is a decentrali
 - [Protocol Specifications](https://atproto.com/specs/atp)
 - [Blogpost on self-authenticating data structures](https://bsky.social/about/blog/3-6-2022-a-self-authenticating-social-protocol)
 
-The Bluesky Social application encompasses a set of schemas and APIs built in the overall AT Protocol framework. The namespace for these "Lexicons" is `app.bsky.*`.
+The Bluesky Social application encompasses a set of schemas and APIs built in the overall AT Protocol framework. The namespace for these "Lexicons" is `app.bsky.*`. The Community Notes features encompasses an additional set of schemas and APIs based on the [social.pmsky.\*](https://pmsky.social/?ref=atprotocol.dev) lexicon.
 
 ## Contributions
 
@@ -54,13 +54,10 @@ You have our blessing 🪄✨ to fork this application! However, it's very impor
 
 Please be sure to:
 
-- Change all branding in the repository and UI to clearly differentiate from Bluesky.
+- Change all branding in the repository and UI to clearly differentiate from Bluesky and Bluenotes.
 - Change any support links (feedback, email, terms of service, etc) to your own systems.
 - Replace any analytics or error-collection systems with your own so we don't get super confused.
 
-## Security disclosures
-
-If you discover any security issues, please send an email to security@bsky.app. The email is automatically CC'd to the entire team and we'll respond promptly.
 
 ## Are you a developer interested in building on atproto?
 
@@ -74,4 +71,4 @@ Bluesky Social PBC has committed to a software patent non-aggression pledge. For
 
 ## P.S.
 
-We ❤️ you and all of the ways you support us. Thank you for making Bluesky a great place!
+We ❤️ you and all of the ways you support us. Thank you for making Bluesky and Bluenotes a great place!
