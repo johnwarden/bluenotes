@@ -11,7 +11,7 @@ import {CommunityNotes as CommunityIcon} from '#/components/icons/CommunityNotes
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
 
-function _RateProposedNotesPromptContent() {
+function RateProposedNotesPromptContent() {
   const t = useTheme()
 
   return (
@@ -94,7 +94,7 @@ export function RateProposedNotesPromptDefault({
           a.justify_between,
           a.gap_md,
         ]}>
-        <_RateProposedNotesPromptContent />
+        <RateProposedNotesPromptContent />
         <ArrowRightIcon size="md" style={t.atoms.text} />
       </View>
     </Link>
@@ -162,7 +162,7 @@ export function RateProposedNotesPromptEmbedded({
           a.justify_between,
           a.gap_md,
         ]}>
-        <_RateProposedNotesPromptContent />
+        <RateProposedNotesPromptContent />
         <ArrowRightIcon size="md" style={t.atoms.text} />
       </View>
     </Link>
