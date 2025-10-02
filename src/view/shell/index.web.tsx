@@ -8,7 +8,6 @@ import {RemoveScrollBar} from 'react-remove-scroll-bar'
 import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {type NavigationProp} from '#/lib/routes/types'
-import {useGate} from '#/lib/statsig/statsig'
 import {useGeolocationStatus} from '#/state/geolocation'
 import {useIsDrawerOpen, useSetDrawerOpen} from '#/state/shell'
 import {useComposerKeyboardShortcut} from '#/state/shell/composer/useComposerKeyboardShortcut'
@@ -19,17 +18,17 @@ import {ErrorBoundary} from '#/view/com/util/ErrorBoundary'
 import {atoms as a, select, useTheme} from '#/alf'
 import {AgeAssuranceRedirectDialog} from '#/components/ageAssurance/AgeAssuranceRedirectDialog'
 import {BlockedGeoOverlay} from '#/components/BlockedGeoOverlay'
+import {BluenotesBetaModal} from '#/components/BluenotesBetaModal'
 import {EmailDialog} from '#/components/dialogs/EmailDialog'
 import {LinkWarningDialog} from '#/components/dialogs/LinkWarning'
 import {MutedWordsDialog} from '#/components/dialogs/MutedWords'
 import {SigninDialog} from '#/components/dialogs/Signin'
-import {useWelcomeModal} from '#/components/hooks/useWelcomeModal'
+import {useBluenotesBetaModal} from '#/components/hooks/useBluenotesBetaModal'
 import {
   Outlet as PolicyUpdateOverlayPortalOutlet,
   usePolicyUpdateContext,
 } from '#/components/PolicyUpdateOverlay'
 import {Outlet as PortalOutlet} from '#/components/Portal'
-import {WelcomeModal} from '#/components/WelcomeModal'
 import {FlatNavigator, RoutesContainer} from '#/Navigation'
 import {Composer} from './Composer.web'
 import {DrawerContent} from './Drawer'
@@ -45,8 +44,7 @@ function ShellInner() {
   const showDrawer = !isDesktop && isDrawerOpen
   const [showDrawerDelayedExit, setShowDrawerDelayedExit] = useState(showDrawer)
   const {state: policyUpdateState} = usePolicyUpdateContext()
-  const welcomeModalControl = useWelcomeModal()
-  const gate = useGate()
+  const bluenotesBetaModalControl = useBluenotesBetaModal()
 
   useLayoutEffect(() => {
     if (showDrawer !== showDrawerDelayedExit) {
@@ -85,9 +83,9 @@ function ShellInner() {
       <LinkWarningDialog />
       <Lightbox />
 
-      {/* Show welcome modal if the gate is enabled */}
-      {welcomeModalControl.isOpen && gate('welcome_modal') && (
-        <WelcomeModal control={welcomeModalControl} />
+      {/* Show Bluenotes Beta modal */}
+      {bluenotesBetaModalControl.isOpen && (
+        <BluenotesBetaModal control={bluenotesBetaModalControl} />
       )}
 
       {/* Until policy update has been completed by the user, don't render anything that is portaled */}
