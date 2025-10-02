@@ -19,7 +19,7 @@ EXPO_PUBLIC_BLUESKY_PROXY_DID:= "did:web:api.bsky.app"
 EXPO_PUBLIC_SENTRY_DSN := ""
 
 # Geolocation Configuration (use our own IPCC service)
-GEOLOCATION_URL := "/ipcc"
+GEOLOCATION_URL := "https://bluenotes.social/ipcc"
 
 # =============================================================================
 # RUNTIME VARIABLES (passed via fly deploy --env)
