@@ -71,11 +71,13 @@ export const router = new Router<AllNavigatableRoutes>({
   MiscellaneousNotificationSettings: '/settings/notifications/miscellaneous',
   // support
   Support: '/about/support',
+  Help: '/about/support',
   PrivacyPolicy: '/about/support/privacy-policy',
   TermsOfService: '/about/support/tos',
   GovernmentTermsOfService: '/about/support/tos-gov',
   CommunityGuidelines: '/about/support/community-guidelines',
   CopyrightPolicy: '/about/support/copyright',
+  BetaGuide: '/support/beta',
   // hashtags
   Hashtag: '/hashtag/:tag',
   Topic: '/topic/:topic',

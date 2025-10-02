@@ -49,6 +49,7 @@ import {
   shouldRequestEmailConfirmation,
   snoozeEmailConfirmationPrompt,
 } from '#/state/shell/reminders'
+import {BetaGuideScreen} from '#/view/screens/BetaGuide'
 import {CommunityGuidelinesScreen} from '#/view/screens/CommunityGuidelines'
 import {CopyrightPolicyScreen} from '#/view/screens/CopyrightPolicy'
 import {DebugModScreen} from '#/view/screens/DebugMod'
@@ -352,6 +353,11 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="CopyrightPolicy"
         getComponent={() => CopyrightPolicyScreen}
         options={{title: title(msg`Copyright Policy`)}}
+      />
+      <Stack.Screen
+        name="BetaGuide"
+        getComponent={() => BetaGuideScreen}
+        options={{title: title(msg`Beta Tester Guide`)}}
       />
       <Stack.Screen
         name="AppPasswords"
