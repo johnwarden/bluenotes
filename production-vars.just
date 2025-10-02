@@ -45,6 +45,7 @@ ROBOTS_DISALLOW_ALL := "false"
 
 # Logging
 GOLOG_LOG_LEVEL := "info"
+EXPO_PUBLIC_LOG_LEVEL := "debug"
 
 # =============================================================================
 # FLY.IO CONFIGURATION
