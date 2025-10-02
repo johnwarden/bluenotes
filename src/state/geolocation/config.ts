@@ -12,6 +12,7 @@ async function getGeolocationConfig(
 ): Promise<Device['geolocation']> {
   const res = await fetch(url)
 
+  logger.debug('Called getGeolocationConfig')
   if (!res.ok) {
     throw new Error(`config: fetch failed ${res.status}`)
   }
@@ -28,9 +29,10 @@ async function getGeolocationConfig(
       ageRestrictedGeos: json.ageRestrictedGeos ?? [],
       ageBlockedGeos: json.ageBlockedGeos ?? [],
     }
-    logger.debug(`config: success`)
+    logger.debug(`getGeolocationConfig: success`)
     return config
   } else {
+    logger.debug('getGeolocationConfig: failure')
     return undefined
   }
 }
@@ -59,9 +61,11 @@ export function beginResolveGeolocationConfig() {
   //   device.set(['geolocation'], DEFAULT_GEOLOCATION_CONFIG) // clears bapp-config data
   //   return
   // }
-
+  logger.debug('beginResolveGeolocationConfig')
   geolocationConfigResolution = new Promise(async resolve => {
     let success = true
+
+    logger.debug('geolocationConfigResolution')
 
     try {
       // Try once, fail fast
