@@ -53,6 +53,11 @@ export type MetricEvents = {
   'welcomeModal:signinClicked': {}
   'welcomeModal:dismissed': {}
   'welcomeModal:presented': {}
+  'bluenotesBetaModal:presented': {}
+  'bluenotesBetaModal:signupClicked': {}
+  'bluenotesBetaModal:exploreClicked': {}
+  'bluenotesBetaModal:signinClicked': {}
+  'bluenotesBetaModal:dismissed': {}
   'signup:nextPressed': {
     activeStep: number
     phoneVerificationRequired?: boolean

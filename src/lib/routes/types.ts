@@ -43,6 +43,7 @@ export type CommonNavigatorParams = {
   GovernmentTermsOfService: undefined
   CommunityGuidelines: undefined
   CopyrightPolicy: undefined
+  BetaGuide: undefined
   LanguageSettings: undefined
   AppPasswords: undefined
   SavedFeeds: undefined
