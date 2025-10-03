@@ -707,6 +707,7 @@ function CommunityNotesTabNavigator() {
       <CommunityNotesTab.Screen
         name="CommunityNotes"
         getComponent={() => CommunityNotesScreen}
+        initialParams={{tab: 'needs_your_help'}}
       />
       {commonScreens(CommunityNotesTab as typeof Flat)}
     </CommunityNotesTab.Navigator>
