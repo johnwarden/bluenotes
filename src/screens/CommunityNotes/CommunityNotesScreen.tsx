@@ -32,19 +32,12 @@ const TAB_ITEMS = [
 export function CommunityNotesScreen() {
   const t = useTheme()
   const {_} = useLingui()
-  const route = useRoute()
-  const _navigation = useNavigation<NavigationProp>()
+  const route = useRoute<any>()
+  const navigation = useNavigation<NavigationProp>()
 
-  // Determine initial tab from URL
-  const getTabFromPath = useCallback((path: string): TabStatus => {
-    if (path.includes('/new')) return 'new'
-    if (path.includes('/rated_helpful')) return 'rated_helpful'
-    return 'needs_your_help' // default
-  }, [])
-
-  const currentPath =
-    route.name === 'CommunityNotes' && isWeb ? window.location.pathname : ''
-  const initialTab = getTabFromPath(currentPath)
+  // Get tab from route params - this is the single source of truth
+  const tabFromParams = route.params?.tab as TabStatus | undefined
+  const initialTab = tabFromParams || 'needs_your_help'
   const initialIndex = TAB_ITEMS.findIndex(item => item.key === initialTab)
 
   const [selectedTab, setSelectedTab] = useState<TabStatus>(initialTab)
@@ -53,6 +46,12 @@ export function CommunityNotesScreen() {
   // Add pager ref and initialization logic (like Home screen)
   const pagerRef = useRef<PagerRef>(null)
   const lastPagerReportedIndexRef = useRef(selectedIndex)
+  const isInitialMountRef = useRef(true)
+
+  // Mark that initial mount is complete
+  useEffect(() => {
+    isInitialMountRef.current = false
+  }, [])
 
   useEffect(() => {
     // Force pager to correct initial page on mount (iOS fix)
@@ -101,23 +100,25 @@ export function CommunityNotesScreen() {
     return tab === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
   }, [])
 
-  const onPageSelected = useCallback((index: number) => {
-    const newTab = TAB_ITEMS[index].key
-    lastPagerReportedIndexRef.current = index
-    setSelectedIndex(index)
-    setSelectedTab(newTab)
+  const onPageSelected = useCallback(
+    (index: number) => {
+      const newTab = TAB_ITEMS[index].key
+      lastPagerReportedIndexRef.current = index
+      setSelectedIndex(index)
+      setSelectedTab(newTab)
 
-    // Update URL without navigation
-    const paths = {
-      needs_your_help: '/community-notes/needs_your_help',
-      new: '/community-notes/new',
-      rated_helpful: '/community-notes/rated_helpful',
-    }
+      // Don't update URL during initial mount
+      if (isInitialMountRef.current) {
+        return
+      }
 
-    if (isWeb) {
-      window.history.replaceState(null, '', paths[newTab])
-    }
-  }, [])
+      // Update URL when user changes tabs using navigation
+      if (isWeb) {
+        navigation.navigate('CommunityNotes', {tab: newTab})
+      }
+    },
+    [navigation],
+  )
 
   const onPressSelected = useCallback(() => {
     // Handle tap on already selected tab - scroll to top

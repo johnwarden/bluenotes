@@ -24,9 +24,7 @@ export type CommonNavigatorParams = {
   PostThread: {name: string; rkey: string}
   PostLikedBy: {name: string; rkey: string}
   CommunityNotesRating: {name: string; rkey: string}
-  CommunityNotes: undefined
-  CommunityNotesAbout: undefined
-  CommunityNotesProfile: undefined
+  CommunityNotes: {tab: string}
   PostRepostedBy: {name: string; rkey: string}
   PostQuotes: {name: string; rkey: string}
   ProfileFeed: {
@@ -111,7 +109,7 @@ export type SearchTabNavigatorParams = CommonNavigatorParams & {
 }
 
 export type CommunityNotesTabNavigatorParams = CommonNavigatorParams & {
-  CommunityNotes: undefined
+  CommunityNotes: {tab: string}
 }
 
 export type NotificationsTabNavigatorParams = CommonNavigatorParams & {
