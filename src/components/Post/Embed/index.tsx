@@ -11,6 +11,7 @@ import {
 import {Trans} from '@lingui/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -339,7 +340,7 @@ export function QuoteEmbed({
           </>
         )}
       </ContentHider>
-      {!hideCommunityNotes && (
+      {!hideCommunityNotes && hasHelpfulNotes(quote) && (
         <>
           <View style={[a.border_t, t.atoms.border_contrast_low]} />
           <CommunityNoteWidget
