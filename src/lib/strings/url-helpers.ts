@@ -6,6 +6,7 @@ import {BSKY_SERVICE} from '#/lib/constants'
 import {isInvalidHandle} from '#/lib/strings/handles'
 import {startUriToStarterPackUri} from '#/lib/strings/starter-pack'
 import {logger} from '#/logger'
+import {isWeb} from '#/platform/detection'
 
 export const BSKY_APP_HOST = 'https://bsky.app'
 const BSKY_TRUSTED_HOSTS = [
@@ -357,6 +358,39 @@ export function shortLinkToHref(url: string): string {
   } catch (e) {
     logger.error('Failed to parse possible short link', {safeMessage: e})
     return url
+  }
+}
+
+/**
+ * Get the correct URL for a static asset served by bskyweb
+ * @param assetPath - The path to the asset relative to the static directory (e.g., 'bluesky-plus-notes-bluenotes.png')
+ * @returns The full URL to the static asset
+ */
+export function getStaticAssetUrl(assetPath: string): string {
+  // Remove leading slash if present
+  const cleanPath = assetPath.replace(/^\//, '')
+
+  if (isWeb) {
+    // @ts-ignore only for web
+    const currentHost = window.location.host
+    if (currentHost === 'localhost:19006') {
+      // Development: React app runs on 19006, bskyweb on 8100
+      return `http://localhost:8100/static/${cleanPath}`
+    } else if (currentHost === 'localhost:8100') {
+      // Development: accessing bskyweb directly
+      return `/static/${cleanPath}`
+    } else {
+      // Production: same domain
+      return `/static/${cleanPath}`
+    }
+  } else {
+    // Mobile app
+    if (__DEV__ && !process.env.JEST_WORKER_ID) {
+      return `http://localhost:8100/static/${cleanPath}`
+    } else {
+      // Production mobile - this would need to be configured based on your deployment
+      return `https://bluenotes.social/static/${cleanPath}`
+    }
   }
 }
 
