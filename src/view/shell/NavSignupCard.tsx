@@ -5,7 +5,7 @@ import {useLingui} from '@lingui/react'
 
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {useCloseAllActiveElements} from '#/state/util'
-import {Logo} from '#/view/icons/Logo'
+import {Logotype} from '#/view/icons/Logotype'
 import {atoms as a} from '#/alf'
 import {AppLanguageDropdown} from '#/components/AppLanguageDropdown'
 import {Button, ButtonText} from '#/components/Button'
@@ -31,7 +31,7 @@ let NavSignupCard = ({}: {}): React.ReactNode => {
   return (
     <View style={[{maxWidth: 200}]}>
       <Link to="/" label="Bluesky - Home">
-        <Logo width={32} />
+        <Logotype width="100" />
       </Link>
 
       <View style={[a.pt_lg]}>
