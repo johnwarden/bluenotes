@@ -43,20 +43,18 @@ logo.png: logo.svg
 community-notes.png: community-notes.svg
 	magick -background none $< $@
 
-
 favicon.png: logo.svg
 	magick -background none $< -resize 64x64 $@
 
-tmp/logotype_black_unflattened.svg: logotype_master.png
+tmp/working_black_unflattened.svg: working_input.png
 	mkdir -p tmp
-	magick convert $< -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --unit 1  -s --invert --turdsize 20 --opttolerance 0.8 --alphamax 1.2 -o $@
+	magick convert $< -alpha extract -gaussian-blur 0x1 -threshold 5% bmp:- | potrace --unit 1  -s --invert --turdsize 20 --opttolerance 2.0 --alphamax 1.2 -o $@
 
-tmp/logotype_black.svg: tmp/logotype_black_unflattened.svg
+tmp/working_black.svg: tmp/working_black_unflattened.svg
 	svgo --multipass -o $@ --input $<
 
-logotype.svg: tmp/logotype_black.svg
+logotype.svg: logotype_master.svg
 	cp $< $@
-	sed "s/viewBox=/fill=\"#1185FE\" viewBox=/g" $< > $@
 
 logotype.png: logotype.svg
 	magick -background none $< $@
@@ -179,19 +177,26 @@ icons/logomark.svg: templates/logomark-template.svg logo.svg
 		-e '/^[[:space:]]*const ratio = /s/const ratio = .*/const ratio = '"$$ASPECT_RATIO"'/' \
 		-e '/^[[:space:]]*viewBox="/s/viewBox="[^"]*"/viewBox="'"$$VIEWBOX"'"/' \
 		-e '/^[[:space:]]*<Path/,/^[[:space:]]*\/>/ s/d="[^"]*"/d="'"$$PATH_DATA"'"/' \
-		../src/view/icons/Logomark.tsx
+		$@
 
-../src/view/icons/Logotype.tsx: tmp/logotype_black.svg
-	PATH_DATA=$$(grep -o 'd="[^"]*"' tmp/logotype_black.svg | sed 's/d="//;s/"//g' | tr '\n' ' '); \
-	VIEWBOX=$$(grep -o 'viewBox="[^"]*"' tmp/logotype_black.svg | sed 's/viewBox="//;s/"//'); \
+../src/view/icons/Logotype.tsx: logotype_master.svg
+	VIEWBOX=$$(grep -o 'viewBox="[^"]*"' $< | sed 's/viewBox="//;s/"//'); \
 	WIDTH=$$(echo "$$VIEWBOX" | cut -d' ' -f3); \
 	HEIGHT=$$(echo "$$VIEWBOX" | cut -d' ' -f4); \
 	ASPECT_RATIO=$$(echo "scale=6; $$HEIGHT / $$WIDTH" | bc -l); \
+	mkdir -p tmp; \
+	sed -n '1,/height={Number(size) \* ratio}>/p' $@ > tmp/logotype_header.tsx; \
+	grep -o '<path[^>]*\/>' $< | sed 's/<path/      <Path/g; s/\/>/\n      \/>/g' >> tmp/logotype_header.tsx; \
+	echo "    </Svg>" >> tmp/logotype_header.tsx; \
+	echo "  )" >> tmp/logotype_header.tsx; \
+	echo "}" >> tmp/logotype_header.tsx; \
+	echo "" >> tmp/logotype_header.tsx; \
 	sed -i \
 		-e '/^[[:space:]]*const ratio = /s/const ratio = .*/const ratio = '"$$ASPECT_RATIO"'/' \
 		-e '/^[[:space:]]*viewBox="/s/viewBox="[^"]*"/viewBox="'"$$VIEWBOX"'"/' \
-		-e '/^[[:space:]]*<Path/,/^[[:space:]]*\/>/ s/d="[^"]*"/d="'"$$PATH_DATA"'"/' \
-		../src/view/icons/Logotype.tsx
+		tmp/logotype_header.tsx; \
+	mv tmp/logotype_header.tsx $@
+
 
 # Update the Splash component with the new logo path data and correct dimensions
 ../src/Splash.tsx: logo.svg
