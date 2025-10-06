@@ -13,6 +13,9 @@ const ALLOWED_HOSTS = [
   'js.hcaptcha.com',
   'newassets.hcaptcha.com',
   'api2.hcaptcha.com',
+  'localhost',
+  '127.0.0.1',
+  'bluenotes.social',
 ]
 
 const MIN_DELAY = 3_500
@@ -44,10 +47,20 @@ export function CaptchaWebView({
   const redirectHost = useMemo(() => {
     if (!state?.serviceUrl) return 'bsky.app'
 
-    return state?.serviceUrl &&
-      new URL(state?.serviceUrl).host === 'staging.bsky.dev'
-      ? 'app.staging.bsky.dev'
-      : 'bsky.app'
+    // In development, expect redirects to localhost:19006 (React Native app)
+    if (__DEV__) {
+      return 'localhost:19006'
+    }
+
+    // In production, redirects should come to the current service host
+    // The bskyweb proxy rewrites bsky.app redirects to the current host
+    const serviceHost = new URL(state.serviceUrl).host
+    if (serviceHost === 'staging.bsky.dev') {
+      return 'app.staging.bsky.dev'
+    }
+
+    // For custom hosts like bluenotes.social, expect redirects to the same host
+    return serviceHost
   }, [state?.serviceUrl])
 
   const wasSuccessful = useRef(false)
