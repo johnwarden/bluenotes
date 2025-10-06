@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net/http"
 	"net/netip"
@@ -147,15 +146,25 @@ func serve(cctx *cli.Context) error {
 
 	e.IPExtractor = echo.ExtractIPFromXFFHeader()
 
-	// SECURITY: Do not modify without due consideration.
-	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
-		ContentTypeNosniff: "nosniff",
-		XFrameOptions:      "SAMEORIGIN",
-		HSTSMaxAge:         31536000, // 365 days
-		// TODO:
-		// ContentSecurityPolicy
-		// XSSProtection
-	}))
+	// Custom middleware to conditionally set security headers
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Set security headers, but skip X-Frame-Options only for captcha endpoints
+			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000")
+
+			// Only skip X-Frame-Options for captcha endpoints that need iframe embedding
+			path := c.Request().URL.Path
+			isCaptchaEndpoint := strings.HasPrefix(path, "/gate/signup")
+
+			if !isCaptchaEndpoint {
+				c.Response().Header().Set("X-Frame-Options", "SAMEORIGIN")
+			}
+
+			return next(c)
+		}
+	})
+
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		// Don't log requests for static content.
 		Skipper: func(c echo.Context) bool {
@@ -201,7 +210,7 @@ func serve(cctx *cli.Context) error {
 	// CORS middleware
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: corsOrigins,
-		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodOptions},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPost},
 	}))
 
 	//
@@ -356,6 +365,12 @@ func serve(cctx *cli.Context) error {
 
 	// geolocation config
 	e.GET("/ipcc", server.WebGeolocationConfig)
+
+	// captcha gate endpoints for signup - proxy to Bluesky's service
+	e.GET("/gate/signup", server.WebCaptchaProxy)
+	e.POST("/gate/signup", server.WebCaptchaProxy)
+	e.GET("/gate/signup/attempt-attest", server.WebCaptchaProxy)
+	e.POST("/gate/signup/attempt-attest", server.WebCaptchaProxy)
 
 	if linkHost != "" {
 		linkUrl, err := url.Parse(linkHost)

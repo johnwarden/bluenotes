@@ -2,7 +2,11 @@ import React from 'react'
 import {StyleSheet} from 'react-native'
 
 // @ts-ignore web only, we will always redirect to the app on web (CORS)
-const REDIRECT_HOST = new URL(window.location.href).host
+// In development, captcha redirects to the React Native app port (19006)
+// In production, redirects come to the current host
+const REDIRECT_HOST = __DEV__
+  ? 'localhost:19006'
+  : new URL(window.location.href).host
 
 export function CaptchaWebView({
   url,

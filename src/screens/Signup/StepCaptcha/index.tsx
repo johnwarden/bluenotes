@@ -76,7 +76,16 @@ function StepCaptchaInner({
 
   const stateParam = React.useMemo(() => nanoid(15), [])
   const url = React.useMemo(() => {
-    const newUrl = new URL(state.serviceUrl)
+    // In development, always use the local bskyweb proxy for captcha
+    // This handles the redirect rewriting needed for iframe compatibility
+    let captchaServiceUrl = state.serviceUrl
+    if (__DEV__) {
+      // Use local bskyweb proxy which handles redirect rewriting
+      captchaServiceUrl = 'http://localhost:8100'
+    }
+    // In production, use the production proxy (bluenotes.social)
+
+    const newUrl = new URL(captchaServiceUrl)
     newUrl.pathname = CAPTCHA_PATH
     newUrl.searchParams.set(
       'handle',
