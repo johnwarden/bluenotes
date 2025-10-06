@@ -1,12 +1,8 @@
-# Bluesky Social App
+# Bluenotes Social App
 
-Welcome friends! This is the codebase for the Bluesky Social app.
+Welcome friends! This is the codebase for the Bluenotes Social app.
 
-Get the app itself:
-
-- **Web: [bsky.app](https://bsky.app)**
-- **iOS: [App Store](https://apps.apple.com/us/app/bluesky-social/id6444370199)**
-- **Android: [Play Store](https://play.google.com/store/apps/details?id=xyz.blueskyweb.app)**
+Bluenotes is a clone of the Bluesky Social App with the Community Notes feature.
 
 ## Development Resources
 
@@ -23,7 +19,7 @@ The Authenticated Transfer Protocol ("AT Protocol" or "atproto") is a decentrali
 - [Protocol Specifications](https://atproto.com/specs/atp)
 - [Blogpost on self-authenticating data structures](https://bsky.social/about/blog/3-6-2022-a-self-authenticating-social-protocol)
 
-The Bluesky Social application encompasses a set of schemas and APIs built in the overall AT Protocol framework. The namespace for these "Lexicons" is `app.bsky.*`. The Community Notes features encompasses an additional set of schemas and APIs based on the [social.pmsky.\*](https://pmsky.social/?ref=atprotocol.dev) lexicon.
+The Bluenotes Social application encompasses a set of schemas and APIs built in the overall AT Protocol framework. The namespace for these "Lexicons" is `app.bsky.*`. The Community Notes features encompasses an additional set of schemas and APIs based on the [social.pmsky.\*](https://pmsky.social/?ref=atprotocol.dev) lexicon.
 
 ## Contributions
 
@@ -54,14 +50,14 @@ You have our blessing 🪄✨ to fork this application! However, it's very impor
 
 Please be sure to:
 
-- Change all branding in the repository and UI to clearly differentiate from Bluesky and Bluenotes.
+- Change all branding in the repository and UI to clearly differentiate from Bluenotes and Bluenotes.
 - Change any support links (feedback, email, terms of service, etc) to your own systems.
 - Replace any analytics or error-collection systems with your own so we don't get super confused.
 
 
 ## Are you a developer interested in building on atproto?
 
-Bluesky is an open social network built on the AT Protocol, a flexible technology that will never lock developers out of the ecosystems that they help build. With atproto, third-party integration can be as seamless as first-party through custom feeds, federated services, clients, and more.
+Bluenotes is a frontend for Bluesky, an open social network built on the AT Protocol, a flexible technology that will never lock developers out of the ecosystems that they help build. With atproto, third-party integration can be as seamless as first-party through custom feeds, federated services, clients, and more.
 
 ## License (MIT)
 
