@@ -850,7 +850,7 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
 
 <p>
   If you have any questions about this Privacy Policy, please contact us at <a href="mailto:support@bluenotes.social">support@bluenotes.social</a>.
-</p></section>`
+</p></section>`;
 
 export const PrivacyPolicyScreen = createSupportPageScreen(
   'Privacy Policy',

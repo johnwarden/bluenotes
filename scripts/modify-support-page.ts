@@ -12,8 +12,9 @@ import * as path from 'path'
  * 3. Replaces all references to "Bluesky" with "Bluenotes"
  * 4. Replaces all links to "bsky.app" with "bluenotes.social"
  * 5. Adds a section explaining the relationship with Bluesky (based on page type)
- * 6. Prettifies the HTML content
- * 7. Outputs to specified file
+ * 6. Removes EU-specific content (DPO/DPR sections, Digital Services Act paragraphs)
+ * 7. Prettifies the HTML content
+ * 8. Outputs to specified file
  *
  * Usage:
  *   tsx scripts/modify-support-page.ts <input-file> <output-file>
@@ -218,7 +219,6 @@ function createRelationshipSection(pageType: PageType): string {
   return ''
 }
 
-
 function removeTableOfContents(content: string): string {
   // Remove Table of Contents section if present
   // This looks for various patterns of TOC sections
@@ -307,8 +307,7 @@ function modifyContent(content: string, pageType: PageType): string {
   // Replace Bluesky with Bluenotes
   modified = modified.replace(/Bluesky/g, 'Bluenotes')
   modified = modified.replace(/BLUESKY/g, 'BLUENOTES')
-  modified = modified.replace(/bluesky/ig, 'bluenotes')
-
+  modified = modified.replace(/bluesky/gi, 'bluenotes')
 
   // Replace bsky.app with bluenotes.social (but not in protected strings)
   modified = modified.replace(/bsky\.app/g, 'bluenotes.social')
@@ -319,7 +318,6 @@ function modifyContent(content: string, pageType: PageType): string {
     /bsky\.social(?!\/about\/support)/g,
     'bluenotes.social',
   )
-
 
   modified = modified.replace(
     /available at bluenotes.social and bluenotes.social; each a "Site"/g,
@@ -361,12 +359,41 @@ function modifyContent(content: string, pageType: PageType): string {
   // since Bluenotes doesn't have these
   if (pageType === 'PrivacyPolicy') {
     // Remove DPO and DPR sections completely
-    const dpoRegex = /<p>\s*<strong>\s*Data Protection Officer:\s*<\/strong>[\s\S]*?<\/p>/g
-    const dprRegex = /<p>\s*<strong>\s*Data Protection Representative:\s*<\/strong>[\s\S]*?<\/p>/g
-    
+    const dpoRegex =
+      /<p>\s*<strong>\s*Data Protection Officer:\s*<\/strong>[\s\S]*?<\/p>/g
+    const dprRegex =
+      /<p>\s*<strong>\s*Data Protection Representative:\s*<\/strong>[\s\S]*?<\/p>/g
+
     modified = modified.replace(dpoRegex, '')
     modified = modified.replace(dprRegex, '')
-    
+
+    // Clean up any extra whitespace left behind
+    modified = modified.replace(/\n\s*\n\s*\n+/g, '\n\n')
+  }
+
+  // Remove EU Digital Services Act sections from Terms of Service
+  // since Bluenotes doesn't operate under EU jurisdiction
+  if (pageType === 'TermsOfService') {
+    // Remove the English paragraph about EU competent authorities
+    const euContactRegex =
+      /<p[^>]*>\s*Competent authorities of the EU and EU Member States that want to contact Bluenotes under the Digital Services Act[\s\S]*?<\/p>/gi
+    modified = modified.replace(euContactRegex, '')
+
+    // Remove the German paragraph that follows
+    const germanContactRegex =
+      /<p[^>]*>\s*Zuständige Behörden der EU und der EU-Mitgliedstaaten[\s\S]*?<\/p>/gi
+    modified = modified.replace(germanContactRegex, '')
+
+    // Remove the VeraSafe Ireland address block (EU representative)
+    const addressRegex =
+      /<address[^>]*>[\s\S]*?VeraSafe Ireland Ltd\.[\s\S]*?<\/address>/gi
+    modified = modified.replace(addressRegex, '')
+
+    // Remove the paragraph about EU competent authorities filing requests
+    const euRequestsRegex =
+      /<p[^>]*>\s*Requests are accepted in English\. Competent EU or EU member authorities[\s\S]*?<\/p>/gi
+    modified = modified.replace(euRequestsRegex, '')
+
     // Clean up any extra whitespace left behind
     modified = modified.replace(/\n\s*\n\s*\n+/g, '\n\n')
   }
@@ -417,6 +444,14 @@ function main(): void {
     const relationshipSection = createRelationshipSection(pageType)
     if (relationshipSection) {
       console.log(`  • Added relationship section for ${pageType} page`)
+    }
+    if (pageType === 'PrivacyPolicy') {
+      console.log(
+        '  • Removed Data Protection Officer and Representative sections',
+      )
+    }
+    if (pageType === 'TermsOfService') {
+      console.log('  • Removed EU Digital Services Act contact paragraphs')
     }
     console.log('  • Updated last modified date')
     console.log('  • Prettified HTML formatting')

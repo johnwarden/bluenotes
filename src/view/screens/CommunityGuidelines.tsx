@@ -572,7 +572,7 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
     Transparency and Public Information: Publicly available information from official sources such as court records, business filings, property records, or related to government transparency and public officials.
   </li>
 
-</ol></section>`
+</ol></section>`;
 
 export const CommunityGuidelinesScreen = createSupportPageScreen(
   'Community Guidelines',
