@@ -806,32 +806,6 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
 </p>
 
 <p>
-  Competent authorities of the EU and EU Member States that want to contact Bluenotes under the Digital Services Act can obtain the necessary contact details from
-</p>
-<address>
-  <p>
-    VeraSafe Ireland Ltd. (registration number 619028)
-    <br/>
-    Unit 3D North Point House
-    <br/>
-    North Point Business Park
-    <br/>
-    New Mallow Road
-    <br/>
-    Cork T23AT2P
-    <br/>
-    Ireland
-    <br/>
-    Telephone: +420 228 881 031
-    <br/>
-    Email: dsa.rep.bluenotes@verasafe.com
-  </p>
-</address>
-<p>
-  Requests are accepted in English. Competent EU or EU member authorities may file requests by following the instructions<!-- --> <a href="/about/support">here</a>. If you are not a competent EU or EU member authority, your request will not be processed and you will not get a response.
-</p>
-
-<p>
   Zustellungsbevollmächtigter ausschließlich für Gerichtsverfahren vor deutschen Gerichten im Sinne des § 5 Netzwerkdurchsetzungsgesetz (NetzDG):
 </p>
 <address>
@@ -917,7 +891,7 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
 
   </li>
 
-</ol></section>`
+</ol></section>`;
 
 export const TermsOfServiceScreen = createSupportPageScreen(
   'Terms Of Service',
