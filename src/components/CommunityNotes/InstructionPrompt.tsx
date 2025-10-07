@@ -16,9 +16,9 @@ export function InstructionPrompt({status}: InstructionPromptProps) {
       case 'needs_your_help':
         return (
           <Trans>
-            Rate these notes chosen for you. Notes on these posts need a more
-            diverse range of feedback, and your point of view could help decide
-            if they're helpful. This list refreshes regularly.
+            Notes on these posts need a more diverse range of feedback, and your
+            point of view could help decide if they're helpful. This list
+            refreshes regularly.
           </Trans>
         )
       case 'new':
