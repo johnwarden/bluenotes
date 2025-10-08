@@ -1,6 +1,5 @@
-import {useEffect, useMemo, useState} from 'react'
+import {useEffect, useState} from 'react'
 import {ActivityIndicator, Pressable, StyleSheet, View} from 'react-native'
-import {RichText as RichTextAPI} from '@atproto/api'
 import {type MessageDescriptor} from '@lingui/core'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
@@ -25,7 +24,7 @@ import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import * as Menu from '#/components/Menu'
 import {MenuTriggerButton} from '#/components/Menu/MenuTriggerButton'
-import {RichText} from '#/components/RichText'
+import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
 
 const HELPFUL_REASONS = [
@@ -78,14 +77,6 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   // Get the current rating state from the shadow cache
   const currentRating = noteWithShadow.viewer?.rating
   const hasSubmittedRating = currentRating && currentRating.val !== null
-
-  const richText = useMemo(
-    () =>
-      new RichTextAPI({
-        text: note.text,
-      }),
-    [note.text],
-  )
 
   // Only populate form when explicitly entering edit mode (and only once)
   useEffect(() => {
@@ -488,7 +479,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
         </>
       )}
 
-      <RichText value={richText} style={[t.atoms.text, {paddingTop: 4}]} />
+      <TextWithLinks text={note.text} style={[t.atoms.text, {paddingTop: 4}]} />
 
       {shouldShowRatingForm ? (
         <View style={styles.actionsBox}>
