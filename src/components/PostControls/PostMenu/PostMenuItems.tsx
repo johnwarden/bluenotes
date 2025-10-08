@@ -655,14 +655,6 @@ let PostMenuItems = ({
                   )}
 
                   <Menu.Item
-                    testID="postDropdownReportBtn"
-                    label={_(msg`Report post`)}
-                    onPress={() => reportDialogControl.open()}>
-                    <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
-                    <Menu.ItemIcon icon={Warning} position="right" />
-                  </Menu.Item>
-
-                  <Menu.Item
                     testID="postDropdownWriteNoteBtn"
                     label={_(msg`Write a Community Note`)}
                     onPress={() => valuesModalControl.open()}>
@@ -670,6 +662,14 @@ let PostMenuItems = ({
                       {_(msg`Write a Community Note`)}
                     </Menu.ItemText>
                     <Menu.ItemIcon icon={CommunityNotes} position="right" />
+                  </Menu.Item>
+
+                  <Menu.Item
+                    testID="postDropdownReportBtn"
+                    label={_(msg`Report post`)}
+                    onPress={() => reportDialogControl.open()}>
+                    <Menu.ItemText>{_(msg`Report post`)}</Menu.ItemText>
+                    <Menu.ItemIcon icon={Warning} position="right" />
                   </Menu.Item>
                 </>
               )}
