@@ -55,6 +55,7 @@ import {
 import {useRequireAuth, useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
 import * as Toast from '#/view/com/util/Toast'
+import {ValuesModal} from '#/components/CommunityNotes/ValuesModal'
 import {WriteNoteDialog} from '#/components/CommunityNotes/WriteNoteDialog'
 import {useDialogControl} from '#/components/Dialog'
 import {useGlobalDialogsControlContext} from '#/components/dialogs/Context'
@@ -130,6 +131,7 @@ let PostMenuItems = ({
   const {mutedWordsDialogControl} = useGlobalDialogsControlContext()
   const blockPromptControl = useDialogControl()
   const reportDialogControl = useReportDialogControl()
+  const valuesModalControl = useDialogControl()
   const writeNoteDialogControl = useDialogControl()
   const deletePromptControl = useDialogControl()
   const hidePromptControl = useDialogControl()
@@ -695,7 +697,7 @@ let PostMenuItems = ({
                   <Menu.Item
                     testID="postDropdownWriteNoteBtn"
                     label={_(msg`Write a Community Note`)}
-                    onPress={() => writeNoteDialogControl.open()}>
+                    onPress={() => valuesModalControl.open()}>
                     <Menu.ItemText>
                       {_(msg`Write a Community Note`)}
                     </Menu.ItemText>
@@ -766,6 +768,11 @@ let PostMenuItems = ({
           ...post,
           $type: 'app.bsky.feed.defs#postView',
         }}
+      />
+
+      <ValuesModal
+        control={valuesModalControl}
+        onContinue={() => writeNoteDialogControl.open()}
       />
 
       <WriteNoteDialog control={writeNoteDialogControl} postUri={post.uri} />
