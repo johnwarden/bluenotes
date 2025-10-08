@@ -306,7 +306,10 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                   label={_(msg`See examples`)}
                   style={[a.self_start, a.mb_md]}
                   onPress={() => {
-                    // TODO: Show examples
+                    window.open(
+                      'https://communitynotes.x.com/guide/en/contributing/examples',
+                      '_blank',
+                    )
                   }}>
                   <ButtonText style={[{color: t.palette.primary_500}]}>
                     See examples
