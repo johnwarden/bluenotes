@@ -150,7 +150,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               accessibilityIgnoresInvertColors
             />
 
-            <Text style={styles.h1}>Welcome Phase 1 Beta Testers!</Text>
+            <Text style={styles.h1}>Welcome, Phase 1 Beta Testers!</Text>
 
             <Text style={styles.p}>
               Bluenotes is a fully-featured fork of the Bluesky social app, with
@@ -162,7 +162,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               Phase 1 of the beta test will focus on the UI, because the
               Community Notes algorithm requires a lot of ratings before it has
               enough data to produce meaningful results. However, the notes and
-              ratings data produce during this test will help us get to the
+              ratings data produced during this test will help us get to the
               critical mass of data necessary for the algorithm to work.
             </Text>
 
@@ -322,13 +322,22 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Text style={styles.h2}>FAQs</Text>
 
+            <Text style={styles.h3}>
+              Will the main Bluesky app support Community Notes?
+            </Text>
+
+            <Text style={styles.p}>
+              We hope so! This code has been written so that the Community Notes
+              feature can easily be merged into the main Bluesky social app.
+            </Text>
+
             <Text style={styles.h3}>Are notes and ratings anonymous?</Text>
 
             <Text style={styles.p}>
               Yes. All users are given an Anonymous ID, and notes/ratings
               records are written using this ID. See the{' '}
               <Link href="https://github.com/johnwarden/open-community-notes/tree/master/003-aids#readme">
-                <Text>Anonyous ID (AID) Spec</Text>
+                <Text>Anonymous ID (AID) Spec</Text>
               </Link>
             </Text>
 
@@ -344,13 +353,20 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               . For the beta this feature is temporarily switched off.
             </Text>
 
-            <Text style={styles.h3}>
-              Will the main Bluesky app support Community Notes?
-            </Text>
+            <Text style={styles.h2}>Is Bluenotes a labeler?</Text>
 
             <Text style={styles.p}>
-              We hope so! This code has been written so that the Community Notes
-              feature can easily be merged into the main Bluesky social app.
+              Yes, Bluenotes does label posts that have notes. But you need to
+              use the Bluenotes app or another Community Notes-enabled app to
+              see the actual notes. The Bluenotes labeler is{' '}
+              <Link href="https://bluenotes.social/profile/bluenotes-labeler.bsky.social">
+                <Text>bluenotes-labeler.bsky.social</Text>
+              </Link>
+              . See the{' '}
+              <Link href="https://github.com/johnwarden/open-community-notes/tree/master/004-labeling#readme">
+                <Text>labeling architecture</Text>
+              </Link>{' '}
+              for more details
             </Text>
 
             <Text style={styles.h3}>What's Next After This Beta?</Text>
@@ -384,7 +400,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
-              To understand how the algorithm identifies helpful note, see the
+              To understand how the algorithm identifies helpful notes, see the
               essay{' '}
               <Link href="https://jonathanwarden.com/understanding-community-notes/">
                 <Text>Understanding Community Notes</Text>
