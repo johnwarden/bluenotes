@@ -140,6 +140,24 @@ src/locale/locales/**/*.js
 !src/locale/locales/*/
 !src/locale/locales/*/messages.po
 
+# Generated static files that get rebuilt during Docker build (144MB saved!)
+bskyweb/static/js/*.js
+bskyweb/static/js/*.map
+bskyweb/static/js/*.js.LICENSE.txt
+bskyweb/static/css/*.css
+bskyweb/static/css/*.map
+bskyweb/static/css/*.css.LICENSE.txt
+bskyweb/static/media/*.png
+bskyweb/templates/scripts.html
+bskyweb/templates/*-embed.html
+bskyweb/static/embed/*.html
+bskyweb/static/embed/assets/*.js
+bskyweb/static/embed/assets/*.css
+bskyweb/embedr-static/post-*.js
+bskyweb/embedr-static/post-*.css
+bskyweb/embedr-static/index-*.js
+bskyweb/embedr-static/polyfills-*.js
+
 # Exclude ogcard assets
 bskyogcard/src/assets/fonts/noto-*
 
