@@ -10,6 +10,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Link} from '#/components/Link'
+import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
@@ -360,9 +361,10 @@ function NoteContent({note, textColor}: NoteContentProps) {
     <View>
       {/* Note text */}
       <View style={[a.mb_sm]}>
-        <Text style={[a.text_md, finalTextColor, {lineHeight: 20}]}>
-          {note.text}
-        </Text>
+        <TextWithLinks
+          text={note.text}
+          style={[a.text_md, finalTextColor, {lineHeight: 20}]}
+        />
       </View>
     </View>
   )
