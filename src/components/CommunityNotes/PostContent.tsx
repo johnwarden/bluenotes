@@ -1,5 +1,5 @@
 import {useCallback, useMemo, useState} from 'react'
-import {type StyleProp, StyleSheet, View, type ViewStyle} from 'react-native'
+import {StyleSheet, View} from 'react-native'
 import {
   type AppBskyFeedDefs,
   AppBskyFeedPost,
@@ -10,9 +10,7 @@ import {
 } from '@atproto/api'
 import {useQueryClient} from '@tanstack/react-query'
 
-import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
-import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
 import {countLines} from '#/lib/strings/helpers'
@@ -28,33 +26,23 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
-import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
-import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
 import {PostRepliedTo} from '#/components/Post/PostRepliedTo'
 import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
-import {PostControls} from '#/components/PostControls'
 import {RichText} from '#/components/RichText'
 import {SubtleWebHover} from '#/components/SubtleWebHover'
 import * as bsky from '#/types/bsky'
 
-export function Post({
-  post,
-  showReplyLine,
-  hideTopBorder,
-  style,
-  onBeforePress,
-}: {
+interface PostContentProps {
   post: AppBskyFeedDefs.PostView
   showReplyLine?: boolean
-  hideTopBorder?: boolean
-  style?: StyleProp<ViewStyle>
-  onBeforePress?: () => void
-}) {
+}
+
+export function PostContent({post, showReplyLine}: PostContentProps) {
   const moderationOpts = useModerationOpts()
   const record = useMemo<AppBskyFeedPost.Record | undefined>(
     () =>
@@ -84,43 +72,33 @@ export function Post({
   }
   if (record && richText && moderation) {
     return (
-      <PostInner
+      <PostContentInner
         post={postShadowed}
         record={record}
         richText={richText}
         moderation={moderation}
         showReplyLine={showReplyLine}
-        hideTopBorder={hideTopBorder}
-        style={style}
-        onBeforePress={onBeforePress}
       />
     )
   }
   return null
 }
 
-function PostInner({
+function PostContentInner({
   post,
   record,
   richText,
   moderation,
   showReplyLine,
-  hideTopBorder,
-  style,
-  onBeforePress: outerOnBeforePress,
 }: {
   post: Shadow<AppBskyFeedDefs.PostView>
   record: AppBskyFeedPost.Record
   richText: RichTextAPI
   moderation: ModerationDecision
   showReplyLine?: boolean
-  hideTopBorder?: boolean
-  style?: StyleProp<ViewStyle>
-  onBeforePress?: () => void
 }) {
   const queryClient = useQueryClient()
   const pal = usePalette('default')
-  const {openComposer} = useOpenComposer()
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
@@ -132,39 +110,19 @@ function PostInner({
     replyAuthorDid = urip.hostname
   }
 
-  const onPressReply = useCallback(() => {
-    openComposer({
-      replyTo: {
-        uri: post.uri,
-        cid: post.cid,
-        text: record.text,
-        author: post.author,
-        embed: post.embed,
-        moderation,
-        langs: record.langs,
-      },
-    })
-  }, [openComposer, post, record, moderation])
-
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
 
   const onBeforePress = useCallback(() => {
     unstableCacheProfileView(queryClient, post.author)
-    outerOnBeforePress?.()
-  }, [queryClient, post.author, outerOnBeforePress])
+  }, [queryClient, post.author])
 
   const [hover, setHover] = useState(false)
   return (
     <Link
       href={itemHref}
-      style={[
-        styles.outer,
-        pal.border,
-        !hideTopBorder && {borderTopWidth: StyleSheet.hairlineWidth},
-        style,
-      ]}
+      style={[styles.outer, pal.border]}
       onBeforePress={onBeforePress}
       onPointerEnter={() => {
         setHover(true)
@@ -230,21 +188,7 @@ function PostInner({
               />
             ) : null}
           </ContentHider>
-          {hasHelpfulNotes(post) && (
-            <CommunityNoteWidget
-              post={post}
-              displayMode="rated_helpful"
-              showDisclaimer={true}
-            />
-          )}
-          <RateCommunityNotesPrompt post={post} />
-          <PostControls
-            post={post}
-            record={record}
-            richText={richText}
-            onPressReply={onPressReply}
-            logContext="Post"
-          />
+          {/* NOTE: No PostControls here - that's the key difference! */}
         </View>
       </View>
     </Link>

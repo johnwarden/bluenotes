@@ -45,6 +45,7 @@ import {
   BulletList_Filled_Corner0_Rounded as ListFilled,
   BulletList_Stroke2_Corner0_Rounded as List,
 } from '#/components/icons/BulletList'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {DotGrid_Stroke2_Corner0_Rounded as EllipsisIcon} from '#/components/icons/DotGrid'
 import {EditBig_Stroke2_Corner0_Rounded as EditBig} from '#/components/icons/EditBig'
 import {
@@ -613,6 +614,7 @@ function ChatNavItem() {
 export function DesktopLeftNav() {
   const {hasSession, currentAccount} = useSession()
   const pal = usePalette('default')
+  const t = useTheme()
   const {_} = useLingui()
   const {isDesktop} = useWebMediaQueries()
   const {leftNavMinimal, centerColumnOffset} = useLayoutBreakpoints()
@@ -767,6 +769,24 @@ export function DesktopLeftNav() {
                 context: 'link to bookmarks screen',
               }),
             )}
+          />
+          <NavItem
+            href="/community-notes/needs_your_help"
+            icon={
+              <CommunityNotesIcon
+                style={pal.text}
+                aria-hidden={true}
+                width={NAV_ICON_WIDTH}
+              />
+            }
+            iconFilled={
+              <CommunityNotesIcon
+                style={{color: t.palette.primary_500}}
+                aria-hidden={true}
+                width={NAV_ICON_WIDTH}
+              />
+            }
+            label={_(msg`Community Notes`)}
           />
           <NavItem
             href={currentAccount ? makeProfileLink(currentAccount) : '/'}

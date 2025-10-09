@@ -31,6 +31,7 @@ import {buildStateObject} from '#/lib/routes/helpers'
 import {
   type AllNavigatorParams,
   type BottomTabNavigatorParams,
+  type CommunityNotesTabNavigatorParams,
   type FlatNavigatorParams,
   type HomeTabNavigatorParams,
   type MessagesTabNavigatorParams,
@@ -72,6 +73,8 @@ import {TermsOfServiceScreen} from '#/view/screens/TermsOfService'
 import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
 import {BookmarksScreen} from '#/screens/Bookmarks'
+import {CommunityNotesScreen} from '#/screens/CommunityNotes'
+import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
 import HashtagScreen from '#/screens/Hashtag'
 import {LogScreen} from '#/screens/Log'
@@ -145,6 +148,8 @@ const navigationRef = createNavigationContainerRef<AllNavigatorParams>()
 
 const HomeTab = createNativeStackNavigatorWithAuth<HomeTabNavigatorParams>()
 const SearchTab = createNativeStackNavigatorWithAuth<SearchTabNavigatorParams>()
+const CommunityNotesTab =
+  createNativeStackNavigatorWithAuth<CommunityNotesTabNavigatorParams>()
 const NotificationsTab =
   createNativeStackNavigatorWithAuth<NotificationsTabNavigatorParams>()
 const MyProfileTab =
@@ -623,6 +628,14 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
           requireAuth: true,
         }}
       />
+      <Stack.Screen
+        name="CommunityNotesRating"
+        getComponent={() => RateNotesScreen}
+        options={({route}) => ({
+          title: title(msg`Post by @${route.params.name}`),
+          requireAuth: true,
+        })}
+      />
     </>
   )
 }
@@ -647,6 +660,10 @@ function TabsNavigator() {
       tabBar={tabBar}>
       <Tab.Screen name="HomeTab" getComponent={() => HomeTabNavigator} />
       <Tab.Screen name="SearchTab" getComponent={() => SearchTabNavigator} />
+      <Tab.Screen
+        name="CommunityNotesTab"
+        getComponent={() => CommunityNotesTabNavigator}
+      />
       <Tab.Screen
         name="MessagesTab"
         getComponent={() => MessagesTabNavigator}
@@ -692,6 +709,22 @@ function SearchTabNavigator() {
       <SearchTab.Screen name="Search" getComponent={() => SearchScreen} />
       {commonScreens(SearchTab as typeof Flat)}
     </SearchTab.Navigator>
+  )
+}
+
+function CommunityNotesTabNavigator() {
+  const t = useTheme()
+  return (
+    <CommunityNotesTab.Navigator
+      screenOptions={screenOptions(t)}
+      initialRouteName="CommunityNotes">
+      <CommunityNotesTab.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        initialParams={{tab: 'needs_your_help'}}
+      />
+      {commonScreens(CommunityNotesTab as typeof Flat)}
+    </CommunityNotesTab.Navigator>
   )
 }
 
@@ -786,6 +819,14 @@ const FlatNavigator = () => {
         name="Start"
         getComponent={() => HomeScreen}
         options={{title: title(msg`Home`)}}
+      />
+      <Flat.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        options={{
+          title: title(msg`Community Notes`),
+          requireAuth: true,
+        }}
       />
       {commonScreens(Flat, numUnread)}
     </Flat.Navigator>

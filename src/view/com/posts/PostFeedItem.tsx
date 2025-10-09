@@ -15,6 +15,7 @@ import {useQueryClient} from '@tanstack/react-query'
 
 import {useActorStatus} from '#/lib/actor-status'
 import {isReasonFeedSource, type ReasonFeedSource} from '#/lib/api/feed/types'
+import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -40,9 +41,14 @@ import {Link, TextLinkOnWebOnly} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {Text} from '#/view/com/util/text/Text'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a} from '#/alf'
+import {atoms as a, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Link as NewLink} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -77,6 +83,10 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }
 
 export function PostFeedItem({
@@ -96,6 +106,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   post: AppBskyFeedDefs.PostView
   rootPost: AppBskyFeedDefs.PostView
@@ -110,6 +121,7 @@ export function PostFeedItem({
       }),
     [record],
   )
+
   if (postShadowed === POST_TOMBSTONE) {
     return null
   }
@@ -135,6 +147,7 @@ export function PostFeedItem({
         isParentNotFound={isParentNotFound}
         rootPost={rootPost}
         onShowLess={onShowLess}
+        communityNotesDisplayMode={communityNotesDisplayMode}
       />
     )
   }
@@ -159,6 +172,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesDisplayMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<AppBskyFeedDefs.PostView>
@@ -452,6 +466,7 @@ let FeedItemInner = ({
               />
             )}
           <LabelsOnMyPost post={post} />
+          <DebugLabels post={post} />
           <PostContent
             moderation={moderation}
             richText={richText}
@@ -460,6 +475,8 @@ let FeedItemInner = ({
             onOpenEmbed={onOpenEmbed}
             post={post}
             threadgateRecord={threadgateRecord}
+            hover={hover}
+            communityNotesDisplayMode={communityNotesDisplayMode}
           />
           <PostControls
             post={post}
@@ -473,6 +490,10 @@ let FeedItemInner = ({
             onShowLess={onShowLess}
             viaRepost={viaRepost}
           />
+          {communityNotesDisplayMode &&
+            (hasHelpfulNotes(post) || hasProposedNotes(post)) && (
+              <SeeAllNotesLink post={post} />
+            )}
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
@@ -490,6 +511,8 @@ let PostContent = ({
   postAuthor,
   onOpenEmbed,
   threadgateRecord,
+  hover: _hover,
+  communityNotesDisplayMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -498,6 +521,11 @@ let PostContent = ({
   onOpenEmbed: () => void
   post: AppBskyFeedDefs.PostView
   threadgateRecord?: AppBskyFeedThreadgate.Record
+  hover?: boolean
+  communityNotesDisplayMode?:
+    | 'rated_helpful'
+    | 'needs_more_ratings'
+    | 'embedded'
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -568,6 +596,22 @@ let PostContent = ({
           />
         </View>
       ) : null}
+      {(hasHelpfulNotes(post) ||
+        (communityNotesDisplayMode && hasProposedNotes(post))) && (
+        <CommunityNoteWidget
+          post={post}
+          displayMode={communityNotesDisplayMode || 'rated_helpful'}
+          showRatingPrompt={true}
+          showDisclaimer={
+            !communityNotesDisplayMode ||
+            communityNotesDisplayMode === 'rated_helpful'
+          }
+          parentHover={_hover}
+        />
+      )}
+      {!communityNotesDisplayMode && (
+        <RateCommunityNotesPrompt post={post} parentHover={_hover} />
+      )}
     </ContentHider>
   )
 }
@@ -619,3 +663,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 })
+
+function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
+  const {_} = useLingui()
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <NewLink
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={_(msg`See all notes on this post`)}
+        style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+        <Text style={[a.text_md, {color: t.palette.primary_500}]}>
+          <Trans>See all notes on this post</Trans>
+        </Text>
+        <ChevronRightIcon size="sm" style={[{color: t.palette.primary_500}]} />
+      </NewLink>
+    </View>
+  )
+}
