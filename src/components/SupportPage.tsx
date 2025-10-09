@@ -103,28 +103,28 @@ export const SupportPage: React.FC<SupportPageProps> = ({
     h1: {
       color: pal.text.color,
       fontSize: 24,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       marginTop: 20,
       marginBottom: 10,
     },
     h2: {
       color: pal.text.color,
       fontSize: 20,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       marginTop: 20,
       marginBottom: 10,
     },
     h3: {
       color: pal.text.color,
       fontSize: 18,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       marginTop: 16,
       marginBottom: 8,
     },
     h4: {
       color: pal.text.color,
       fontSize: 16,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
       marginTop: 12,
       marginBottom: 6,
     },
@@ -135,13 +135,13 @@ export const SupportPage: React.FC<SupportPageProps> = ({
       marginBottom: 12,
     },
     strong: {
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
     },
     em: {
-      fontStyle: 'italic',
+      fontStyle: 'italic' as const,
     },
     u: {
-      textDecorationLine: 'underline',
+      textDecorationLine: 'underline' as const,
     },
     ol: {
       marginBottom: 12,
@@ -156,14 +156,14 @@ export const SupportPage: React.FC<SupportPageProps> = ({
       marginBottom: 6,
     },
     hr: {
-      backgroundColor: pal.border.color,
+      backgroundColor: pal.border.borderColor,
       height: 1,
       marginVertical: 20,
     },
     address: {
       color: pal.textLight.color,
       fontSize: 14,
-      fontStyle: 'italic',
+      fontStyle: 'italic' as const,
       marginBottom: 12,
     },
   }
