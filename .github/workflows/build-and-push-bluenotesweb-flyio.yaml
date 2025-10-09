@@ -48,6 +48,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Compile i18n
+        run: yarn intl:compile
+
       - name: Lint
         run: yarn lint --quiet
 
