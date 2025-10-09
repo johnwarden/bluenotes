@@ -2,7 +2,7 @@ name: build-and-push-bskyweb-flyio
 
 on:
   push:
-    branches: [release]
+    branches: [release, release2]
 
 # Prevent concurrent deployments
 concurrency:
