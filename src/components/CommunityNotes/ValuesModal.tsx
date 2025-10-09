@@ -223,7 +223,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
               },
             ]}
             onPress={handleContinue}>
-            <ButtonText style={[a.text_lg, a.font_semibold]}>
+            <ButtonText style={[a.text_lg, a.font_semi_bold]}>
               <Trans>Continue</Trans>
             </ButtonText>
           </Button>

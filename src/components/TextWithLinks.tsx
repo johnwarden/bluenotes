@@ -115,6 +115,7 @@ export function TextWithLinks({
         selectable={selectable}
         to={segment.url}
         style={interactiveStyles}
+        label={segment.url}
         shareOnLongPress>
         {segment.url}
       </InlineLinkText>

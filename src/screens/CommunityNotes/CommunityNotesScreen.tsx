@@ -32,7 +32,7 @@ const TAB_ITEMS = [
 export function CommunityNotesScreen() {
   const t = useTheme()
   const {_} = useLingui()
-  const route = useRoute()
+  const route = useRoute<any>()
   const navigation = useNavigation<NavigationProp>()
 
   // Get tab from route params - this is the single source of truth
