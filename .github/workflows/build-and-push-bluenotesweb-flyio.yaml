@@ -1,0 +1,117 @@
+name: build-and-push-bskyweb-flyio
+
+on:
+  push:
+    branches: [release]
+
+# Prevent concurrent deployments
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  pre-deployment:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      # Advanced caching for faster builds
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            node_modules
+            ~/.cache/yarn
+            .yarn/cache
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+
+      - name: Cache TypeScript build
+        uses: actions/cache@v3
+        with:
+          path: |
+            .tsbuildinfo
+            **/.tsbuildinfo
+          key: ${{ runner.os }}-typescript-${{ hashFiles('**/tsconfig*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-typescript-
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint --quiet
+
+      - name: Type check
+        run: yarn typecheck
+
+      - name: Build test
+        run: yarn build-web
+
+  deploy:
+    name: Deploy to Fly.io
+    needs: pre-deployment
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly.io
+        run: |
+          fly deploy \
+            --build-arg EXPO_PUBLIC_ENV=production \
+            --build-arg EXPO_PUBLIC_RELEASE_VERSION=$(node -p "require('./package.json').version") \
+            --build-arg EXPO_PUBLIC_BUNDLE_IDENTIFIER=bluenotes-production \
+            --build-arg EXPO_PUBLIC_CHAT_PROXY_DID=did:web:api.bsky.chat \
+            --build-arg EXPO_PUBLIC_BLUESKY_PROXY_DID=did:web:api.bsky.app \
+            --build-arg EXPO_PUBLIC_SENTRY_DSN= \
+            --env ATP_APPVIEW_HOST=https://public.api.bsky.app \
+            --env OGCARD_HOST=https://ogcard.cdn.bsky.app \
+            --env LINK_HOST= \
+            --env DEBUG=false \
+            --env DOMAIN=bluenotes.social \
+            --env CORS_ALLOWED_ORIGINS=https://bluenotes.social,https://www.bluenotes.social,https://bluenotes-web.fly.dev \
+            --env STATIC_CDN_HOST= \
+            --env BSKY_CANONICAL_INSTANCE=false \
+            --env ROBOTS_DISALLOW_ALL=false \
+            --env GOLOG_LOG_LEVEL=info \
+            --env GEOLOCATION_URL=/ipcc \
+            --remote-only \
+            --strategy canary
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+  post-deployment:
+    name: Post-Deployment Validation
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Health check
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://bluenotes.social/)
+          if [ "$response" != "200" ]; then
+            echo "Health check failed with status code: $response"
+            exit 1
+          fi
+          echo "Health check passed (HTTP $response)"
+
+      - name: Deployment notification
+        run: |
+          echo "✅ Successfully deployed to https://bluenotes.social/"
+          echo "Version: $(node -p 'require("./package.json").version')" || echo "Version: unknown"
