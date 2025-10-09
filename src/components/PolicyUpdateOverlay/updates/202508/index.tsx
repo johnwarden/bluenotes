@@ -44,6 +44,11 @@ export function Content({state}: {state: PolicyUpdateState}) {
       to: `/about/support/community-guidelines`,
       label: _(msg`Community Guidelines`),
     },
+    blog: {
+      overridePresentation: false,
+      to: `https://bsky.social/about/blog/policy-updates-aug-2025`,
+      label: _(msg`Read our blog post`),
+    },
   }
   const linkButtonStyles = {
     overridePresentation: false,

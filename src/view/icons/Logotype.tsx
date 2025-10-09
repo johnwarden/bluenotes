@@ -48,7 +48,7 @@ export function Logotype({showBeta = true, ...rest}: LogotypeProps) {
   }
 
   return (
-    <View style={{textAlign: 'left'}}>
+    <View style={{alignItems: 'flex-start'}}>
       {logoElement}
       <Text
         style={{

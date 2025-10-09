@@ -87,7 +87,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
       paddingTop: 8,
     },
     image: {
-      width: '100%' as string,
+      width: undefined,
       // maxHeight: 500,
       // height: undefined as undefined,
       aspectRatio: 16 / 9, // Will be overridden by actual image aspect ratio
