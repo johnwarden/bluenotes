@@ -41,7 +41,7 @@ export function InstructionPrompt({status}: InstructionPromptProps) {
 
   return (
     <View style={[a.p_lg, a.gap_md]}>
-      <Text style={[a.font_heavy, a.text_2xl, t.atoms.text]}>
+      <Text style={[a.font_bold, a.text_2xl, t.atoms.text]}>
         {status === 'needs_your_help' && (
           <Trans>Rate these notes chosen for you</Trans>
         )}
