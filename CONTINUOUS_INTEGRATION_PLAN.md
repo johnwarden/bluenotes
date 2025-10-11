@@ -3,18 +3,19 @@
 **Project**: Bluenotes Social App  
 **Target Platform**: Fly.io  
 **CI/CD Platform**: GitHub Actions  
-**Last Updated**: October 8, 2025
+**Last Updated**: October 11, 2025
 
 ## Table of Contents
 
 1. [Overview](#overview)
 2. [Current State](#current-state)
 3. [Phase 1: Basic CI/CD (Current)](#phase-1-basic-cicd-current)
-4. [Phase 2: Semantic Release (Future)](#phase-2-semantic-release-future)
-5. [Implementation Steps](#implementation-steps)
-6. [Usage Guide](#usage-guide)
-7. [Rollback Procedures](#rollback-procedures)
-8. [Monitoring & Maintenance](#monitoring--maintenance)
+4. [Phase 2: Semantic Versioning (Future)](#phase-2-semantic-versioning-future)
+5. [Phase 3: Full Automation (Future)](#phase-3-full-automation-future)
+6. [Implementation Steps](#implementation-steps)
+7. [Usage Guide](#usage-guide)
+8. [Rollback Procedures](#rollback-procedures)
+9. [Monitoring & Maintenance](#monitoring--maintenance)
 
 ---
 
@@ -22,18 +23,24 @@
 
 This document outlines a phased approach to implementing CI/CD for the Bluenotes Social App.
 
-**Phase 1** focuses on getting basic automated deployment working:
+**Phase 1** (Current) focuses on getting basic automated deployment working:
 - Automated deployment on push to `release` branch
-- Pre-deployment validation
-- Build optimization with caching
+- Pre-deployment validation with caching
+- Manual version management via `prepare-release-interactive.sh`
 - Post-deployment health checks
-- Better commit practices
+- Optional commit message guidelines (not enforced)
 
-**Phase 2** (future) adds advanced features:
-- Automated semantic versioning
-- Automatic changelog generation  
-- GitHub releases
-- Full automation
+**Phase 2** (Future) adds semantic versioning:
+- Auto-detect version bumps from conventional commits
+- Modify `prepare-release-interactive.sh` to use semantic-release
+- Automatic changelog generation
+- Still manually triggered
+
+**Phase 3** (Future) adds full automation:
+- Convert release script to GitHub Actions workflow
+- Auto-trigger on pushes to upstream/main, community-notes-feature, bluenotes-rebrand
+- Automatic branch merging and deployment
+- GitHub releases with release notes
 
 ---
 
@@ -48,21 +55,30 @@ This document outlines a phased approach to implementing CI/CD for the Bluenotes
 
 ### Current Release Process
 
-Manual process defined in `prepare-release.sh`:
+Manual process defined in `prepare-release-interactive.sh`:
 1. Rebase `tooling` branch against `upstream/main`
 2. Rebase `community-notes-feature` against `tooling`
 3. Rebase `bluenotes-rebrand` against `tooling`
-4. Reset `release` to `bluenotes-rebrand`
-5. Merge `community-notes-feature` into `release`
-6. Force push to `origin/release`
-7. Manual deployment via `just deploy`
+4. Prompt for version bump (major/minor/patch/skip)
+5. Update version in `package.json` and commit
+6. Cherry-pick version bump back to `bluenotes-rebrand`
+7. Reset `release` to `bluenotes-rebrand`
+8. Merge `community-notes-feature` into `release`
+9. Force push to `origin/release`
+10. **Automatic deployment via GitHub Actions**
 
-### Challenges with Current Process
+### Improvements from Phase 1
 
-- ❌ Manual deployment step can be forgotten
-- ❌ No automated testing before deployment
-- ❌ No health checks after deployment
-- ❌ Slow builds without caching
+- ✅ ~~Manual deployment step~~ → Now automatic via GitHub Actions
+- ✅ ~~No automated testing~~ → Lint, typecheck, build validation
+- ✅ ~~No health checks~~ → Post-deployment health validation
+- ✅ ~~Slow builds~~ → Build optimization with caching (2-4 min vs 5-8 min)
+
+### Remaining Manual Steps (to be automated in future phases)
+
+- 📝 Manual version bump decision (Phase 2 will auto-detect)
+- 📝 Manual trigger of release script (Phase 3 will auto-trigger)
+- 📝 Manual branch rebasing (Phase 3 will automate)
 
 ---
 
@@ -285,46 +301,219 @@ git commit -m "add rate notes screen"
 
 ---
 
-## Phase 2: Semantic Release (Future)
+## Phase 2: Semantic Versioning (Future)
 
-**Tracked in branch**: `semantic-release`
+**Reference**: `semantic-release` branch contains dependencies and configuration examples
 
-Phase 2 adds full automation of versioning and releases. This is ready to implement when needed.
+Phase 2 enhances `prepare-release-interactive.sh` to auto-detect version bumps from conventional commits.
 
-### Additional Features
+### Goals
 
-- ✅ **Automated semantic versioning** based on commit messages
+- 🎯 Auto-detect version bumps from commit history
   - `fix:` commits → Patch version (1.2.3 → 1.2.4)
   - `feat:` commits → Minor version (1.2.3 → 1.3.0)
   - `BREAKING CHANGE:` → Major version (1.2.3 → 2.0.0)
-- ✅ **Automatic changelog generation** (CHANGELOG.md)
-- ✅ **Automatic GitHub releases** with release notes
-- ✅ **Automatic version bump** commits
-- ✅ **Git tags** for each release
+- 🎯 Automatic changelog generation (CHANGELOG.md)
+- 🎯 Git tags for each release
+- 📝 Still manually triggered (automation comes in Phase 3)
+
+### Implementation Approach
+
+**Modify `prepare-release-interactive.sh`**:
+
+1. Add semantic-release dependency
+2. Analyze commits since last release
+3. Suggest version bump (but allow override)
+4. Generate changelog automatically
+5. Create git tag
+
+**Example flow**:
+```bash
+$ ./prepare-release-interactive.sh
+
+🔍 Analyzing commits since v0.1.2...
+Found:
+  - 3 feat: commits
+  - 2 fix: commits
+  - 0 BREAKING CHANGE commits
+
+💡 Recommended version: 0.2.0 (minor bump)
+
+Choose version bump:
+1) Use recommended (0.2.0)
+2) Major (1.0.0)
+3) Minor (0.2.0)
+4) Patch (0.1.3)
+5) Custom
+6) Skip version bump
+
+Your choice: _
+```
 
 ### When to Implement Phase 2
 
 Consider implementing when:
-- You want fully automated releases
-- You need consistent version numbering
-- You want automatic changelogs
-- Your team is comfortable with conventional commits
+- You're consistently using conventional commits
+- You want automatic changelog generation
+- You need clear version history
+- Manual version decisions feel tedious
 
-### How to Implement
+### Dependencies
 
-```bash
-# Switch to the semantic-release branch
-git checkout semantic-release
+Reference the `semantic-release` branch for:
+- `semantic-release` and plugins
+- `@commitlint` configuration
+- Optional: `commitizen` for commit guidance
 
-# Review the changes
-git diff bluenotes-rebrand semantic-release
+---
 
-# Merge when ready
-git checkout release
-git merge semantic-release
+## Phase 3: Full Automation (Future)
+
+Phase 3 converts the release script into a fully automated GitHub Actions workflow.
+
+### Goals
+
+- 🎯 **Auto-trigger on upstream changes**
+  - Watch `upstream/main` for Bluesky updates
+  - Watch `community-notes-feature` for feature updates
+  - Watch `bluenotes-rebrand` for branding updates
+- 🎯 **Automatic branch management**
+  - Auto-rebase branches
+  - Auto-merge using diamond strategy
+  - Auto-resolve simple conflicts
+- 🎯 **Automatic deployment**
+  - Version bump, changelog, release
+  - Deploy to Fly.io
+  - Create GitHub release
+
+### Architecture
+
+```
+┌─────────────────────────────────────┐
+│  Trigger Events                     │
+│  - Push to upstream/main            │
+│  - Push to community-notes-feature  │
+│  - Push to bluenotes-rebrand        │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Branch Sync Workflow               │
+│  1. Rebase tooling ← upstream/main  │
+│  2. Rebase features ← tooling       │
+│  3. Rebase rebrand ← tooling        │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Release Workflow                   │
+│  1. Analyze commits                 │
+│  2. Auto-version bump               │
+│  3. Generate changelog              │
+│  4. Merge to release                │
+│  5. Push & tag                      │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│  Deploy Workflow (existing)         │
+│  - Pre-deployment validation        │
+│  - Fly.io deployment                │
+│  - Post-deployment checks           │
+└─────────────────────────────────────┘
 ```
 
-See the `semantic-release` branch for full documentation and implementation.
+### Workflow: Auto-Trigger Release
+
+**File**: `.github/workflows/auto-release.yml` (to be created in Phase 3)
+
+```yaml
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - upstream/main
+      - community-notes-feature
+      - bluenotes-rebrand
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  sync-and-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for rebasing
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+
+      - name: Sync branches
+        run: |
+          # Rebase tooling against upstream/main
+          git checkout tooling
+          git rebase upstream/main
+
+          # Rebase feature branches
+          git checkout community-notes-feature
+          git rebase tooling
+
+          git checkout bluenotes-rebrand
+          git rebase tooling
+
+      - name: Detect version bump
+        id: version
+        run: |
+          # Use semantic-release to analyze commits
+          # Output: new_version, changelog
+
+      - name: Update version
+        run: |
+          npm version ${{ steps.version.outputs.new_version }} --no-git-tag-version
+          git commit -am "chore: bump version to ${{ steps.version.outputs.new_version }}"
+
+      - name: Merge to release
+        run: |
+          git checkout release
+          git reset --hard bluenotes-rebrand
+          git merge community-notes-feature -m "Merge features for release"
+          git tag v${{ steps.version.outputs.new_version }}
+
+      - name: Push changes
+        run: |
+          git push origin release --force
+          git push origin v${{ steps.version.outputs.new_version }}
+
+      # Deployment workflow triggers automatically from push to release
+```
+
+### Safety Considerations
+
+- ⚠️ **Conflict handling**: Script should fail gracefully on merge conflicts
+- ⚠️ **Notifications**: Notify on failures (Slack, email, etc.)
+- ⚠️ **Manual override**: Keep `workflow_dispatch` for manual intervention
+- ⚠️ **Branch protection**: Ensure release branch protection allows bot pushes
+
+### When to Implement Phase 3
+
+Consider implementing when:
+- Phase 2 is stable and well-tested
+- Team is comfortable with automated merges
+- Diamond merge strategy is well-established
+- Monitoring and alerting are in place
+
+### Migration Path
+
+1. Test the workflow on a separate test branch first
+2. Run in parallel with manual process for 2-4 weeks
+3. Monitor for issues and edge cases
+4. Gradually increase confidence
+5. Switch fully to automated process
 
 ---
 
@@ -374,7 +563,7 @@ See the `semantic-release` branch for full documentation and implementation.
 ### Daily Development
 
 **Making commits**:
-```bash
+   ```bash
 # Option 1: Interactive mode (recommended)
 yarn commit
 
@@ -384,31 +573,42 @@ git commit -m "fix: resolve bug"
 ```
 
 **Deployment**:
-```bash
-# Use your existing prepare-release.sh script
-./prepare-release.sh
+    ```bash
+# Use the interactive release script
+./prepare-release-interactive.sh
 
 # This will:
-# 1. Merge branches
-# 2. Push to release branch
-# 3. Trigger GitHub Actions automatically:
+# 1. Rebase all branches against upstream
+# 2. Prompt for version bump (major/minor/patch/skip)
+# 3. Update package.json and commit
+# 4. Cherry-pick version bump back to bluenotes-rebrand
+# 5. Merge branches to release
+# 6. Push to release branch
+# 7. Trigger GitHub Actions automatically:
 #    - Lint, typecheck, build
 #    - Deploy to Fly.io
 #    - Run health checks
 ```
 
-### Version Management (Manual for Phase 1)
+### Version Management (Interactive for Phase 1)
 
-Update version in `package.json` manually when needed:
+The `prepare-release-interactive.sh` script handles versioning:
+
 ```bash
-# Edit package.json version field
-vim package.json
+$ ./prepare-release-interactive.sh
 
-# Commit the version bump
-git commit -am "chore: bump version to 0.2.0"
+...
+
+Choose version bump:
+1) Major (1.0.0)
+2) Minor (0.2.0) 
+3) Patch (0.1.4)
+4) Skip version bump
+
+Your choice: _
 ```
 
-*(This becomes automatic in Phase 2)*
+*(Phase 2 will add auto-detection with suggestions based on commits)*
 
 ---
 
@@ -545,10 +745,46 @@ Recommended settings for `release` branch:
 
 ## Next Steps
 
-**Current Phase**: Phase 1 - Basic CI/CD  
-**Status**: ✅ Ready for implementation  
-**Action**: Follow [Implementation Steps](#implementation-steps)
+### Phase 1 - Basic CI/CD ✅ COMPLETE
 
-**Future Phase**: Phase 2 - Semantic Release  
-**Status**: 📦 Ready in `semantic-release` branch  
-**Action**: Implement when team is ready for full automation
+**Status**: ✅ Deployed and working  
+**Key Scripts**: 
+- `prepare-release-interactive.sh` - Manual release process
+- `.github/workflows/build-and-push-bluenotesweb-flyio.yaml` - Automatic deployment
+
+**What's Working**:
+- ✅ Automated deployment on push to `release` branch
+- ✅ Pre-deployment validation (lint, typecheck, build)
+- ✅ Build optimization with caching
+- ✅ Post-deployment health checks
+- ✅ Zero-downtime canary deployments
+
+### Phase 2 - Semantic Versioning 📋 PLANNED
+
+**Goal**: Add auto-detection of version bumps from conventional commits  
+**Approach**: Enhance `prepare-release-interactive.sh` with semantic-release  
+**Prerequisites**: 
+- Team consistently using conventional commits
+- Reference `semantic-release` branch for dependencies
+
+**Key Changes**:
+- Analyze commits since last release
+- Suggest version bump automatically
+- Generate CHANGELOG.md
+- Create git tags
+- Still manually triggered
+
+### Phase 3 - Full Automation 🎯 FUTURE
+
+**Goal**: Convert release script to automated GitHub Actions workflow  
+**Approach**: New workflow that triggers on pushes to key branches  
+**Prerequisites**:
+- Phase 2 stable and tested
+- Team comfortable with automated merges
+- Monitoring and alerting in place
+
+**Key Features**:
+- Auto-trigger on push to `upstream/main`, `community-notes-feature`, `bluenotes-rebrand`
+- Automatic branch syncing and merging
+- Automatic versioning and deployment
+- GitHub releases with release notes
