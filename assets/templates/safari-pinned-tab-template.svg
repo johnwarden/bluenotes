@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="100%" height="100%" fill="white"/>
+  <path fill="black" d="$(PATH_DATA)" transform="translate(12, 40) scale(0.974, 0.989)"/>
+</svg>

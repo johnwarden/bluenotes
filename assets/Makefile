@@ -1,5 +1,5 @@
 .PHONY: ALL_LOGOS
-ALL_LOGOS: APP_ICONS ICONS LOGO_COMPONENTS WEB_FAVICONS BSKYWEB_FAVICONS APPLE_TOUCH_ICONS
+ALL_LOGOS: APP_ICONS ICONS LOGO_COMPONENTS WEB_FAVICONS BSKYWEB_FAVICONS APPLE_TOUCH_ICONS SOCIAL_CARDS
 
 # Build all themed icons
 .PHONY: APP_ICONS 
@@ -15,11 +15,15 @@ WEB_FAVICONS: ../web-build/favicon-16.png ../web-build/favicon-32.png ../web-bui
 
 # Build bskyweb favicon variants
 .PHONY: BSKYWEB_FAVICONS
-BSKYWEB_FAVICONS: ../bskyweb/static/favicon.png ../bskyweb/static/favicon-16x16.png ../bskyweb/static/favicon-32x32.png ../bskyweb/embedr-static/favicon.png ../bskyweb/embedr-static/favicon-16x16.png ../bskyweb/embedr-static/favicon-32x32.png
+BSKYWEB_FAVICONS: ../bskyweb/static/favicon.png ../bskyweb/static/favicon-16x16.png ../bskyweb/static/favicon-32x32.png ../bskyweb/embedr-static/favicon.png ../bskyweb/embedr-static/favicon-16x16.png ../bskyweb/embedr-static/favicon-32x32.png ../bskyweb/static/safari-pinned-tab.svg
 
 # Build apple touch icon variants
 .PHONY: APPLE_TOUCH_ICONS
 APPLE_TOUCH_ICONS: ../bskyweb/static/apple-touch-icon.png ../web-build/pwa/apple-touch-icon/apple-touch-icon-180.png
+
+# Build social card variants
+.PHONY: SOCIAL_CARDS
+SOCIAL_CARDS: ../bskyweb/static/social-card-default.png ../bskyweb/static/social-card-default-gradient.png
 
 # Update all source files with new logo
 .PHONY: LOGO_COMPONENTS
@@ -52,9 +56,6 @@ tmp/working_black_unflattened.svg: working_input.png
 
 tmp/working_black.svg: tmp/working_black_unflattened.svg
 	svgo --multipass -o $@ --input $<
-
-logotype.svg: logotype_master.svg
-	cp $< $@
 
 logotype.png: logotype.svg
 	magick -background none $< $@
@@ -179,7 +180,7 @@ icons/logomark.svg: templates/logomark-template.svg logo.svg
 		-e '/^[[:space:]]*<Path/,/^[[:space:]]*\/>/ s/d="[^"]*"/d="'"$$PATH_DATA"'"/' \
 		$@
 
-../src/view/icons/Logotype.tsx: logotype_master.svg
+../src/view/icons/Logotype.tsx: logotype.svg
 	VIEWBOX=$$(grep -o 'viewBox="[^"]*"' $< | sed 's/viewBox="//;s/"//'); \
 	WIDTH=$$(echo "$$VIEWBOX" | cut -d' ' -f3); \
 	HEIGHT=$$(echo "$$VIEWBOX" | cut -d' ' -f4); \
@@ -306,6 +307,12 @@ default-avatar.png: templates/default-avatar-template.svg logo.svg
 	mkdir -p ../bskyweb/embedr-static
 	magick $< -resize 32x32 $@
 
+# Safari pinned tab SVG (black logo on white background with proper margins)
+../bskyweb/static/safari-pinned-tab.svg: templates/safari-pinned-tab-template.svg tmp/logo_black.svg
+	mkdir -p ../bskyweb/static
+	PATH_DATA=$$(grep -o 'd="[^"]*"' tmp/logo_black.svg | sed 's/d="//;s/"//'); \
+	sed "s/\$$(PATH_DATA)/$$PATH_DATA/g" templates/safari-pinned-tab-template.svg > $@
+
 # Apple touch icon files (180x180 for iOS)
 ../bskyweb/static/apple-touch-icon.png: logo.svg
 	mkdir -p ../bskyweb/static
@@ -314,5 +321,26 @@ default-avatar.png: templates/default-avatar-template.svg logo.svg
 ../web-build/pwa/apple-touch-icon/apple-touch-icon-180.png: logo.svg
 	mkdir -p ../web-build/pwa/apple-touch-icon
 	magick -background none $< -resize 180x180 $@
+
+# Social card files (1200x630 for social media)
+../bskyweb/static/social-card-default.png: logotype.svg
+	mkdir -p ../bskyweb/static
+	# Create white/light gray background (1200x630)
+	magick -size 1200x630 xc:'#F0F2F5' tmp/social-card-bg.png
+	# Create dark blue version of logotype by modifying the SVG
+	sed 's/fill="#1185FE"/fill="#28323E"/g' $< > tmp/logotype-dark.svg
+	# Render dark logotype and use gravity center to properly center it on the background (same size as gradient)
+	magick tmp/social-card-bg.png \( -background none tmp/logotype-dark.svg -resize 800x144 \) -gravity center -composite $@
+	rm -f tmp/social-card-bg.png tmp/logotype-dark.svg
+
+../bskyweb/static/social-card-default-gradient.png: logotype.svg
+	mkdir -p ../bskyweb/static
+	# Create blue gradient background (1200x630)
+	magick -size 1200x630 gradient:'#0A7AFF-#59B9FF' tmp/social-card-gradient-bg.png
+	# Create white version of logotype by modifying the SVG
+	sed 's/fill="#1185FE"/fill="white"/g' $< > tmp/logotype-white.svg
+	# Render white logotype and use gravity center to properly center it on the background
+	magick tmp/social-card-gradient-bg.png \( -background none tmp/logotype-white.svg -resize 800x144 \) -gravity center -composite $@
+	rm -f tmp/social-card-gradient-bg.png tmp/logotype-white.svg
 
 
