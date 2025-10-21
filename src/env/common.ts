@@ -3,6 +3,12 @@ import {type Did} from '@atproto/api'
 import packageJson from '#/../package.json'
 
 /**
+ * The name of the app. Defaults to 'Bluesky' but can be overridden
+ * (e.g., to 'Bluenotes') via the EXPO_PUBLIC_APP_NAME environment variable.
+ */
+export const APP_NAME: string = process.env.EXPO_PUBLIC_APP_NAME || 'Bluesky'
+
+/**
  * The semver version of the app, as defined in `package.json.`
  *
  * N.B. The fallback is needed for Render.com deployments
