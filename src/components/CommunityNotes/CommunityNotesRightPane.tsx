@@ -84,7 +84,9 @@ export function CommunityNotesRightPane() {
           </Text>
         </View>
 
-        <Link to="/community-notes/about" label="Learn more about our values">
+        <Link
+          to="https://bluenotes.social/about/support/community-notes"
+          label="Learn more about our values">
           <Text style={[a.text_md, {color: t.palette.primary_500}]}>
             <Trans>Learn more about our values</Trans>
           </Text>

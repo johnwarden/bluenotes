@@ -337,9 +337,21 @@ function Disclaimer() {
           Context is written by people who use Bluesky, and appears when rated
           helpful by others.
         </Trans>{' '}
-        <Text style={[a.text_sm, {color: t.palette.primary_500}]}>
-          <Trans>Find out more.</Trans>
-        </Text>
+        <Link
+          to="https://bluenotes.social/about/support/community-notes"
+          action="navigate"
+          label="Find out more about Community Notes">
+          {({hovered}) => (
+            <Text
+              style={[
+                a.text_sm,
+                {color: t.palette.primary_500},
+                hovered && {textDecorationLine: 'underline'},
+              ]}>
+              <Trans>Find out more.</Trans>
+            </Text>
+          )}
+        </Link>
       </Text>
     </View>
   )
