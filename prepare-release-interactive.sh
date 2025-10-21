@@ -28,7 +28,34 @@ echo "🔀 Rebasing bluenotes-rebrand against tooling..."
 git rebase tooling
 git push --force
 
-# Version bumping
+# Test merge FIRST before version bumping
+echo ""
+echo "🧪 Testing merge of community-notes-feature into bluenotes-rebrand..."
+git co release
+git reset bluenotes-rebrand --hard
+
+# Try the merge - if it fails, abort the script
+if ! git merge community-notes-feature -m "Test merge" --no-commit; then
+  echo ""
+  echo "❌ MERGE CONFLICT DETECTED!"
+  echo ""
+  echo "Please resolve conflicts manually:"
+  echo "  1. Fix conflicts in the files listed above"
+  echo "  2. git add <resolved-files>"
+  echo "  3. git merge --continue"
+  echo "  4. Then run this script again"
+  echo ""
+  echo "Aborting release preparation."
+  git merge --abort
+  exit 1
+fi
+
+# Merge was successful, but don't commit yet
+git reset --hard bluenotes-rebrand
+echo "✅ Merge test successful - no conflicts!"
+
+# Now do version bumping on bluenotes-rebrand
+git co bluenotes-rebrand
 echo ""
 echo "📦 Current version: $(node -p "require('./package.json').version")"
 echo "❓ What type of version bump?"
@@ -65,17 +92,17 @@ if [[ -n "$bump_type" ]]; then
   new_version=$(node -p "require('./package.json').version")
   echo "✅ Version bumped to $new_version"
   
-  # Commit version bump
+  # Commit version bump on bluenotes-rebrand
   git add package.json
   git commit -m "chore: bump version to $new_version"
   
-  # Store the commit hash for cherry-picking later
+  # Store the commit hash for cherry-picking
   version_commit=$(git rev-parse HEAD)
   
   # Push to bluenotes-rebrand
   git push
-else
-  version_commit=""
+  
+  echo "🍒 Cherry-picking version bump to release branch..."
 fi
 
 # Prepare release branch
