@@ -37,6 +37,10 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
     <a href="/about/support/copyright">Copyright Policy</a>
   </li>
 
+  <li>
+    <a href="/about/support/community-notes">About Community Notes</a>
+  </li>
+
 </ul>
 
 </section>`
