@@ -1,6 +1,16 @@
-# Bluesky Social App
+# Community Notes for Bluesky
 
-Welcome friends! This is the codebase for the Bluesky Social app.
+This is the Community Notes Feature branch of Bluenotes. 
+
+Bluenotes is a fork of the Bluesky social app with the addition of Community Notes.
+
+Development in this repo happens in parallel between the Community Notes branch (this branch) and the [bluenotes-rebrand](https://github.com/johnwarden/bluenotes/tree/bluenotes-rebrand) branch. The Community Notes includes the Community Notes feature without any Bluenotes rebranding, with the intent of eventually merging into the main Bluesky social app.
+
+To release the Bluenotes app, two branches are merged into the [release](https://github.com/johnwarden/bluenotes/tree/bluenotes-rebrand) branch.
+
+# Bluenotes Social App
+
+Welcome friends! This is the codebase for the Bluenotes Social app.
 
 Get the app itself:
 
