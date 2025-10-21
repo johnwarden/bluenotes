@@ -17,7 +17,8 @@ import {Button, ButtonText} from '#/components/Button'
 import {NoteDetailsDialog} from '#/components/CommunityNotes/NoteDetailsDialog'
 import * as Dialog from '#/components/Dialog'
 import * as Toggle from '#/components/forms/Toggle'
-import {Eye_Stroke2_Corner0_Rounded as EyeIcon} from '#/components/icons/Eye'
+// TODO: Uncomment when view count is re-enabled
+// import {Eye_Stroke2_Corner0_Rounded as EyeIcon} from '#/components/icons/Eye'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {RatedCheckmark} from '#/components/icons/RatedCheckmark'
@@ -427,12 +428,14 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
               </Text>
             </Pressable>
           </View>
+          {/* TODO: Add real view count data when available
           <View style={styles.statusLineBottom}>
             <EyeIcon size="sm" style={t.atoms.text_contrast_low} />
             <Text style={t.atoms.text_contrast_low}>
               <Trans>Shown on Bluesky • 79.6K+ views</Trans>
             </Text>
           </View>
+          */}
           <View style={styles.tagsLine}>
             <Text style={t.atoms.text_contrast_medium}>💬</Text>
             <Text style={t.atoms.text_contrast_medium}>
