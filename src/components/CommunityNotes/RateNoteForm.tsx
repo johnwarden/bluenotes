@@ -26,6 +26,7 @@ import * as Menu from '#/components/Menu'
 import {MenuTriggerButton} from '#/components/Menu/MenuTriggerButton'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
+import {APP_NAME} from '#/env'
 
 const HELPFUL_REASONS = [
   {key: 'cites_good_sources', label: msg`Cites high-quality sources`},
@@ -473,7 +474,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
           <View style={styles.statusLineBottom}>
             <EyeSlashIcon size="sm" style={t.atoms.text_contrast_low} />
             <Text style={t.atoms.text_contrast_low}>
-              <Trans>Not shown on Bluesky</Trans>
+              <Trans>Not shown on {APP_NAME}</Trans>
             </Text>
           </View>
         </>

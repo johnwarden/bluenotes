@@ -12,6 +12,7 @@ import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/ico
 import {Link} from '#/components/Link'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
+import {APP_NAME} from '#/env'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
 
@@ -271,7 +272,7 @@ function Header({
             style={[{color: t.atoms.text_contrast_medium.color}]}
           />
           <Text style={[a.text_sm, t.atoms.text_contrast_medium, a.font_bold]}>
-            <Trans>Not shown on Bluesky • Needs ratings</Trans>
+            <Trans>Not shown on {APP_NAME} • Needs ratings</Trans>
           </Text>
         </View>
       )}
@@ -334,8 +335,8 @@ function Disclaimer() {
     <View style={[a.mt_md]}>
       <Text style={[a.text_sm, t.atoms.text_contrast_medium]}>
         <Trans>
-          Context is written by people who use Bluesky, and appears when rated
-          helpful by others.
+          Context is written by people who use {APP_NAME}, and appears when
+          rated helpful by others.
         </Trans>{' '}
         <Link
           to="https://bluenotes.social/about/support/community-notes"
