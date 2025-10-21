@@ -63,6 +63,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({
                 '/about/support/tos-gov': 'GovernmentTermsOfService',
                 '/about/support': 'Help',
                 '/support/beta': 'BetaGuide',
+                '/about/support/community-notes': 'AboutCommunityNotes',
               }
 
               const [baseUrl] = href.split('#')
