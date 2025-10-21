@@ -29,6 +29,7 @@ import {
   TREE_INDENT,
 } from '#/screens/PostThread/const'
 import {atoms as a, useTheme} from '#/alf'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
@@ -335,6 +336,7 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                 <ThreadItemTreeReplyChildReplyLine item={item} />
                 <View style={[a.flex_1, a.pl_2xs]}>
                   <LabelsOnMyPost post={post} style={[a.pb_2xs]} />
+                  <DebugLabels post={post} />
                   <PostAlerts
                     modui={moderation.ui('contentList')}
                     style={[a.pb_2xs]}
