@@ -591,10 +591,22 @@ function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
           .pop()}/community-notes`}
         label={_(msg`See all notes on this post`)}
         style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
-        <Text style={[a.text_md, {color: t.palette.primary_500}]}>
-          <Trans>See all notes on this post</Trans>
-        </Text>
-        <ChevronRightIcon size="sm" style={[{color: t.palette.primary_500}]} />
+        {({hovered}) => (
+          <>
+            <Text
+              style={[
+                a.text_md,
+                {color: t.palette.primary_500},
+                hovered && {textDecorationLine: 'underline'},
+              ]}>
+              <Trans>See all notes on this post</Trans>
+            </Text>
+            <ChevronRightIcon
+              size="sm"
+              style={[{color: t.palette.primary_500}]}
+            />
+          </>
+        )}
       </NewLink>
     </View>
   )
