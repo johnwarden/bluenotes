@@ -185,6 +185,21 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
+              We know that entering your Bluesky password on a different web
+              site is risky if you don't trust that web site. We are working on
+              implementing{' '}
+              <Link href="https://docs.bsky.app/blog/oauth-atproto">
+                <Text>OAuth</Text>
+              </Link>{' '}
+              so you don't have to do this in the future. DM us at{' '}
+              <Link href="https://bluenotes.social/profile/bluenotes.social">
+                <Text>@bluenotes.social</Text>
+              </Link>{' '}
+              if you prefer to wait for Oauth before you participate in the
+              beta.
+            </Text>
+
+            <Text style={styles.p}>
               If you don't yet have a Bluesky account, create one on the{' '}
               <Link href="https://bsky.app">
                 <Text>Bluesky App</Text>
@@ -367,6 +382,22 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
                 <Text>labeling architecture</Text>
               </Link>{' '}
               for more details
+            </Text>
+
+            <Text style={styles.h3}>Where is the Code?</Text>
+
+            <Text style={styles.p}>
+              Bluenotes App:{' '}
+              <Link href="https://github.com/johnwarden/bluenotes#readme">
+                <Text>github.com/johnwarden/bluenotes</Text>
+              </Link>
+            </Text>
+
+            <Text style={styles.p}>
+              Community Notes Algorithm:{' '}
+              <Link href="https://github.com/twitter/communitynotes#readme">
+                <Text>github.com/twitter/communitynotes</Text>
+              </Link>{' '}
             </Text>
 
             <Text style={styles.h3}>What's Next After This Beta?</Text>
