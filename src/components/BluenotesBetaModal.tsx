@@ -151,7 +151,7 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
                     // Close modal first, then navigate to beta guide
                     control.close()
                     if (typeof window !== 'undefined') {
-                      window.open('/support/beta', '_blank')
+                      window.open('/about/support/beta', '_blank')
                     }
                   }}
                   style={({pressed}) => [

@@ -62,7 +62,7 @@ export const SupportPage: React.FC<SupportPageProps> = ({
                 '/about/support/privacy-policy': 'PrivacyPolicy',
                 '/about/support/tos-gov': 'GovernmentTermsOfService',
                 '/about/support': 'Help',
-                '/support/beta': 'BetaGuide',
+                '/about/support/beta': 'BetaGuide',
                 '/about/support/community-notes': 'AboutCommunityNotes',
               }
 

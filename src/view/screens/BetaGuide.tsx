@@ -40,7 +40,7 @@ const Link: React.FC<LinkProps> = ({href, children}) => {
         '/about/support/privacy-policy': 'PrivacyPolicy',
         '/about/support/tos-gov': 'GovernmentTermsOfService',
         '/about/support': 'Help',
-        '/support/beta': 'BetaGuide',
+        '/about/support/beta': 'BetaGuide',
       }
 
       const [baseUrl] = href.split('#')

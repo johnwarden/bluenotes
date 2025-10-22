@@ -77,7 +77,7 @@ export const router = new Router<AllNavigatableRoutes>({
   GovernmentTermsOfService: '/about/support/tos-gov',
   CommunityGuidelines: '/about/support/community-guidelines',
   CopyrightPolicy: '/about/support/copyright',
-  BetaGuide: '/support/beta',
+  BetaGuide: '/about/support/beta',
   AboutCommunityNotes: '/about/support/community-notes',
   // hashtags
   Hashtag: '/hashtag/:tag',
