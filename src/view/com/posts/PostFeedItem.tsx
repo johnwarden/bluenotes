@@ -9,6 +9,8 @@ import {
   type ModerationDecision,
   RichText as RichTextAPI,
 } from '@atproto/api'
+import {msg} from '@lingui/macro'
+import {Trans, useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
@@ -56,10 +58,9 @@ import {PostControls} from '#/components/PostControls'
 import {DiscoverDebug} from '#/components/PostControls/DiscoverDebug'
 import {RichText} from '#/components/RichText'
 import {SubtleHover} from '#/components/SubtleHover'
+import {Text} from '#/components/Typography'
 import * as bsky from '#/types/bsky'
 import {PostFeedReason} from './PostFeedReason'
-import { msg } from '@lingui/macro'
-import { useLingui, Trans } from '@lingui/react'
 
 interface FeedItemProps {
   record: AppBskyFeedPost.Record

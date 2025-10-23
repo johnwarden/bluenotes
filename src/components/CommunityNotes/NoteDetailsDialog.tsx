@@ -1,4 +1,4 @@
-import {StyleSheet, Text, View} from 'react-native'
+import {StyleSheet, View} from 'react-native'
 import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
@@ -8,6 +8,7 @@ import {UserAvatar} from '#/view/com/util/UserAvatar'
 import {useTheme} from '#/alf'
 import * as Dialog from '#/components/Dialog'
 import {Link} from '#/components/Link'
+import {Text} from '#/components/Typography'
 
 // Reusable content component that can be used in dialogs or embedded elsewhere
 export function NoteDetailsContent({
