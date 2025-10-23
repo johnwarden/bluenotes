@@ -164,20 +164,27 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
-              For Phase 1 of the Beta, we've invited a small number of pioneer
-              users to give us feedback and advice, and to start "seeding" the
-              system with notes and ratings. Because Community Notes requires
-              several diverse ratings from many contributors before the
-              algorithm can produce meaningful results, we don't expect many
-              notes to "rated helpful" status initially. But every note and
-              rating you submit will help gets us closer to this critical mass.
+              Phase 1 of the beta is about building the foundation. We've
+              invited pioneer users to test the system and seed it with notes
+              and ratings. The algorithm needs diverse ratings from many
+              contributors before it can identify helpful notes, so most notes
+              will show "Needs more Ratings" initially. That's expected and
+              normal.
+            </Text>
+
+            <Text style={styles.p}>
+              Every note and rating you contribute gets us closer to the
+              critical mass needed for the algorithm to work. You're not just
+              testing—you're building this with us.
             </Text>
 
             <Text style={styles.p}>
               After working out any kinks and confirming that the algorithm
-              works, we'll launch Phase II of the beta, in which we'll make a
+              works, we'll launch Phase 2 of the beta, in which we'll make a
               larger PR push in order to attract more users.
             </Text>
+
+            {/* TODO: Add progress indicator showing community stats */}
 
             <Text style={styles.h2}>Feedback</Text>
 
@@ -226,6 +233,24 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.h2}>Features to Test</Text>
+
+            <Text style={styles.h3}>Finding Posts to Note</Text>
+
+            <Text style={styles.p}>
+              Look for posts that could benefit from additional context: claims
+              that lack sources, potentially misleading information, or posts
+              where helpful context would improve understanding. You can browse
+              your regular feeds or search for topics where misinformation is
+              common.
+            </Text>
+
+            <Text style={styles.p}>
+              Write notes sparingly and thoughtfully—quality over quantity. See{' '}
+              <Link href="https://communitynotes.x.com/guide/en/contributing/examples">
+                <Text>Community Notes examples</Text>
+              </Link>{' '}
+              for guidance.
+            </Text>
 
             <Text style={styles.h3}>Browsing Notes</Text>
 
@@ -325,7 +350,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             <Text style={styles.p}>
               Please try to write helpful notes according to the{' '}
               <Link href="https://communitynotes.x.com/guide/en/contributing/examples">
-                <Text>note writing guidlines</Text>
+                <Text>note writing guidelines</Text>
               </Link>{' '}
               page! After successfully submitting a note your note will show up
               in the{' '}
@@ -430,12 +455,21 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               </Link>{' '}
             </Text>
 
-            <Text style={styles.h3}>What's Next After This Beta?</Text>
+            <Text style={styles.h3}>What's Next After Phase 1?</Text>
 
             <Text style={styles.p}>
-              Next is a Phase 2 beta where we try to get a larger number of
-              users in order to collect enough data to produce meaningful
-              helpfulness ratings.
+              Phase 2 will launch when we've collected enough data for the
+              algorithm to consistently identify helpful notes. At that point,
+              we'll make a larger push to attract more users and build a
+              sustainable community.
+            </Text>
+
+            <Text style={styles.p}>
+              As a Phase 1 pioneer, you'll be part of making that happen. Follow{' '}
+              <Link href="https://bluenotes.social/profile/bluenotes.social">
+                <Text>@bluenotes.social</Text>
+              </Link>{' '}
+              for progress updates.
             </Text>
 
             <Text style={styles.h2}>What is Community Notes?</Text>
