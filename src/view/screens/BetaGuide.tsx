@@ -14,6 +14,7 @@ import {getStaticAssetUrl} from '#/lib/strings/url-helpers'
 import {s} from '#/lib/styles'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
+import {createSinglePathSVG} from '#/components/icons/TEMPLATE'
 import * as Layout from '#/components/Layout'
 import {ViewHeader} from '../com/util/ViewHeader'
 
@@ -21,6 +22,10 @@ interface LinkProps {
   href: string
   children: React.ReactNode
 }
+
+const CommunityNotesIcon = createSinglePathSVG({
+  path: 'M5.5 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm18.25 13.91c-.18-2.01-.78-3.72-1.81-4.96C20.89 10.7 19.45 10 17.75 10c-.35 0-.68.03-1.01.09-.18.54-.45 1.05-.8 1.49.74.46 1.41 1.05 1.99 1.76 1.05 1.3 1.71 2.91 2.06 4.66h3.85l-.09-1.09zM18.5 9c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zM6.07 13.34c.58-.71 1.25-1.3 1.99-1.76-.35-.44-.62-.95-.8-1.49-.33-.06-.66-.09-1.01-.09-1.7 0-3.14.7-4.19 1.95C1.032 13.19.433 14.9.254 16.91L.157 18H4.01c.35-1.75 1.01-3.36 2.06-4.66zM15 8.5c0-1.66-1.34-3-3-3s-3 1.34-3 3 1.34 3 3 3 3-1.34 3-3zm-7.37 6.1c-1.07 1.32-1.69 3.15-1.88 5.31L5.66 21h12.68l-.09-1.09c-.19-2.16-.81-3.99-1.88-5.31-1.08-1.35-2.59-2.1-4.37-2.1s-3.28.75-4.37 2.1z',
+})
 
 const Link: React.FC<LinkProps> = ({href, children}) => {
   const pal = usePalette('default')
@@ -159,11 +164,19 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
-              Phase 1 of the beta test will focus on the UI, because the
-              Community Notes algorithm requires a lot of ratings before it has
-              enough data to produce meaningful results. However, the notes and
-              ratings data produced during this test will help us get to the
-              critical mass of data necessary for the algorithm to work.
+              For Phase 1 of the Beta, we've invited a small number of pioneer
+              users to give us feedback and advice, and to start "seeding" the
+              system with notes and ratings. Because Community Notes requires
+              several diverse ratings from many contributors before the
+              algorithm can produce meaningful results, we don't expect many
+              notes to "rated helpful" status initially. But every note and
+              rating you submit will help gets us closer to this critical mass.
+            </Text>
+
+            <Text style={styles.p}>
+              After working out any kinks and confirming that the algorithm
+              works, we'll launch Phase II of the beta, in which we'll make a
+              larger PR push in order to attract more users.
             </Text>
 
             <Text style={styles.h2}>Feedback</Text>
@@ -204,8 +217,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               <Link href="https://bsky.app">
                 <Text>Bluesky App</Text>
               </Link>{' '}
-              or right here on Bluenotes (yes, this app can be used to create
-              accounts on Bluesky).
+              or right here on Bluenotes.
             </Text>
 
             <Text style={styles.p}>
@@ -218,14 +230,28 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             <Text style={styles.h3}>Browsing Notes</Text>
 
             <Text style={styles.p}>
-              Once you've logged in, click the "Community Notes" item in the
-              left navigation bar or click{' '}
+              Once you've logged in, click the "
+              <Text>
+                <Text style={{flexDirection: 'row', alignItems: 'center'}}>
+                  <CommunityNotesIcon
+                    size="sm"
+                    style={{
+                      color: '#000000',
+                      // pull icon down to align with normal text
+                      position: 'relative',
+                      top: 2.5,
+                    }}
+                  />{' '}
+                </Text>
+                Community Notes
+              </Text>
+              " link in the left navigation bar or click{' '}
               <Link href="https://bluenotes.social/community-notes/new">
                 <Text>here</Text>
               </Link>{' '}
-              to browse community notes that other users have written. Note
-              there are three tabs on this page, "Needs Your Help", "New" and
-              "Rated Helpful".
+              to browse notes that other users have written. Note there are
+              three tabs on this page, "Needs Your Help", "New" and "Rated
+              Helpful".
             </Text>
 
             <Image
@@ -297,8 +323,12 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
-              Please try to write helpful notes according to the guidelines!
-              After successfully submitting a note your note will show up in the{' '}
+              Please try to write helpful notes according to the{' '}
+              <Link href="https://communitynotes.x.com/guide/en/contributing/examples">
+                <Text>note writing guidlines</Text>
+              </Link>{' '}
+              page! After successfully submitting a note your note will show up
+              in the{' '}
               <Link href="https://bluenotes.social/community-notes/new">
                 <Text>New</Text>
               </Link>{' '}
@@ -420,7 +450,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               .
             </Text>
 
-            <Text style={styles.h2}>What is the Algorithm?</Text>
+            <Text style={styles.h2}>What is the "Algorithm"?</Text>
 
             <Text style={styles.p}>
               Bluenotes uses Twitter's{' '}
