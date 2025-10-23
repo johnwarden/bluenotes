@@ -24,17 +24,17 @@
   {%- if postText %}
   <meta name="description" content="{{ postText }}">
   <meta property="og:description" content="{{ postText }}">
-  <meta property="twitter:description" content="{{ postText }}">
+  <meta name="twitter:description" content="{{ postText }}">
   {% endif -%}
   {%- if imgThumbUrls %}
   {% for imgThumbUrl in imgThumbUrls %}
   <meta property="og:image" content="{{ imgThumbUrl }}">
-  <meta property="twitter:image" content="{{ imgThumbUrl }}">
+  <meta name="twitter:image" content="{{ imgThumbUrl }}">
   {% endfor %}
   <meta name="twitter:card" content="summary_large_image">
   {% else %}
   <meta property="og:image" content="{{ postView.Author.Avatar }}">
-  <meta property="twitter:image" content="{{ postView.Author.Avatar }}">
+  <meta name="twitter:image" content="{{ postView.Author.Avatar }}">
   <meta name="twitter:card" content="summary">
   {% endif %}
   <meta name="twitter:label1" content="Posted At">
@@ -108,7 +108,7 @@
   {% endif -%}
   <meta name="description" content="This post requires authentication to view.">
   <meta property="og:description" content="This post requires authentication to view.">
-  <meta property="twitter:description" content="This post requires authentication to view.">
+  <meta name="twitter:description" content="This post requires authentication to view.">
   <meta name="twitter:card" content="summary">
 {% endif -%}
 {%- endblock %}

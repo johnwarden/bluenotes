@@ -26,12 +26,12 @@
   {%- if feedView.Description %}
   <meta name="description" content="{{ feedView.Description }}">
   <meta property="og:description" content="{{ feedView.Description }}">
-  <meta property="twitter:description" content="{{ feedView.Description }}">
+  <meta name="twitter:description" content="{{ feedView.Description }}">
   {% endif -%}
 
   {%- if feedView.Avatar %}
   <meta property="og:image" content="{{ feedView.Avatar }}">
-  <meta property="twitter:image" content="{{ feedView.Avatar }}">
+  <meta name="twitter:image" content="{{ feedView.Avatar }}">
   <meta name="twitter:card" content="summary">
   {% endif %}
 

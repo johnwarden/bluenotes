@@ -7,10 +7,10 @@
   {% endif -%}
   {%- if imgThumbUrl %}
   <meta property="og:image" content="{{ imgThumbUrl }}">
-  <meta property="twitter:image" content="{{ imgThumbUrl }}">
+  <meta name="twitter:image" content="{{ imgThumbUrl }}">
   {%- else -%}
   <meta property="og:image" content="https://bsky.app/static/social-card-default-gradient.png" />
-  <meta property="twitter:image" content="https://bsky.app/static/social-card-default-gradient.png"  />
+  <meta name="twitter:image" content="https://bsky.app/static/social-card-default-gradient.png"  />
   {% endif -%}
   <meta name="twitter:card" content="summary_large_image" />
   {%- if title %}
