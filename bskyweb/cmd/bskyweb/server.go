@@ -329,6 +329,8 @@ func serve(cctx *cli.Context) error {
 	e.GET("/about/support/tos-gov", server.WebGeneric)
 	e.GET("/about/support/community-guidelines", server.WebGeneric)
 	e.GET("/about/support/copyright", server.WebGeneric)
+	e.GET("/about/support/beta", server.WebGeneric)
+	e.GET("/about/support/community-notes", server.WebGeneric)
 	e.GET("/intent/compose", server.WebGeneric)
 	e.GET("/intent/verify-email", server.WebGeneric)
 	e.GET("/intent/age-assurance", server.WebGeneric)
