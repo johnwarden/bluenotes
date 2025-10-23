@@ -42,6 +42,9 @@ bskyweb:
 # PRODUCTION DEPLOYMENT
 # =============================================================================
 
+release:
+    ./prepare-release-interactive.sh 
+
 # Check environment variables (non-sensitive only)
 prod-env:
     @echo "🔧 Environment variables status:"
