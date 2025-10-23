@@ -34,7 +34,7 @@ import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
 import {PostRepliedTo} from '#/components/Post/PostRepliedTo'
 import {ShowMoreTextButton} from '#/components/Post/ShowMoreTextButton'
 import {RichText} from '#/components/RichText'
-import {SubtleWebHover} from '#/components/SubtleWebHover'
+import {SubtleHover} from '#/components/SubtleHover'
 import * as bsky from '#/types/bsky'
 
 interface PostContentProps {
@@ -130,7 +130,7 @@ function PostContentInner({
       onPointerLeave={() => {
         setHover(false)
       }}>
-      <SubtleWebHover hover={hover} />
+      <SubtleHover hover={hover} />
       {showReplyLine && <View style={styles.replyLine} />}
       <View style={styles.layout}>
         <View style={styles.layoutAvi}>

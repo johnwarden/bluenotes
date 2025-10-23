@@ -10,7 +10,7 @@ import {
   RichText as RichTextAPI,
 } from '@atproto/api'
 import {msg} from '@lingui/macro'
-import {Trans, useLingui} from '@lingui/react'
+import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
@@ -600,7 +600,7 @@ function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
                 {color: t.palette.primary_500},
                 hovered && {textDecorationLine: 'underline'},
               ]}>
-              <Trans>See all notes on this post</Trans>
+              {_(msg`See all notes on this post`)}
             </Text>
             <ChevronRightIcon
               size="sm"
