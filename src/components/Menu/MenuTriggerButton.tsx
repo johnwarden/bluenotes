@@ -1,5 +1,4 @@
 import {Pressable, type StyleProp, type ViewStyle} from 'react-native'
-import {useLingui} from '@lingui/react'
 
 import {HITSLOP_10} from '#/lib/constants'
 import {atoms as a, useTheme} from '#/alf'
@@ -15,7 +14,6 @@ export function MenuTriggerButton({
   label: string
 }) {
   const t = useTheme()
-  const {_} = useLingui()
   const {
     state: hovered,
     onIn: onHoverIn,

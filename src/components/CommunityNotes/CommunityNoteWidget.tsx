@@ -2,7 +2,6 @@ import {useState} from 'react'
 import {View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
 import {useProposalsQuery} from '#/state/queries/community-notes'
@@ -32,7 +31,6 @@ export function CommunityNoteWidget({
   parentHover = false,
 }: CommunityNoteWidgetProps) {
   const t = useTheme()
-  const {_} = useLingui()
   const [noteHover, setNoteHover] = useState(false)
 
   // Determine which notes to fetch based on display mode
