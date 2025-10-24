@@ -205,18 +205,16 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.p}>
-              We know that entering your Bluesky password on a different web
-              site is risky if you don't trust that web site. We are working on
-              implementing{' '}
+              Since entering your Bluesky password on a different web site is
+              risky if you don't trust that web site, we recommend setting up an{' '}
+              <Link href="https://bsky.app/settings/app-passwords">
+                <Text>app password</Text>
+              </Link>
+              . We are working on implementing{' '}
               <Link href="https://docs.bsky.app/blog/oauth-atproto">
                 <Text>OAuth</Text>
               </Link>{' '}
-              so you don't have to do this in the future. DM us at{' '}
-              <Link href="https://bluenotes.social/profile/bluenotes.social">
-                <Text>@bluenotes.social</Text>
-              </Link>{' '}
-              if you prefer to wait for Oauth before you participate in the
-              beta.
+              so you don't have to do this in the future.
             </Text>
 
             <Text style={styles.p}>
@@ -233,24 +231,6 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
             </Text>
 
             <Text style={styles.h2}>Features to Test</Text>
-
-            <Text style={styles.h3}>Finding Posts to Note</Text>
-
-            <Text style={styles.p}>
-              Look for posts that could benefit from additional context: claims
-              that lack sources, potentially misleading information, or posts
-              where helpful context would improve understanding. You can browse
-              your regular feeds or search for topics where misinformation is
-              common.
-            </Text>
-
-            <Text style={styles.p}>
-              Write notes sparingly and thoughtfully—quality over quantity. See{' '}
-              <Link href="https://communitynotes.x.com/guide/en/contributing/examples">
-                <Text>Community Notes examples</Text>
-              </Link>{' '}
-              for guidance.
-            </Text>
 
             <Text style={styles.h3}>Browsing Notes</Text>
 
@@ -388,6 +368,28 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
               feed). Make sure that note is displayed wherever the post is
               displayed: when the post appears in search results, feeds, quote
               posts, etc.
+            </Text>
+
+            <Text style={styles.h3}>Finding Posts to Note</Text>
+
+            <Text style={styles.p}>
+              A good strategy is to find out what kind of informations has been
+              spreading recently, and then do a search on Bluesky for posts
+              making that claim.
+            </Text>
+            <Text style={styles.p}>
+              For example,{' '}
+              <Link href="https://www.newsweek.com/fact-check">
+                <Text>Newsweek's "Latest Fact Checks"</Text>
+              </Link>{' '}
+              often addresses recent claims spreading on social media. Or if you
+              are an X Community Noter, look at the feed of{' '}
+              <Link href="https://x.com/i/communitynotes/rated_helpful">
+                <Text>
+                  posts that have Community Notes that have been rated helpful
+                </Text>
+              </Link>
+              . You will often find the exact same posts on Bluesky.
             </Text>
 
             <Text style={styles.h2}>FAQs</Text>
