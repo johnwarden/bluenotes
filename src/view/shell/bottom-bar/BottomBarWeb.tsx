@@ -114,9 +114,7 @@ export function BottomBarWeb() {
               )
             }}
           </NavItem>
-          <NavItem
-            routeName="CommunityNotes"
-            href="/community-notes/needs_your_help">
+          <NavItem routeName="CommunityNotes" href="/community-notes/feeds">
             {({isActive}) => {
               return (
                 <CommunityNotesIcon

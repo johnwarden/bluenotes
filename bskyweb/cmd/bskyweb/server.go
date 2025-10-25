@@ -332,7 +332,6 @@ func serve(cctx *cli.Context) error {
 	e.GET("/start/:handleOrDID/:rkey", server.WebStarterPack)
 
 	// community notes
-	e.GET("/community-notes", server.WebGeneric)
 	e.GET("/community-notes/:tab", server.WebGeneric)
 
 	// bookmarks

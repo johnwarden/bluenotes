@@ -1,32 +1,28 @@
-import {useCallback, useEffect, useMemo} from 'react'
+import {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
 import {AtUri} from '@atproto/api'
 import {Trans} from '@lingui/macro'
-import {
-  StackActions,
-  useFocusEffect,
-  useNavigation,
-  useRoute,
-} from '@react-navigation/native'
+import {useFocusEffect} from '@react-navigation/native'
 import type React from 'react'
 
-import {type NavigationProp} from '#/lib/routes/types'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {useFeedSourceInfoQuery} from '#/state/queries/feed'
-import {useProfileQuery} from '#/state/queries/profile'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {FeedSourceCard} from '#/view/com/feeds/FeedSourceCard'
 import {atoms as a, useTheme} from '#/alf'
+import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
 import * as Layout from '#/components/Layout'
 import {Link} from '#/components/Link'
 import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
+import {type CommunityNotesFeedTab} from './constants'
 
-type TabStatus = 'needs_your_help' | 'new' | 'rated_helpful'
-
-const FEED_ITEMS = [
+const FEED_ITEMS: Array<{
+  key: CommunityNotesFeedTab
+  description: React.ReactNode
+}> = [
   {
-    key: 'needs_your_help' as TabStatus,
+    key: 'needs_your_help',
     description: (
       <Trans>
         Notes on these posts need a more diverse range of feedback, and your
@@ -36,7 +32,7 @@ const FEED_ITEMS = [
     ),
   },
   {
-    key: 'new' as TabStatus,
+    key: 'new',
     description: (
       <Trans>
         Hot off the press! These are the most recently written notes.
@@ -45,7 +41,7 @@ const FEED_ITEMS = [
     ),
   },
   {
-    key: 'rated_helpful' as TabStatus,
+    key: 'rated_helpful',
     description: (
       <Trans>
         Community Notes relies on contributors to rate each other's notes. Notes
@@ -58,15 +54,8 @@ const FEED_ITEMS = [
 
 export function CommunityNotesFeedsScreen() {
   const t = useTheme()
-  const route = useRoute<any>()
-  const navigation = useNavigation<NavigationProp>()
   const setMinimalShellMode = useSetMinimalShellMode()
   const {data: config, isLoading: configLoading} = useCommunityNotesConfig()
-
-  // Get the profile (with handle) for the feed generator
-  const {data: feedGeneratorProfile} = useProfileQuery({
-    did: config?.feedGeneratorDid,
-  })
 
   useFocusEffect(
     useCallback(() => {
@@ -74,42 +63,11 @@ export function CommunityNotesFeedsScreen() {
     }, [setMinimalShellMode]),
   )
 
-  // Handle redirects for specific tabs - use replace to avoid back button issues
-  useEffect(() => {
-    const tab = route.params?.tab as TabStatus | undefined
-    if (tab && feedGeneratorProfile?.handle) {
-      const rkeyMap = {
-        needs_your_help: 'needs_your_help',
-        new: 'new',
-        rated_helpful: 'rated_helpful',
-      }
-
-      const rkey = rkeyMap[tab]
-      if (rkey) {
-        // Use replace instead of navigate to avoid adding to history stack
-        navigation.dispatch(
-          StackActions.replace('ProfileFeed', {
-            name: feedGeneratorProfile.handle,
-            rkey,
-          }),
-        )
-      }
-    }
-  }, [route.params?.tab, feedGeneratorProfile?.handle, navigation])
-
   const getFeedUri = useCallback(
-    (tab: TabStatus): string | null => {
+    (tab: CommunityNotesFeedTab): string | null => {
       // AT URIs must use DIDs, not handles
       if (!config?.feedGeneratorDid) return null
-
-      const rkeyPatterns = {
-        needs_your_help: 'needs_your_help',
-        new: 'new',
-        rated_helpful: 'rated_helpful',
-      }
-
-      const targetRkey = rkeyPatterns[tab]
-      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${targetRkey}`
+      return `at://${config.feedGeneratorDid}/app.bsky.feed.generator/${tab}`
     },
     [config?.feedGeneratorDid],
   )
@@ -119,20 +77,6 @@ export function CommunityNotesFeedsScreen() {
       Boolean,
     ) as string[]
   }, [getFeedUri])
-
-  // If we have a tab param, don't render anything - we're about to redirect
-  const tab = route.params?.tab as TabStatus | undefined
-  if (tab) {
-    return (
-      <Layout.Screen>
-        <Layout.Content>
-          <View style={[a.w_full, a.py_2xl, a.align_center]}>
-            <Loader size="xl" />
-          </View>
-        </Layout.Content>
-      </Layout.Screen>
-    )
-  }
 
   return (
     <Layout.Screen>
@@ -171,6 +115,7 @@ export function CommunityNotesFeedsScreen() {
           </View>
         )}
       </Layout.Content>
+      <CommunityNotesRightPane />
     </Layout.Screen>
   )
 }
@@ -185,44 +130,54 @@ function FeedListItem({
   const t = useTheme()
   const {data: feedInfo} = useFeedSourceInfoQuery({uri: feedUri})
 
-  // Parse the feed URI to get link destination
-  const linkProps = useMemo(() => {
+  // Link directly to CommunityNotes route to avoid ProfileFeed redirect and history pollution
+  const linkTo = useMemo(() => {
     if (!feedInfo) return null
     const uri = new AtUri(feedInfo.uri)
     return {
-      screen: 'ProfileFeed' as const,
+      screen: 'CommunityNotes' as const,
       params: {
-        name: feedInfo.creatorHandle,
-        rkey: uri.rkey,
+        tab: uri.rkey,
       },
     }
   }, [feedInfo])
 
   return (
     <View style={[a.border_b, t.atoms.border_contrast_low]}>
-      <FeedSourceCard
-        key={feedUri}
-        feedUri={feedUri}
-        showMinimalPlaceholder
-        hideTopBorder={true}
-      />
-      {linkProps && feedInfo ? (
-        <Link
-          to={linkProps}
-          label={`View ${feedInfo.displayName}`}
-          style={[a.px_lg, a.pb_lg]}>
-          <Text
-            style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
-            {description}
-          </Text>
-        </Link>
+      {linkTo && feedInfo ? (
+        <>
+          <Link to={linkTo} label={`View ${feedInfo.displayName}`}>
+            <FeedSourceCard
+              feedUri={feedUri}
+              showMinimalPlaceholder
+              hideTopBorder={true}
+              link={false}
+            />
+          </Link>
+          <Link
+            to={linkTo}
+            label={`View ${feedInfo.displayName}`}
+            style={[a.px_lg, a.pb_lg]}>
+            <Text
+              style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
+              {description}
+            </Text>
+          </Link>
+        </>
       ) : (
-        <View style={[a.px_lg, a.pb_lg]}>
-          <Text
-            style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
-            {description}
-          </Text>
-        </View>
+        <>
+          <FeedSourceCard
+            feedUri={feedUri}
+            showMinimalPlaceholder
+            hideTopBorder={true}
+          />
+          <View style={[a.px_lg, a.pb_lg]}>
+            <Text
+              style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
+              {description}
+            </Text>
+          </View>
+        </>
       )}
     </View>
   )

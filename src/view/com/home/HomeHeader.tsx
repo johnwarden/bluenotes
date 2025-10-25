@@ -44,9 +44,11 @@ export function HomeHeader(
   }, [navigation])
 
   const onPressCommunityNotes = React.useCallback(() => {
-    // When logged out, navigate to the feeds list screen
-    // When logged in, this won't be called since CN is in the left nav
-    navigation.navigate('CommunityNotes', {})
+    // Navigate to Community Notes feeds list
+    // Note: On desktop web when logged in, CN is in left nav so this isn't called
+    // On mobile (native/web) when logged in, CN is in bottom bar so this isn't called
+    // This is primarily for logged-out users who see CN in the top tabs
+    navigation.navigate('CommunityNotes', {tab: 'feeds'})
   }, [navigation])
 
   const onSelect = React.useCallback(

@@ -771,7 +771,7 @@ export function DesktopLeftNav() {
             )}
           />
           <NavItem
-            href="/community-notes/needs_your_help"
+            href="/community-notes/feeds"
             icon={
               <CommunityNotesIcon
                 style={pal.text}

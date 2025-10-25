@@ -20,6 +20,7 @@ import {s} from '#/lib/styles'
 import {isNative} from '#/platform/detection'
 import {listenSoftReset} from '#/state/events'
 import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
+import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {
   type FeedSourceFeedInfo,
   useFeedSourceInfoQuery,
@@ -41,6 +42,7 @@ import {type ListRef} from '#/view/com/util/List'
 import {LoadLatestBtn} from '#/view/com/util/load-latest/LoadLatestBtn'
 import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {Text} from '#/view/com/util/text/Text'
+import {CN_FEED_RKEYS} from '#/screens/CommunityNotes/constants'
 import {
   ProfileFeedHeader,
   ProfileFeedHeaderSkeleton,
@@ -65,6 +67,23 @@ export function ProfileFeedScreen(props: Props) {
     [rkey, handleOrDid],
   )
   const {error, data: resolvedUri} = useResolveUriQuery(uri)
+
+  // Check if this is a Community Notes feed and redirect if so
+  const {data: cnConfig} = useCommunityNotesConfig()
+
+  React.useEffect(() => {
+    if (!cnConfig?.feedGeneratorDid || !resolvedUri) return
+
+    // Check if this feed belongs to the CN feed generator and has a CN rkey
+    const isCNFeed =
+      resolvedUri.did === cnConfig.feedGeneratorDid &&
+      CN_FEED_RKEYS.includes(rkey as any)
+
+    if (isCNFeed) {
+      // Redirect to the Community Notes route
+      navigation.replace('CommunityNotes', {tab: rkey})
+    }
+  }, [cnConfig, resolvedUri, rkey, navigation])
 
   const onPressBack = React.useCallback(() => {
     if (navigation.canGoBack()) {
