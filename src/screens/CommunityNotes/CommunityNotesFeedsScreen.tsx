@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo} from 'react'
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import {AtUri} from '@atproto/api'
+import {Trans} from '@lingui/macro'
 import {
   StackActions,
   useFocusEffect,
@@ -11,12 +12,13 @@ import type React from 'react'
 
 import {type NavigationProp} from '#/lib/routes/types'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
+import {useFeedSourceInfoQuery} from '#/state/queries/feed'
 import {useProfileQuery} from '#/state/queries/profile'
 import {useSetMinimalShellMode} from '#/state/shell'
 import {FeedSourceCard} from '#/view/com/feeds/FeedSourceCard'
 import {atoms as a, useTheme} from '#/alf'
-import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import * as Layout from '#/components/Layout'
+import {Link} from '#/components/Link'
 import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
 
@@ -25,18 +27,32 @@ type TabStatus = 'needs_your_help' | 'new' | 'rated_helpful'
 const FEED_ITEMS = [
   {
     key: 'needs_your_help' as TabStatus,
-    label: msg`Needs Your Help`,
-    description: msg`Notes that need more ratings to become visible`,
+    description: (
+      <Trans>
+        Notes on these posts need a more diverse range of feedback, and your
+        point of view could help decide if they're helpful. This list refreshes
+        regularly.
+      </Trans>
+    ),
   },
   {
     key: 'new' as TabStatus,
-    label: msg`New`,
-    description: msg`Recently added notes`,
+    description: (
+      <Trans>
+        Hot off the press! These are the most recently written notes.
+        Contributors can rate these notes to determine their helpfulness.
+      </Trans>
+    ),
   },
   {
     key: 'rated_helpful' as TabStatus,
-    label: msg`Rated Helpful`,
-    description: msg`Notes that have been rated as helpful by the community`,
+    description: (
+      <Trans>
+        Community Notes relies on contributors to rate each other's notes. Notes
+        shown on these posts have been rated helpful by contributors of multiple
+        perspectives.
+      </Trans>
+    ),
   },
 ]
 
@@ -130,10 +146,6 @@ export function CommunityNotesFeedsScreen() {
       </Layout.Header.Outer>
 
       <Layout.Content>
-        <SectionHeaderText>
-          <Trans>Community Notes Feeds</Trans>
-        </SectionHeaderText>
-
         {configLoading ? (
           <View style={[a.w_full, a.py_2xl, a.align_center]}>
             <Loader size="xl" />
@@ -143,7 +155,13 @@ export function CommunityNotesFeedsScreen() {
             const feedUri = feedUris[index]
             if (!feedUri) return null
 
-            return <FeedListItem key={item.key} feedUri={feedUri} />
+            return (
+              <FeedListItem
+                key={item.key}
+                feedUri={feedUri}
+                description={item.description}
+              />
+            )
           })
         ) : (
           <View style={[a.flex_1, a.p_lg]}>
@@ -152,57 +170,60 @@ export function CommunityNotesFeedsScreen() {
             </Text>
           </View>
         )}
-
-        <View style={[a.px_lg, a.py_xl]}>
-          <Text
-            style={[a.text_sm, t.atoms.text_contrast_medium, a.leading_snug]}>
-            <Trans>
-              Community Notes are created and rated by contributors to provide
-              helpful context on posts.
-            </Trans>
-          </Text>
-        </View>
       </Layout.Content>
     </Layout.Screen>
   )
 }
 
-function FeedListItem({feedUri}: {feedUri: string}) {
+function FeedListItem({
+  feedUri,
+  description,
+}: {
+  feedUri: string
+  description: React.ReactNode
+}) {
   const t = useTheme()
+  const {data: feedInfo} = useFeedSourceInfoQuery({uri: feedUri})
+
+  // Parse the feed URI to get link destination
+  const linkProps = useMemo(() => {
+    if (!feedInfo) return null
+    const uri = new AtUri(feedInfo.uri)
+    return {
+      screen: 'ProfileFeed' as const,
+      params: {
+        name: feedInfo.creatorHandle,
+        rkey: uri.rkey,
+      },
+    }
+  }, [feedInfo])
 
   return (
-    <View style={[a.flex_row, a.border_b, t.atoms.border_contrast_low]}>
-      <View style={[a.flex_1]}>
-        <FeedSourceCard
-          key={feedUri}
-          feedUri={feedUri}
-          showMinimalPlaceholder
-          hideTopBorder={true}
-        />
-      </View>
-    </View>
-  )
-}
-
-function SectionHeaderText({children}: {children: React.ReactNode}) {
-  const t = useTheme()
-  // eslint-disable-next-line bsky-internal/avoid-unwrapped-text
-  return (
-    <View
-      style={[
-        a.flex_row,
-        a.flex_1,
-        a.px_lg,
-        a.pt_2xl,
-        a.pb_md,
-        a.border_b,
-        t.atoms.border_contrast_low,
-      ]}>
-      <CommunityNotesIcon
-        size="lg"
-        style={{color: t.palette.primary_500, marginRight: 12}}
+    <View style={[a.border_b, t.atoms.border_contrast_low]}>
+      <FeedSourceCard
+        key={feedUri}
+        feedUri={feedUri}
+        showMinimalPlaceholder
+        hideTopBorder={true}
       />
-      <Text style={[a.text_xl, a.font_bold, a.leading_snug]}>{children}</Text>
+      {linkProps && feedInfo ? (
+        <Link
+          to={linkProps}
+          label={`View ${feedInfo.displayName}`}
+          style={[a.px_lg, a.pb_lg]}>
+          <Text
+            style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
+            {description}
+          </Text>
+        </Link>
+      ) : (
+        <View style={[a.px_lg, a.pb_lg]}>
+          <Text
+            style={[a.text_md, t.atoms.text_contrast_medium, a.leading_snug]}>
+            {description}
+          </Text>
+        </View>
+      )}
     </View>
   )
 }
