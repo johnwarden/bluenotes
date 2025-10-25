@@ -689,7 +689,9 @@ let PostMenuItems = ({
                   <Menu.Item
                     testID="postDropdownWriteNoteBtn"
                     label={_(msg`Write a Community Note`)}
-                    onPress={() => valuesModalControl.open()}>
+                    onPress={() =>
+                      requireSignIn(() => valuesModalControl.open())
+                    }>
                     <Menu.ItemText>
                       {_(msg`Write a Community Note`)}
                     </Menu.ItemText>

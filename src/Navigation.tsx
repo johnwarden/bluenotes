@@ -811,7 +811,6 @@ const FlatNavigator = () => {
         getComponent={() => CommunityNotesScreen}
         options={{
           title: title(msg`Community Notes`),
-          requireAuth: true,
         }}
       />
       {commonScreens(Flat, numUnread)}
