@@ -331,6 +331,10 @@ func serve(cctx *cli.Context) error {
 	e.GET("/starter-pack-short/:code", server.WebGeneric)
 	e.GET("/start/:handleOrDID/:rkey", server.WebStarterPack)
 
+	// community notes
+	e.GET("/community-notes", server.WebGeneric)
+	e.GET("/community-notes/:tab", server.WebGeneric)
+
 	// bookmarks
 	e.GET("/saved", server.WebGeneric)
 

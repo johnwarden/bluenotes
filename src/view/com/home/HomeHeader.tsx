@@ -29,25 +29,51 @@ export function HomeHeader(
 
   const items = React.useMemo(() => {
     const pinnedNames = feeds.map(f => f.displayName)
+    if (!hasSession) {
+      // When logged out, add Feeds and Community Notes tabs
+      return pinnedNames.concat(['Feeds ✨', 'Community Notes'])
+    }
     if (!hasPinnedCustom) {
       return pinnedNames.concat('Feeds ✨')
     }
     return pinnedNames
-  }, [hasPinnedCustom, feeds])
+  }, [hasPinnedCustom, feeds, hasSession])
 
   const onPressFeedsLink = React.useCallback(() => {
     navigation.navigate('Feeds')
   }, [navigation])
 
+  const onPressCommunityNotes = React.useCallback(() => {
+    // When logged out, navigate to the feeds list screen
+    // When logged in, this won't be called since CN is in the left nav
+    navigation.navigate('CommunityNotes', {})
+  }, [navigation])
+
   const onSelect = React.useCallback(
     (index: number) => {
-      if (!hasPinnedCustom && index === items.length - 1) {
+      if (!hasSession) {
+        // When logged out: index 0 is Discover feed, 1 is Feeds, 2 is Community Notes
+        if (index === 1) {
+          onPressFeedsLink()
+        } else if (index === 2) {
+          onPressCommunityNotes()
+        } else if (onSelectProp) {
+          onSelectProp(index)
+        }
+      } else if (!hasPinnedCustom && index === items.length - 1) {
         onPressFeedsLink()
       } else if (onSelectProp) {
         onSelectProp(index)
       }
     },
-    [items.length, onPressFeedsLink, onSelectProp, hasPinnedCustom],
+    [
+      items.length,
+      onPressFeedsLink,
+      onPressCommunityNotes,
+      onSelectProp,
+      hasPinnedCustom,
+      hasSession,
+    ],
   )
 
   return (

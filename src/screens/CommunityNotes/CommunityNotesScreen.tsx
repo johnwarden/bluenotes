@@ -9,6 +9,7 @@ import {type NavigationProp} from '#/lib/routes/types'
 import {isWeb} from '#/platform/detection'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {type FeedDescriptor} from '#/state/queries/post-feed'
+import {useSession} from '#/state/session'
 import {
   Pager,
   type PagerRef,
@@ -20,6 +21,7 @@ import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNote
 import {CommunityNotesTab} from '#/components/CommunityNotes/CommunityNotesTab'
 import * as Layout from '#/components/Layout'
 import {Text} from '#/components/Typography'
+import {CommunityNotesFeedsScreen} from './CommunityNotesFeedsScreen'
 
 type TabStatus = 'needs_your_help' | 'new' | 'rated_helpful'
 
@@ -30,6 +32,17 @@ const TAB_ITEMS = [
 ]
 
 export function CommunityNotesScreen() {
+  const {hasSession} = useSession()
+
+  // When logged out, show the feeds list screen instead
+  if (!hasSession) {
+    return <CommunityNotesFeedsScreen />
+  }
+
+  return <CommunityNotesScreenLoggedIn />
+}
+
+function CommunityNotesScreenLoggedIn() {
   const t = useTheme()
   const {_} = useLingui()
   const route = useRoute<any>()
