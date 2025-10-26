@@ -47,9 +47,12 @@ export function useCommunityNotesConfig() {
 
       return config as CommunityNotesConfig
     },
-    staleTime: STALE.MINUTES.FIVE, // 5 minutes
-    gcTime: STALE.HOURS.ONE, // Keep in cache for 1 hour even on error
-    refetchOnWindowFocus: true,
+    // Config rarely changes - keep it fresh for the entire session
+    staleTime: Infinity, // Never becomes stale during session
+    gcTime: STALE.HOURS.TWENTYFOUR, // Keep in cache for 24 hours
+    refetchOnWindowFocus: false, // Don't refetch on tab focus
+    refetchOnMount: false, // Don't refetch on component remount
+    refetchOnReconnect: false, // Don't refetch on network reconnect
     retry: (failureCount, error) => {
       // Don't retry if the endpoint doesn't exist (404) or is not implemented (501)
       if (error.message.includes('404') || error.message.includes('501')) {
@@ -62,4 +65,13 @@ export function useCommunityNotesConfig() {
     // Only fetch if we have an agent (user is logged in or app is initialized)
     enabled: !!agent,
   })
+}
+
+/**
+ * Returns true if the Community Notes config has finished loading (success or failure).
+ * Use this to gate feed queries that need to know the labeler DID before fetching.
+ */
+export function useCommunityNotesConfigReady() {
+  const {isLoading, isFetching} = useCommunityNotesConfig()
+  return !isLoading && !isFetching
 }
