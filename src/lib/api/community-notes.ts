@@ -263,7 +263,6 @@ export async function getProposals(
   subjectUris: string | string[],
   options?: {
     status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
-    label?: string
   },
 ): Promise<GetProposalsAPIResponse> {
   // Use the agent's service URL if available, otherwise default to bsky.social
@@ -278,9 +277,6 @@ export async function getProposals(
   const filterParams = []
   if (options?.status) {
     filterParams.push(`status=${encodeURIComponent(options.status)}`)
-  }
-  if (options?.label) {
-    filterParams.push(`label=${encodeURIComponent(options.label)}`)
   }
 
   const allParams = [uriParams, ...filterParams].join('&')

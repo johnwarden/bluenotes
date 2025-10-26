@@ -30,6 +30,7 @@ import {
   usePostShadow,
 } from '#/state/cache/post-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
+import {useProposalsQuery} from '#/state/queries/community-notes'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
@@ -81,10 +82,7 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
-  communityNotesDisplayMode?:
-    | 'rated_helpful'
-    | 'needs_more_ratings'
-    | 'embedded'
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }
 
 export function PostFeedItem({
@@ -104,7 +102,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
-  communityNotesDisplayMode,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   post: AppBskyFeedDefs.PostView
   rootPost: AppBskyFeedDefs.PostView
@@ -145,7 +143,7 @@ export function PostFeedItem({
         isParentNotFound={isParentNotFound}
         rootPost={rootPost}
         onShowLess={onShowLess}
-        communityNotesDisplayMode={communityNotesDisplayMode}
+        communityNotesFeedMode={communityNotesFeedMode}
       />
     )
   }
@@ -170,7 +168,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
-  communityNotesDisplayMode,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<AppBskyFeedDefs.PostView>
@@ -398,7 +396,7 @@ let FeedItemInner = ({
             post={post}
             threadgateRecord={threadgateRecord}
             hover={hover}
-            communityNotesDisplayMode={communityNotesDisplayMode}
+            communityNotesFeedMode={communityNotesFeedMode}
           />
           <PostControls
             post={post}
@@ -412,7 +410,7 @@ let FeedItemInner = ({
             onShowLess={onShowLess}
             viaRepost={viaRepost}
           />
-          {communityNotesDisplayMode &&
+          {communityNotesFeedMode &&
             (hasHelpfulNotes(post) || hasProposedNotes(post)) && (
               <SeeAllNotesLink post={post} />
             )}
@@ -434,7 +432,7 @@ let PostContent = ({
   onOpenEmbed,
   threadgateRecord,
   hover: _hover,
-  communityNotesDisplayMode,
+  communityNotesFeedMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -444,10 +442,7 @@ let PostContent = ({
   post: AppBskyFeedDefs.PostView
   threadgateRecord?: AppBskyFeedThreadgate.Record
   hover?: boolean
-  communityNotesDisplayMode?:
-    | 'rated_helpful'
-    | 'needs_more_ratings'
-    | 'embedded'
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -477,9 +472,41 @@ let PostContent = ({
       : []
   }, [post, currentAccount?.did, threadgateHiddenReplies])
 
+  // Determine what note status to look for
+  // If feedMode is set (feed context), use that as source of truth
+  // Otherwise, check labels to see what kind of note the post has
+  const noteStatus = communityNotesFeedMode
+    ? communityNotesFeedMode
+    : hasHelpfulNotes(post)
+      ? 'rated_helpful'
+      : hasProposedNotes(post)
+        ? 'needs_more_ratings'
+        : undefined
+
+  // Only query if we're in a feed context OR the post has note labels
+  const shouldQueryNotes = !!communityNotesFeedMode || noteStatus !== undefined
+
+  const notesQuery = useProposalsQuery(
+    post.uri,
+    noteStatus || 'rated_helpful',
+    {enabled: shouldQueryNotes},
+  )
+
+  // In feed context, hide entire post if no notes found
+  // This handles stale feeds where post appears but note status changed
+  const shouldHidePost =
+    communityNotesFeedMode &&
+    noteStatus !== undefined &&
+    !notesQuery.isLoading &&
+    (!notesQuery.data || notesQuery.data.length === 0)
+
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
+
+  if (shouldHidePost) {
+    return null
+  }
 
   return (
     <ContentHider
@@ -519,19 +546,19 @@ let PostContent = ({
         </View>
       ) : null}
       {(hasHelpfulNotes(post) ||
-        (communityNotesDisplayMode && hasProposedNotes(post))) && (
+        (communityNotesFeedMode && hasProposedNotes(post))) && (
         <CommunityNoteWidget
           post={post}
-          displayMode={communityNotesDisplayMode || 'rated_helpful'}
+          displayMode={communityNotesFeedMode || 'rated_helpful'}
           showRatingPrompt={true}
           showDisclaimer={
-            !communityNotesDisplayMode ||
-            communityNotesDisplayMode === 'rated_helpful'
+            !communityNotesFeedMode ||
+            communityNotesFeedMode === 'rated_helpful'
           }
           parentHover={_hover}
         />
       )}
-      {!communityNotesDisplayMode && (
+      {!communityNotesFeedMode && (
         <RateCommunityNotesPrompt post={post} parentHover={_hover} />
       )}
     </ContentHider>

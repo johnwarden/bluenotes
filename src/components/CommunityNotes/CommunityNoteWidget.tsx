@@ -44,43 +44,23 @@ export function CommunityNoteWidget({
     data: notes,
     isLoading,
     error,
-  } = useProposalsQuery(post.uri, queryStatus, 'annotation')
+  } = useProposalsQuery(post.uri, queryStatus)
 
   // Don't render if loading
   if (isLoading) {
     return null
   }
 
-  // Show error if there's an error or no notes when expected
-  if (error || !notes || notes.length === 0) {
-    // For embedded posts, this widget is always displayed, whether or not the post has helpful notes.
-    // TODO: can callers look at labels to decide whether to display the CommunityNoteWidget?
-    if (displayMode === 'embedded' && (!notes || notes.length === 0)) {
-      return null
-    }
+  // If no notes found, just hide widget
+  // Parent (PostContent) already handled hiding the post in feed context
+  if (!notes || notes.length === 0) {
+    return null
+  }
 
-    return (
-      <View
-        style={[
-          a.mt_md,
-          a.rounded_lg,
-          a.border,
-          t.atoms.bg,
-          t.atoms.border_contrast_low,
-          a.p_md,
-        ]}>
-        <View style={[a.flex_row, a.align_center, a.gap_sm]}>
-          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>⚠️</Text>
-          <Text style={[a.text_md, t.atoms.text_contrast_medium]}>
-            {error ? (
-              <Trans>Error loading community note: {error.message}</Trans>
-            ) : (
-              <Trans>No community note found for this post</Trans>
-            )}
-          </Text>
-        </View>
-      </View>
-    )
+  // If there's an actual error (network, etc), also hide widget
+  if (error) {
+    console.warn('Error loading community note:', error)
+    return null
   }
 
   const primaryNote = notes[0]
@@ -109,8 +89,6 @@ export function CommunityNoteWidget({
     displayMode === 'needs_more_ratings'
       ? t.atoms.text_contrast_medium
       : undefined // defaults to black
-
-  // const borderStyle = displayMode === 'needs_more_ratings' ? 'dotted' : 'solid' // Unused - borderStyle not supported in React Native
 
   // Configure container styles based on mode
   const containerStyles =

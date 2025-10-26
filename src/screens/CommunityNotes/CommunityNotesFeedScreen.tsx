@@ -193,7 +193,7 @@ function CommunityNotesFeedScreenInner({
             renderEmptyState={renderEmptyState}
             renderEndOfFeed={() => <FeedFooter />}
             headerOffset={0}
-            communityNotesDisplayMode={displayMode}
+            communityNotesFeedMode={displayMode}
           />
         </FeedFeedbackProvider>
       ) : (
