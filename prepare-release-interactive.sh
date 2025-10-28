@@ -6,15 +6,18 @@ set -o nounset
 
 echo "🔄 Starting release preparation..."
 
+BLUESKY_RELEASE_TAG=1.109.0
+
 # Fetch latest changes
 echo "📥 Fetching latest changes..."
-git fetch
+git fetch --all
 
 # Rebase tooling against upstream
 git co tooling
-echo "🔀 Rebasing tooling against upstream/main..."
-git rebase upstream/main
+echo "🔀 Rebasing tooling against $BLUESKY_RELEASE_TAG..."
+git rebase $BLUESKY_RELEASE_TAG
 git push --force
+
 
 # Rebase community-notes-feature against tooling
 git co community-notes-feature
