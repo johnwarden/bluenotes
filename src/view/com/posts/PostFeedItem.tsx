@@ -483,8 +483,11 @@ let PostContent = ({
         ? 'needs_more_ratings'
         : undefined
 
-  // Only query if we're in a feed context OR the post has note labels
-  const shouldQueryNotes = !!communityNotesFeedMode || noteStatus !== undefined
+  // In CN feed mode, disable individual queries - rely on batch prefetch
+  // In non-CN mode, only query if the post has note labels
+  const shouldQueryNotes = communityNotesFeedMode
+    ? false // Batch prefetch handles this
+    : noteStatus !== undefined
 
   const notesQuery = useProposalsQuery(
     post.uri,
@@ -492,12 +495,18 @@ let PostContent = ({
     {enabled: shouldQueryNotes},
   )
 
+  // In CN feed mode with disabled queries (batch mode), treat undefined data as "still loading"
+  // This prevents hiding the post while waiting for batch prefetch to populate cache
+  const isWaitingForBatch =
+    communityNotesFeedMode && !shouldQueryNotes && !notesQuery.data
+
   // In feed context, hide entire post if no notes found
   // This handles stale feeds where post appears but note status changed
   const shouldHidePost =
     communityNotesFeedMode &&
     noteStatus !== undefined &&
     !notesQuery.isLoading &&
+    !isWaitingForBatch &&
     (!notesQuery.data || notesQuery.data.length === 0)
 
   const onPressShowMore = useCallback(() => {
@@ -556,6 +565,7 @@ let PostContent = ({
             communityNotesFeedMode === 'rated_helpful'
           }
           parentHover={_hover}
+          disableFetch={!!communityNotesFeedMode}
         />
       )}
       {!communityNotesFeedMode && (

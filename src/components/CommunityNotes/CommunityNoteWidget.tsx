@@ -22,6 +22,7 @@ interface CommunityNoteWidgetProps {
   showRatingPrompt?: boolean
   showDisclaimer?: boolean
   parentHover?: boolean
+  disableFetch?: boolean // Disable query when batch prefetch is used
 }
 
 export function CommunityNoteWidget({
@@ -30,6 +31,7 @@ export function CommunityNoteWidget({
   showRatingPrompt = true,
   showDisclaimer = true,
   parentHover = false,
+  disableFetch = false,
 }: CommunityNoteWidgetProps) {
   const t = useTheme()
   const [noteHover, setNoteHover] = useState(false)
@@ -52,7 +54,7 @@ export function CommunityNoteWidget({
     data: notes,
     isLoading,
     error,
-  } = useProposalsQuery(post.uri, queryStatus)
+  } = useProposalsQuery(post.uri, queryStatus, {enabled: !disableFetch})
 
   // When fetch is disabled (batch mode), treat undefined data as loading
   // This prevents flash of empty state while batch prefetch runs
