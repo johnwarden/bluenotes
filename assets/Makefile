@@ -185,18 +185,24 @@ icons/logomark.svg: templates/logomark-template.svg logo.svg
 	WIDTH=$$(echo "$$VIEWBOX" | cut -d' ' -f3); \
 	HEIGHT=$$(echo "$$VIEWBOX" | cut -d' ' -f4); \
 	ASPECT_RATIO=$$(echo "scale=6; $$HEIGHT / $$WIDTH" | bc -l); \
-	mkdir -p tmp; \
-	sed -n '1,/height={Number(size) \* ratio}>/p' $@ > tmp/logotype_header.tsx; \
-	grep -o '<path[^>]*\/>' $< | sed 's/<path/      <Path/g; s/\/>/\n      \/>/g' >> tmp/logotype_header.tsx; \
-	echo "    </Svg>" >> tmp/logotype_header.tsx; \
-	echo "  )" >> tmp/logotype_header.tsx; \
-	echo "}" >> tmp/logotype_header.tsx; \
-	echo "" >> tmp/logotype_header.tsx; \
-	sed -i \
-		-e '/^[[:space:]]*const ratio = /s/const ratio = .*/const ratio = '"$$ASPECT_RATIO"'/' \
-		-e '/^[[:space:]]*viewBox="/s/viewBox="[^"]*"/viewBox="'"$$VIEWBOX"'"/' \
-		tmp/logotype_header.tsx; \
-	mv tmp/logotype_header.tsx $@
+	sed -n '/<svg/,/<\/svg>/p' $< | sed '1d;$$d' | sed 's/<path/<Path/g; s/<\/path>/<\/Path>/g; s/^/      /' > $@.svg.tmp; \
+	awk -v viewbox="$$VIEWBOX" -v ratio="$$ASPECT_RATIO" -v svgfile="$@.svg.tmp" ' \
+		/^[[:space:]]*const ratio = / { print "const ratio = " ratio; next } \
+		/<Svg$$/ { \
+			print; \
+			getline; \
+			while ($$0 !~ /<\/Svg>/) getline; \
+			print "      viewBox=\"" viewbox "\""; \
+			print "      {...rest}"; \
+			print "      width={size}"; \
+			print "      height={Number(size) * ratio}>"; \
+			while ((getline line < svgfile) > 0) print line; \
+			close(svgfile); \
+			print "    </Svg>"; \
+			next \
+		} \
+		{ print } \
+	' $@ > $@.tmp && mv $@.tmp $@ && rm -f $@.svg.tmp
 
 
 # Update the Splash component with the new logo path data and correct dimensions
