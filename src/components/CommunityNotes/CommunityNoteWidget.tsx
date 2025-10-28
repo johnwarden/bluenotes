@@ -1,14 +1,15 @@
 import {useState} from 'react'
-import {View} from 'react-native'
+import {Pressable, View} from 'react-native'
 import {type AppBskyFeedDefs} from '@atproto/api'
 import {Trans} from '@lingui/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
+import {isWeb} from '#/platform/detection'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
-import {Link} from '#/components/Link'
+import {Link, useLink} from '#/components/Link'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
 import {APP_NAME} from '#/env'
@@ -33,6 +34,13 @@ export function CommunityNoteWidget({
   const t = useTheme()
   const [noteHover, setNoteHover] = useState(false)
 
+  // Use link hook for navigation logic (must be before early returns)
+  const linkProps = useLink({
+    to: `/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`,
+    action: 'navigate',
+    displayText: 'Community Notes',
+  })
+
   // Determine which notes to fetch based on display mode
   // Embedded mode shows rated_helpful notes, others show their respective types
   const queryStatus =
@@ -46,8 +54,12 @@ export function CommunityNoteWidget({
     error,
   } = useProposalsQuery(post.uri, queryStatus)
 
-  // Don't render if loading
-  if (isLoading) {
+  // When fetch is disabled (batch mode), treat undefined data as loading
+  // This prevents flash of empty state while batch prefetch runs
+  const isWaitingForBatch = disableFetch && !notes
+
+  // Don't render if loading or waiting for batch prefetch
+  if (isLoading || isWaitingForBatch) {
     return null
   }
 
@@ -130,6 +142,26 @@ export function CommunityNoteWidget({
     opacity: noteHover ? 0.05 : parentHover ? 0.03 : 0.0,
   }
 
+  // Smart click handler that detects if an inner link was clicked
+  const handlePress = (e: any) => {
+    if (isWeb) {
+      // On web, check if we clicked on or inside an anchor tag
+      const target = e.target as HTMLElement
+      const clickedLink = target?.closest?.('a')
+
+      if (clickedLink) {
+        // Let the inner link handle its own navigation
+        return
+      }
+    }
+
+    // Stop propagation to prevent post navigation
+    e.stopPropagation()
+
+    // Navigate to community notes page
+    linkProps.onPress(e)
+  }
+
   // Render the widget content
   const widgetContent = (
     <>
@@ -170,26 +202,22 @@ export function CommunityNoteWidget({
     </>
   )
 
-  // Always wrap in Link to navigate to Community Notes page
+  // Use Pressable instead of Link to avoid nested anchor tags
   const widget = (
-    <Link
-      to={`/profile/${post.author.handle}/post/${post.uri.split('/').pop()}/community-notes`}
-      action="navigate"
-      style={containerStyles}
-      label="Community Notes"
-      // @ts-expect-error - onPointerEnter/Leave not in Link types but work on web
+    <Pressable
+      onPress={handlePress}
       onPointerEnter={() => setNoteHover(true)}
       onPointerLeave={() => setNoteHover(false)}
-      onPress={e => {
-        // Stop propagation to prevent post navigation
-        e.stopPropagation()
-      }}>
+      accessibilityRole="button"
+      accessibilityLabel="Community Notes"
+      accessibilityHint="Opens community notes page"
+      style={[containerStyles, isWeb && {cursor: 'pointer'}]}>
       {/* Base background for note body (always present) */}
       <View style={baseBackgroundStyle} />
       {/* Hover overlay */}
       <View style={hoverOverlayStyle} />
       {widgetContent}
-    </Link>
+    </Pressable>
   )
 
   return (
