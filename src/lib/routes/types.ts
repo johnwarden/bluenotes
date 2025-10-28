@@ -23,6 +23,8 @@ export type CommonNavigatorParams = {
   ProfileList: {name: string; rkey: string}
   PostThread: {name: string; rkey: string}
   PostLikedBy: {name: string; rkey: string}
+  CommunityNotesRating: {name: string; rkey: string}
+  CommunityNotes: {tab: string}
   PostRepostedBy: {name: string; rkey: string}
   PostQuotes: {name: string; rkey: string}
   ProfileFeed: {
@@ -96,6 +98,7 @@ export type CommonNavigatorParams = {
 export type BottomTabNavigatorParams = CommonNavigatorParams & {
   HomeTab: undefined
   SearchTab: undefined
+  CommunityNotesTab: undefined
   NotificationsTab: undefined
   MyProfileTab: undefined
   MessagesTab: undefined
@@ -107,6 +110,10 @@ export type HomeTabNavigatorParams = CommonNavigatorParams & {
 
 export type SearchTabNavigatorParams = CommonNavigatorParams & {
   Search: {q?: string; tab?: 'user' | 'profile' | 'feed'}
+}
+
+export type CommunityNotesTabNavigatorParams = CommonNavigatorParams & {
+  CommunityNotes: {tab: string}
 }
 
 export type NotificationsTabNavigatorParams = CommonNavigatorParams & {

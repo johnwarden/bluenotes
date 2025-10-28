@@ -33,6 +33,7 @@ import {DISCOVER_FEED_URI} from '#/lib/constants'
 import {logger} from '#/logger'
 import {useAgeAssuranceContext} from '#/state/ageAssurance'
 import {STALE} from '#/state/queries'
+import {useCommunityNotesConfigReady} from '#/state/queries/community-notes-config'
 import {DEFAULT_LOGGED_OUT_PREFERENCES} from '#/state/queries/preferences/const'
 import {useAgent} from '#/state/session'
 import * as userActionHistory from '#/state/userActionHistory'
@@ -142,11 +143,17 @@ export function usePostFeedQuery(
    * loads. -esb
    */
   const {isReady: isAgeAssuranceReady} = useAgeAssuranceContext()
+  /**
+   * Wait for Community Notes config to load before fetching feeds.
+   * This ensures we always have the correct Atproto-Accept-Labelers header.
+   */
+  const isCommunityNotesConfigReady = useCommunityNotesConfigReady()
   const enabled =
     opts?.enabled !== false &&
     Boolean(moderationOpts) &&
     Boolean(preferences) &&
-    isAgeAssuranceReady
+    isAgeAssuranceReady &&
+    isCommunityNotesConfigReady
   const userInterests = aggregateUserInterests(preferences)
   const followingPinnedIndex =
     preferences?.savedFeeds?.findIndex(

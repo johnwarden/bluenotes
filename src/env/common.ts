@@ -1,6 +1,14 @@
+import Constants from 'expo-constants'
 import {type Did} from '@atproto/api'
 
 import packageJson from '#/../package.json'
+
+/**
+ * The name of the app, as defined in `app.config.js`.
+ * This will automatically reflect the app name (e.g., 'Bluesky' or 'Bluenotes')
+ * based on what's configured in the Expo config.
+ */
+export const APP_NAME: string = Constants.expoConfig?.name || 'Bluesky'
 
 /**
  * The semver version of the app, as defined in `package.json.`

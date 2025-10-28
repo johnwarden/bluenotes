@@ -11,6 +11,7 @@ import {msg, Plural, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {useActorStatus} from '#/lib/actor-status'
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {useTranslate} from '#/lib/hooks/useTranslate'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -42,6 +43,9 @@ import {
 import {atoms as a, useTheme} from '#/alf'
 import {colors} from '#/components/Admonition'
 import {Button} from '#/components/Button'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {InlineLinkText, Link} from '#/components/Link'
@@ -375,6 +379,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
         </View>
         <View style={[a.pb_sm]}>
           <LabelsOnMyPost post={post} style={[a.pb_sm]} />
+          <DebugLabels post={post} />
           <ContentHider
             modui={moderation.ui('contentView')}
             ignoreMute
@@ -407,6 +412,14 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               </View>
             )}
           </ContentHider>
+          {hasHelpfulNotes(post) && (
+            <CommunityNoteWidget
+              post={post}
+              displayMode="rated_helpful"
+              showDisclaimer={true}
+            />
+          )}
+          <RateCommunityNotesPrompt post={post} />
           <ExpandedPostDetails
             post={item.value.post}
             isThreadAuthor={isThreadAuthor}

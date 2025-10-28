@@ -83,7 +83,13 @@ export function ProfileFeedHeaderSkeleton() {
   )
 }
 
-export function ProfileFeedHeader({info}: {info: FeedSourceFeedInfo}) {
+export function ProfileFeedHeader({
+  info,
+  onPressBack,
+}: {
+  info: FeedSourceFeedInfo
+  onPressBack?: () => void
+}) {
   const t = useTheme()
   const {_, i18n} = useLingui()
   const {hasSession} = useSession()
@@ -180,12 +186,24 @@ export function ProfileFeedHeader({info}: {info: FeedSourceFeedInfo}) {
     }
   }
 
+  const handleBackPress = React.useCallback(
+    (evt: {preventDefault: () => void}) => {
+      if (onPressBack) {
+        evt.preventDefault()
+        onPressBack()
+      }
+    },
+    [onPressBack],
+  )
+
   return (
     <>
       <Layout.Center
         style={[t.atoms.bg, a.z_10, web([a.sticky, a.z_10, {top: 0}])]}>
         <Layout.Header.Outer>
-          <Layout.Header.BackButton />
+          <Layout.Header.BackButton
+            onPress={onPressBack ? handleBackPress : undefined}
+          />
           <Layout.Header.Content align="left">
             <Button
               label={_(msg`Open feed info screen`)}

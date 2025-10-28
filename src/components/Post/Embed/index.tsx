@@ -11,6 +11,7 @@ import {
 import {Trans} from '@lingui/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {makeProfileLink} from '#/lib/routes/links'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -19,6 +20,7 @@ import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {atoms as a, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import {RichText} from '#/components/RichText'
@@ -223,24 +225,33 @@ export function PostDetachedEmbed({
  */
 export function QuoteEmbed({
   embed,
+  post,
   onOpen,
   style,
   isWithinQuote: parentIsWithinQuote,
   allowNestedQuotes: parentAllowNestedQuotes,
+  hideCommunityNotes = false,
 }: Omit<CommonProps, 'viewContext'> & {
-  embed: EmbedType<'post'>
+  embed?: EmbedType<'post'>
+  post?: AppBskyFeedDefs.PostView
   viewContext?: QuoteEmbedViewContext
+  hideCommunityNotes?: boolean
 }) {
   const moderationOpts = useModerationOpts()
-  const quote = React.useMemo<$Typed<AppBskyFeedDefs.PostView>>(
-    () => ({
-      ...embed.view,
+  const quote = React.useMemo<$Typed<AppBskyFeedDefs.PostView>>(() => {
+    if (post) {
+      return {
+        ...post,
+        $type: 'app.bsky.feed.defs#postView',
+      } as $Typed<AppBskyFeedDefs.PostView>
+    }
+    return {
+      ...embed!.view,
       $type: 'app.bsky.feed.defs#postView',
-      record: embed.view.value,
-      embed: embed.view.embeds?.[0],
-    }),
-    [embed],
-  )
+      record: embed!.view.value,
+      embed: embed!.view.embeds?.[0],
+    }
+  }, [post, embed])
   const moderation = React.useMemo(() => {
     return moderationOpts ? moderatePost(quote, moderationOpts) : undefined
   }, [quote, moderationOpts])
@@ -274,12 +285,12 @@ export function QuoteEmbed({
   const [hover, setHover] = React.useState(false)
   return (
     <View
-      style={[a.mt_sm]}
+      style={[a.mt_sm, a.border, t.atoms.border_contrast_low, a.rounded_md]}
       onPointerEnter={() => setHover(true)}
       onPointerLeave={() => setHover(false)}>
       <ContentHider
         modui={moderation?.ui('contentList')}
-        style={[a.rounded_md, a.border, t.atoms.border_contrast_low, style]}
+        style={[a.p_md, style]}
         activeStyle={[a.p_md, a.pt_sm]}
         childContainerStyle={[a.pt_sm]}>
         {({active}) => (
@@ -329,6 +340,16 @@ export function QuoteEmbed({
           </>
         )}
       </ContentHider>
+      {!hideCommunityNotes && hasHelpfulNotes(quote) && (
+        <>
+          <View style={[a.border_t, t.atoms.border_contrast_low]} />
+          <CommunityNoteWidget
+            post={quote}
+            displayMode="embedded"
+            showDisclaimer={false}
+          />
+        </>
+      )}
     </View>
   )
 }

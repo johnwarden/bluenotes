@@ -9,11 +9,14 @@ import {
   type ModerationDecision,
   RichText as RichTextAPI,
 } from '@atproto/api'
+import {msg} from '@lingui/macro'
+import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {useActorStatus} from '#/lib/actor-status'
 import {type ReasonFeedSource} from '#/lib/api/feed/types'
+import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -27,6 +30,7 @@ import {
   usePostShadow,
 } from '#/state/cache/post-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
+import {useProposalsQuery} from '#/state/queries/community-notes'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
@@ -37,7 +41,12 @@ import {
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
-import {atoms as a} from '#/alf'
+import {atoms as a, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
+import {Link as NewLink} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
@@ -50,6 +59,7 @@ import {PostControls} from '#/components/PostControls'
 import {DiscoverDebug} from '#/components/PostControls/DiscoverDebug'
 import {RichText} from '#/components/RichText'
 import {SubtleHover} from '#/components/SubtleHover'
+import {Text} from '#/components/Typography'
 import * as bsky from '#/types/bsky'
 import {PostFeedReason} from './PostFeedReason'
 
@@ -72,6 +82,7 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }
 
 export function PostFeedItem({
@@ -91,6 +102,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   post: AppBskyFeedDefs.PostView
   rootPost: AppBskyFeedDefs.PostView
@@ -105,6 +117,7 @@ export function PostFeedItem({
       }),
     [record],
   )
+
   if (postShadowed === POST_TOMBSTONE) {
     return null
   }
@@ -130,6 +143,7 @@ export function PostFeedItem({
         isParentNotFound={isParentNotFound}
         rootPost={rootPost}
         onShowLess={onShowLess}
+        communityNotesFeedMode={communityNotesFeedMode}
       />
     )
   }
@@ -154,6 +168,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<AppBskyFeedDefs.PostView>
@@ -371,6 +386,7 @@ let FeedItemInner = ({
               />
             )}
           <LabelsOnMyPost post={post} />
+          <DebugLabels post={post} />
           <PostContent
             moderation={moderation}
             richText={richText}
@@ -379,6 +395,8 @@ let FeedItemInner = ({
             onOpenEmbed={onOpenEmbed}
             post={post}
             threadgateRecord={threadgateRecord}
+            hover={hover}
+            communityNotesFeedMode={communityNotesFeedMode}
           />
           <PostControls
             post={post}
@@ -392,6 +410,10 @@ let FeedItemInner = ({
             onShowLess={onShowLess}
             viaRepost={viaRepost}
           />
+          {communityNotesFeedMode &&
+            (hasHelpfulNotes(post) || hasProposedNotes(post)) && (
+              <SeeAllNotesLink post={post} />
+            )}
         </View>
 
         <DiscoverDebug feedContext={feedContext} />
@@ -409,6 +431,8 @@ let PostContent = ({
   postAuthor,
   onOpenEmbed,
   threadgateRecord,
+  hover: _hover,
+  communityNotesFeedMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -417,6 +441,8 @@ let PostContent = ({
   onOpenEmbed: () => void
   post: AppBskyFeedDefs.PostView
   threadgateRecord?: AppBskyFeedThreadgate.Record
+  hover?: boolean
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }): React.ReactNode => {
   const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = useState(
@@ -446,9 +472,50 @@ let PostContent = ({
       : []
   }, [post, currentAccount?.did, threadgateHiddenReplies])
 
+  // Determine what note status to look for
+  // If feedMode is set (feed context), use that as source of truth
+  // Otherwise, check labels to see what kind of note the post has
+  const noteStatus = communityNotesFeedMode
+    ? communityNotesFeedMode
+    : hasHelpfulNotes(post)
+      ? 'rated_helpful'
+      : hasProposedNotes(post)
+        ? 'needs_more_ratings'
+        : undefined
+
+  // In CN feed mode, disable individual queries - rely on batch prefetch
+  // In non-CN mode, only query if the post has note labels
+  const shouldQueryNotes = communityNotesFeedMode
+    ? false // Batch prefetch handles this
+    : noteStatus !== undefined
+
+  const notesQuery = useProposalsQuery(
+    post.uri,
+    noteStatus || 'rated_helpful',
+    {enabled: shouldQueryNotes},
+  )
+
+  // In CN feed mode with disabled queries (batch mode), treat undefined data as "still loading"
+  // This prevents hiding the post while waiting for batch prefetch to populate cache
+  const isWaitingForBatch =
+    communityNotesFeedMode && !shouldQueryNotes && !notesQuery.data
+
+  // In feed context, hide entire post if no notes found
+  // This handles stale feeds where post appears but note status changed
+  const shouldHidePost =
+    communityNotesFeedMode &&
+    noteStatus !== undefined &&
+    !notesQuery.isLoading &&
+    !isWaitingForBatch &&
+    (!notesQuery.data || notesQuery.data.length === 0)
+
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
+
+  if (shouldHidePost) {
+    return null
+  }
 
   return (
     <ContentHider
@@ -487,6 +554,23 @@ let PostContent = ({
           />
         </View>
       ) : null}
+      {(hasHelpfulNotes(post) ||
+        (communityNotesFeedMode && hasProposedNotes(post))) && (
+        <CommunityNoteWidget
+          post={post}
+          displayMode={communityNotesFeedMode || 'rated_helpful'}
+          showRatingPrompt={true}
+          showDisclaimer={
+            !communityNotesFeedMode ||
+            communityNotesFeedMode === 'rated_helpful'
+          }
+          parentHover={_hover}
+          disableFetch={!!communityNotesFeedMode}
+        />
+      )}
+      {!communityNotesFeedMode && (
+        <RateCommunityNotesPrompt post={post} parentHover={_hover} />
+      )}
     </ContentHider>
   )
 }
@@ -532,3 +616,36 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 })
+
+function SeeAllNotesLink({post}: {post: AppBskyFeedDefs.PostView}) {
+  const {_} = useLingui()
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <NewLink
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={_(msg`See all notes on this post`)}
+        style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+        {({hovered}) => (
+          <>
+            <Text
+              style={[
+                a.text_md,
+                {color: t.palette.primary_500},
+                hovered && {textDecorationLine: 'underline'},
+              ]}>
+              {_(msg`See all notes on this post`)}
+            </Text>
+            <ChevronRightIcon
+              size="sm"
+              style={[{color: t.palette.primary_500}]}
+            />
+          </>
+        )}
+      </NewLink>
+    </View>
+  )
+}

@@ -30,6 +30,7 @@ import {
   REPLY_LINE_WIDTH,
 } from '#/screens/PostThread/const'
 import {atoms as a, useTheme} from '#/alf'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
 import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
@@ -295,6 +296,7 @@ const ThreadItemPostInner = memo(function ThreadItemPostInner({
                 style={[a.pb_xs]}
               />
               <LabelsOnMyPost post={post} style={[a.pb_xs]} />
+              <DebugLabels post={post} />
               <PostAlerts
                 modui={moderation.ui('contentList')}
                 style={[a.pb_2xs]}

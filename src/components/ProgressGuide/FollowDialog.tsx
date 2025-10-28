@@ -5,6 +5,7 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 
 import {popularInterests, useInterestsDisplayNames} from '#/lib/interests'
+import {mergeRefs} from '#/lib/merge-refs'
 import {logEvent} from '#/lib/statsig/statsig'
 import {isWeb} from '#/platform/detection'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -106,7 +107,7 @@ function DialogInner({guide}: {guide: Follow10ProgressGuide}) {
   const [searchText, setSearchText] = useState(lastSearchText)
   const moderationOpts = useModerationOpts()
   const listRef = useRef<ListMethods>(null)
-  const inputRef = useRef<TextInput>(null)
+  const inputRef = useRef<TextInput | null>(null)
   const [headerHeight, setHeaderHeight] = useState(0)
   const {currentAccount} = useSession()
 
@@ -588,7 +589,7 @@ function SearchInput({
       />
 
       <TextInput
-        ref={inputRef}
+        ref={mergeRefs([inputRef])}
         placeholder={_(msg`Search by name or interest`)}
         defaultValue={defaultValue}
         onChangeText={onChangeText}
