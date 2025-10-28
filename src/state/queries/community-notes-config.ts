@@ -49,7 +49,7 @@ export function useCommunityNotesConfig() {
     },
     // Config rarely changes - keep it fresh for the entire session
     staleTime: Infinity, // Never becomes stale during session
-    gcTime: STALE.HOURS.TWENTYFOUR, // Keep in cache for 24 hours
+    gcTime: STALE.HOURS.ONE * 24, // Keep in cache for 24 hours
     refetchOnWindowFocus: false, // Don't refetch on tab focus
     refetchOnMount: false, // Don't refetch on component remount
     refetchOnReconnect: false, // Don't refetch on network reconnect
