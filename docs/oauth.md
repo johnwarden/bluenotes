@@ -1,23 +1,39 @@
 # AT Protocol OAuth (Blue Notes)
 
-Blue Notes signs in with **AT Protocol OAuth** by default on web. Password /
-app-password login remains available as a fallback (required for the local
-`alice.test` PDS and until production client metadata is live).
+**Launchable web OAuth is on `bluenotes-rebrand` ([PR #7](https://github.com/johnwarden/bluenotes/pull/7)), not on this 1.133 merge.**
+
+This tree (1.133 `PasswordSession` / SessionBundle) keeps client metadata,
+env flags, and an OAuth callback hook, but it does **not** complete a session
+and it does **not** show the handle-only OAuth login form. `LoginForm.tsx` is
+the upstream password + hosting-provider + 2FA form. `login({oauthSession})`
+throws. `oauth-agent.ts` is a stub.
+
+Ship web OAuth from PR #7 first (1.109 `SessionStore`). Re-port
+`OAuthLoginFormInner` / `signInWithOAuth` only after a SessionBundle adapter
+can persist DPoP sessions without JWTs.
 
 Upstream Bluesky `social-app` still uses password sessions. Official OAuth
 login is [on the roadmap](https://github.com/bluesky-social/social-app/issues/10403)
-but not shipped. This fork ports the experimental `hailey/oauth-yeag` work onto
-the current session store and points the client at Blue Notes, not
-`bsky.hailey.at`.
+but not shipped.
 
 ## What users see
+
+### On `bluenotes-rebrand` (PR #7) — launchable
 
 - **Web (default):** handle-only form → redirect to the user's PDS → return to
   Blue Notes with a DPoP-bound OAuth session.
 - **Password fallback:** "Use password instead" on the sign-in form, or turn
   off "Sign in with OAuth" under Settings → Privacy and Security.
-- **Native:** password login only in this revision. Native OAuth needs an Expo
-  auth helper, app scheme, and hosted native client metadata (see below).
+- **Native:** password login only. Native OAuth needs an Expo auth helper.
+
+### On this 1.133 merge (PR #9) — not launchable
+
+- **Web:** upstream password form only. An OAuth callback still toasts
+  "use password".
+- **Settings** may still show an OAuth toggle; it does not complete sign-in.
+- Re-porting the handle-only form here is deferred: 1.133 LoginForm also has
+  hosting autodetection and 2FA, and the session provider cannot accept
+  `oauthSession` yet.
 
 ## Environment variables
 
@@ -86,18 +102,20 @@ These steps are outside the agent. No paid accounts are required.
 
 ## Merge notes
 
-The shipping trunk is **`release`** (`community-notes-feature` +
-`bluenotes-rebrand`). OAuth was ported onto that line rather than by merging
-the raw `hailey/oauth*` branches:
+OAuth lands on **`bluenotes-rebrand`** (PR #7). `release` is only the
+assemble/deploy tip (`reset --hard bluenotes-rebrand` then merge
+`community-notes-feature`). Do not merge this 1.133 PR as a way to ship OAuth.
+
+This 1.133 merge kept metadata files and callback wiring, then took upstream
+`LoginForm.tsx`. The handle-only UI (`OAuthLoginFormInner` / `signInWithOAuth`)
+was **not** carried through and must be re-ported after a SessionBundle
+adapter.
 
 - `hailey/oauth` and `hailey/expo-oauth-helper` (2024) are an abandoned native
-  module experiment.
-- `hailey/oauth-yeag` (2025-07, app 1.106) is the real source, but it rewrites
-  the session provider, hardcodes `bsky.hailey.at`, and uses an AuthCallback
-  route that never renders while logged out.
-- Latest `bluesky-social/social-app` `main` (1.132) still has **no** OAuth
-  login. Rebasing first would not land OAuth.
+  module experiment. Do not merge them.
+- `hailey/oauth-yeag` (2025-07, app 1.106) is the real source for PR #7.
+- Latest `bluesky-social/social-app` `main` (1.133) still has **no** OAuth
+  login. Rebasing first does not land OAuth.
 
-Password sessions and Community Notes behavior are unchanged when OAuth is
-off. Do not land this by rewriting `AGENTS.md` / shipping-install docs
+Do not land this by rewriting `AGENTS.md` / shipping-install docs
 (draft PR #6).

@@ -7,11 +7,9 @@
 
 You're all set!
 
-Web sign-in defaults to AT Protocol OAuth. Local `http://127.0.0.1:19006` uses
-the loopback client automatically. Password login remains available via "Use
-password instead" (needed for `alice.test`). Production client metadata and env
-vars are documented in [docs/oauth.md](./oauth.md). Set `EXPO_PUBLIC_OAUTH=0`
-to force password login.
+This 1.133 tree uses the upstream **password** login form. Launchable handle-only
+OAuth is on `bluenotes-rebrand` ([PR #7](https://github.com/johnwarden/bluenotes/pull/7)).
+See [docs/oauth.md](./oauth.md).
 
 ## iOS/Android Build
 
