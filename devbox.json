@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
+  "packages": [
+    "git",
+    "nodejs", // pulls in a modern Node (23.x by default)
+    "yarn", // our JS package manager
+    "python3", // node-gyp needs Python
+    "cmake", // some libs still use it
+    "pkg-config", // so better-sqlite3 can locate sqlite3
+    "sqlite", // the sqlite3 headers & libs
+    "clang", // a GCC/Clang that supports C++20
+    "llvm",
+    "cloc@latest", // ensure clang++ ≥ v12+
+  ],
+  "shell": {
+    "init_hook": ["yarn"],
+  },
+  "env": {
+    "CXXFLAGS": "-std=c++20",
+  },
+}

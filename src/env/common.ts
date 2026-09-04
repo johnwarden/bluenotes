@@ -66,16 +66,18 @@ export const LOG_LEVEL = (process.env.EXPO_PUBLIC_LOG_LEVEL || 'info') as
 export const LOG_DEBUG: string = process.env.EXPO_PUBLIC_LOG_DEBUG || ''
 
 /**
- * The DID of the Bluesky appview to proxy to
+ * The DID of the Bluesky appview to proxy to.
+ * Unset in local PDS dev so requests are not proxied to production appview.
  */
-export const BLUESKY_PROXY_DID: DidString =
-  process.env.EXPO_PUBLIC_BLUESKY_PROXY_DID || 'did:web:api.bsky.app'
+export const BLUESKY_PROXY_DID: DidString | undefined = process.env
+  .EXPO_PUBLIC_BLUESKY_PROXY_DID as DidString | undefined
 
 /**
- * The DID of the chat service to proxy to
+ * The DID of the chat service to proxy to.
+ * Unset in local PDS dev so chat calls are not proxied to production chat.
  */
-export const CHAT_PROXY_DID: DidString =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || 'did:web:api.bsky.chat'
+export const CHAT_PROXY_DID: DidString | undefined = process.env
+  .EXPO_PUBLIC_CHAT_PROXY_DID as DidString | undefined
 
 /**
  * Metrics API host

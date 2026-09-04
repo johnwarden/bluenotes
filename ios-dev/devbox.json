@@ -1,0 +1,46 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.14.0/.schema/devbox.schema.json",
+  "packages": [
+    "git",
+    "nodejs@20", // Use LTS Node.js for stability
+    "yarn", // JS package manager
+    "python3", // Required by node-gyp
+    "cmake", // Some native modules need it
+    "pkg-config", // For native library detection
+    "sqlite", // SQLite headers & libs
+    "clang", // C/C++ compiler
+    "llvm", // LLVM toolchain
+    "ruby@3.1", // CocoaPods requires Ruby
+    "cocoapods", // iOS dependency manager
+    "watchman", // React Native file watching
+    "fastlane", // iOS deployment automation (optional but useful)
+  ],
+  "shell": {
+    "init_hook": [
+      "echo '🍎 iOS Development Environment'",
+      "echo 'Node.js version:' $(node --version)",
+      "echo 'Ruby version:' $(ruby --version)",
+      "echo 'CocoaPods version:' $(pod --version)",
+      "echo 'Xcode path:' $(xcode-select --print-path)",
+      "yarn install --frozen-lockfile"
+    ],
+    "scripts": {
+      "ios-build": "yarn ios",
+      "ios-clean": "cd ios && rm -rf Pods Podfile.lock && pod install",
+      "ios-reset": "rm -rf ios && npx expo prebuild --clean && cd ios && pod install"
+    }
+  },
+  "env": {
+    // Ensure we use system Xcode, not Nix-provided tools
+    "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer",
+    // C++ standard for native modules
+    "CXXFLAGS": "-std=c++20",
+    // Ensure CocoaPods uses the correct Ruby
+    "GEM_HOME": "$DEVBOX_SHELL_DIR/.gem",
+    "GEM_PATH": "$DEVBOX_SHELL_DIR/.gem",
+    // React Native specific
+    "RCT_METRO_PORT": "8081",
+    // Disable some problematic features that might conflict
+    "DISABLE_FLIPPER": "1"
+  }
+}
