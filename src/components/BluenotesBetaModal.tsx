@@ -40,23 +40,23 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
 
   useEffect(() => {
     if (control.isOpen) {
-      logger.metric('bluenotesBetaModal:presented', {})
+      logger.info('bluenotesBetaModal:presented')
     }
   }, [control.isOpen])
 
   const onPressCreateAccount = () => {
-    logger.metric('bluenotesBetaModal:signupClicked', {})
+    logger.info('bluenotesBetaModal:signupClicked')
     control.close()
     requestSwitchToAccount({requestedAccount: 'new'})
   }
 
   const onPressExplore = () => {
-    logger.metric('bluenotesBetaModal:exploreClicked', {})
+    logger.info('bluenotesBetaModal:exploreClicked')
     fadeOutAndClose()
   }
 
   const onPressSignIn = () => {
-    logger.metric('bluenotesBetaModal:signinClicked', {})
+    logger.info('bluenotesBetaModal:signinClicked')
     control.close()
     requestSwitchToAccount({requestedAccount: 'existing'})
   }
@@ -164,14 +164,14 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
                         : 'transparent',
                     },
                   ]}>
-                  {({hovered}) => (
+                  {({pressed}) => (
                     <Text
                       style={[
                         a.text_sm,
                         a.font_medium,
                         {
                           color: '#006AFF',
-                          textDecorationLine: hovered ? 'underline' : 'none',
+                          textDecorationLine: pressed ? 'underline' : 'none',
                         },
                       ]}>
                       <Trans>Read the Phase 1 Beta Tester Guide Here</Trans>
@@ -253,7 +253,7 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
               ]}
               hoverStyle={[a.bg_transparent]}
               onPress={() => {
-                logger.metric('bluenotesBetaModal:dismissed', {})
+                logger.info('bluenotesBetaModal:dismissed')
                 fadeOutAndClose()
               }}
               color="secondary"

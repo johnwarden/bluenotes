@@ -2,7 +2,7 @@ import React from 'react'
 import {Image, Linking, Text, View} from 'react-native'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useNavigation} from '@react-navigation/native'
+import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
@@ -12,7 +12,7 @@ import {
 } from '#/lib/routes/types'
 import {getStaticAssetUrl} from '#/lib/strings/url-helpers'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
+import {useEnableMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import {createSinglePathSVG} from '#/components/icons/TEMPLATE'
 import * as Layout from '#/components/Layout'
@@ -72,14 +72,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 >) => {
   const pal = usePalette('default')
   const {_} = useLingui()
-  const setMinimalShellMode = useSetMinimalShellMode()
-  // const {width} = useWindowDimensions()
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
+  useEnableMinimalShellMode({enabled: false})
 
   // Calculate content width accounting for sidebars and padding
   // const contentWidth = Math.min(width, 878) // Account for padding and max content width

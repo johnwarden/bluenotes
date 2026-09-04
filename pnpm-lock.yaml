@@ -248,6 +248,9 @@ importers:
       '@atproto/lex-password-session':
         specifier: 0.2.2
         version: 0.2.2
+      '@atproto/oauth-client-browser':
+        specifier: ^0.3.42
+        version: 0.3.42
       '@atproto/syntax':
         specifier: 0.7.5
         version: 0.7.5
@@ -665,6 +668,9 @@ importers:
       react-native-reanimated:
         specifier: 4.6.0
         version: 4.6.0(92d1a74bc123f334ae9968fa1c80814f)
+      react-native-render-html:
+        specifier: ^6.3.4
+        version: 6.3.4(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-safe-area-context:
         specifier: ~5.7.0
         version: 5.7.0(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
@@ -873,29 +879,53 @@ importers:
 
 packages:
 
+  '@atproto-labs/did-resolver@0.2.6':
+    resolution: {integrity: sha512-2K1bC04nI2fmgNcvof+yA28IhGlpWn2JKYlPa7To9JTKI45FINCGkQSGiL2nyXlyzDJJ34fZ1aq6/IRFIOIiqg==}
+
   '@atproto-labs/did-resolver@0.3.7':
     resolution: {integrity: sha512-F3M3U5cU1QSAXX3J5auGEc5N2pgDgpirAjvyDFsytXuyWfrjWfTPd/H+DZrrED7gK+noW0cAWtxxjdX7/cTSVQ==}
     engines: {node: '>=22'}
+
+  '@atproto-labs/fetch@0.2.3':
+    resolution: {integrity: sha512-NZtbJOCbxKUFRFKMpamT38PUQMY0hX0p7TG5AEYOPhZKZEP7dHZ1K2s1aB8MdVH0qxmqX7nQleNrrvLf09Zfdw==}
 
   '@atproto-labs/fetch@0.3.5':
     resolution: {integrity: sha512-iDFZEoNqfL17EVKE+uNzdUD7YF8LWhEhxeBtP6x+PNuAxoXv3ip9vLmB8nNzNxFwVn++FipfDtSiPqmziv1bdA==}
     engines: {node: '>=22'}
 
+  '@atproto-labs/handle-resolver@0.3.6':
+    resolution: {integrity: sha512-qnSTXvOBNj1EHhp2qTWSX8MS5q3AwYU5LKlt5fBvSbCjgmTr2j0URHCv+ydrwO55KvsojIkTMgeMOh4YuY4fCA==}
+
   '@atproto-labs/handle-resolver@0.4.8':
     resolution: {integrity: sha512-38I+j8Efs+cCgW/NX9RFKKu7qv/AF+FqxlKS8sWjXlNZSHQZqPj5cnKVQhSsJCs4ypPB84iKch8w4/STd33bLg==}
     engines: {node: '>=22'}
+
+  '@atproto-labs/identity-resolver@0.3.6':
+    resolution: {integrity: sha512-qoWqBDRobln0NR8L8dQjSp79E0chGkBhibEgxQa2f9WD+JbJdjQ0YvwwO5yeQn05pJoJmAwmI2wyJ45zjU7aWg==}
+
+  '@atproto-labs/pipe@0.1.1':
+    resolution: {integrity: sha512-hdNw2oUs2B6BN1lp+32pF7cp8EMKuIN5Qok2Vvv/aOpG/3tNSJ9YkvfI0k6Zd188LeDDYRUpYpxcoFIcGH/FNg==}
 
   '@atproto-labs/pipe@0.2.4':
     resolution: {integrity: sha512-n67jCcrC+ouAeO10cWkpPzzLMlDi/lDCU30Us+LGqhOPhT6c4t5ASdBLQi9W3jUQtRzQBt3G9zipF+xKWNvVbw==}
     engines: {node: '>=22'}
 
+  '@atproto-labs/simple-store-memory@0.1.4':
+    resolution: {integrity: sha512-3mKY4dP8I7yKPFj9VKpYyCRzGJOi5CEpOLPlRhoJyLmgs3J4RzDrjn323Oakjz2Aj2JzRU/AIvWRAZVhpYNJHw==}
+
   '@atproto-labs/simple-store-memory@0.2.6':
     resolution: {integrity: sha512-DD1v7MEfYF3BAcEpMTTpzfBLWLoI2HuyBhku2YpjHoqPrRrhCtE1alkxfPHjtjJVIjuU/XNU0cF/wB3+5FiKsA==}
     engines: {node: '>=22'}
 
+  '@atproto-labs/simple-store@0.3.0':
+    resolution: {integrity: sha512-nOb6ONKBRJHRlukW1sVawUkBqReLlLx6hT35VS3imaNPwiXDxLnTK7lxw3Lrl9k5yugSBDQAkZAq3MPTEFSUBQ==}
+
   '@atproto-labs/simple-store@0.5.1':
     resolution: {integrity: sha512-vfvoDhu6ds6BT3Pqe+d2/LBU1WpDRtt69y6zltlfMCoucPm82m1j50/Wb6xTvv+oZ+2j0JyZVXsmXQ12SWYQJg==}
     engines: {node: '>=22'}
+
+  '@atproto/common-web@0.4.21':
+    resolution: {integrity: sha512-Odq+wdk3YNasGCjjlpl3bCIPvqYHige5DLfMkIffNv/2PI/iIj5ZvAvMvJlJ59OhReKSxtpI0invx5UQPc3+fw==}
 
   '@atproto/common-web@0.5.10':
     resolution: {integrity: sha512-w4JUdsJ3VXt8ewkavYh5m/u0UbxDtFdCKhNZPEpJ0U1vcWIjDaSInIexteETDgD7fBJAhidIEi30MGz1kk49ug==}
@@ -909,9 +939,21 @@ packages:
     resolution: {integrity: sha512-UR0BkuYNYuFtw+dA+y/oPPxzX0SWRnGJ+1Cfh/jGP1BvjRUyezK3omjpeLms5fYrXbM9vnfX+ckJFJqkBgLOdw==}
     engines: {node: '>=22'}
 
+  '@atproto/did@0.3.0':
+    resolution: {integrity: sha512-raUPzUGegtW/6OxwCmM8bhZvuIMzxG5t9oWsth6Tp91Kb5fTnHV2h/KKNF1C82doeA4BdXCErTyg7ISwLbQkzA==}
+
   '@atproto/did@0.5.4':
     resolution: {integrity: sha512-BlnwQ+obL+4ZA71KH/EzZ3TY+cpSxnLiUI85mjBJIQwvDF/oN2sQA18wIj9jpduviIt2b/cMtlJuzHjzBkfXvw==}
     engines: {node: '>=22'}
+
+  '@atproto/jwk-jose@0.1.11':
+    resolution: {integrity: sha512-i4Fnr2sTBYmMmHXl7NJh8GrCH+tDQEVWrcDMDnV5DjJfkgT17wIqvojIw9SNbSL4Uf0OtfEv6AgG0A+mgh8b5Q==}
+
+  '@atproto/jwk-webcrypto@0.2.0':
+    resolution: {integrity: sha512-UmgRrrEAkWvxwhlwe30UmDOdTEFidlIzBC7C3cCbeJMcBN1x8B3KH+crXrsTqfWQBG58mXgt8wgSK3Kxs2LhFg==}
+
+  '@atproto/jwk@0.6.0':
+    resolution: {integrity: sha512-bDoJPvt7TrQVi/rBfBrSSpGykhtIriKxeYCYQTiPRKFfyRhbgpElF0wPXADjIswnbzZdOwbY63az4E/CFVT3Tw==}
 
   '@atproto/lex-builder@0.1.13':
     resolution: {integrity: sha512-YHSONY88fWdMcN6Xa/Noap98DNW2m5zVZGspQWaROsX2lFx1mLf7g/XKLBcPRVDpE3OWRZ98QkkSZN3SgbOXrg==}
@@ -925,6 +967,9 @@ packages:
     resolution: {integrity: sha512-IOYjgQ2H+pw8QhV0vMMG9PTRg+oh5In9APbGBvotNZlbF4SCZNDVd7dONFY4rU2Dg6BHSkiqbqoNUHNgTC+ITA==}
     engines: {node: '>=22'}
 
+  '@atproto/lex-data@0.0.15':
+    resolution: {integrity: sha512-ZsbGiaM5S3CnGrcTMbDGON3bLZzCi/Mx9UvcMREKSRujnF68eHgMiXxJqvykP7+QpOX6tYCK93axZkuJVhtSEw==}
+
   '@atproto/lex-data@0.1.7':
     resolution: {integrity: sha512-kW/dPLqo/WgCLV+XESR4JKwV6c1rZWJGOfuPupZGTjEDAKoBbKXdaEzX9/1vKQYbZ9U3j0DS/n7OFFK7wBugyQ==}
     engines: {node: '>=22'}
@@ -936,6 +981,9 @@ packages:
   '@atproto/lex-installer@0.1.17':
     resolution: {integrity: sha512-XSXiFLoDT7YEe+GuUdwczKQmhuLrA2CHVVlL8s5U8FLtWC5Cr3ELmz1t1b/Y8dV+R31hWyvdsk/t992B6+WW3Q==}
     engines: {node: '>=22'}
+
+  '@atproto/lex-json@0.0.16':
+    resolution: {integrity: sha512-IgLgQ0krshVlrIYZ+heTBDbCnM3LmAgWvsaYn5MxvKA3LcBot3PG3ptdO8VOweVZ+WgCLuo39cz9EbUmIbqdtg==}
 
   '@atproto/lex-json@0.1.6':
     resolution: {integrity: sha512-mvrAd0lbyuecIHjyld8QN6MN6CBf4j0GCxLzegsvLh0SvDf+GbYWklkcQqmITL44yFQOwmA/QNIQj0Uvh7+R/g==}
@@ -958,13 +1006,31 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
+  '@atproto/lexicon@0.6.2':
+    resolution: {integrity: sha512-p3Ly6hinVZW0ETuAXZMeUGwuMm3g8HvQMQ41yyEE6AL0hAkfeKFaZKos6BdBrr6CjkpbrDZqE8M+5+QOceysMw==}
+
+  '@atproto/oauth-client-browser@0.3.42':
+    resolution: {integrity: sha512-YRNMnZNid+ipBndpKbqZ+1uzb51Ci7Pit56iF2+hBljZkE6MAW/gkGwywJigVPlhkVKCO80PaXt8CHuON5kS8w==}
+
+  '@atproto/oauth-client@0.6.1':
+    resolution: {integrity: sha512-QTLbEFyv7EJuwJf4A8IZnsylK5wwrzrSsxy0INcZf9zktPVQvgckWhSvbfK8alp60M+rwWfQQAlodcCF4WB78A==}
+
+  '@atproto/oauth-types@0.6.3':
+    resolution: {integrity: sha512-jdKuoPknJuh/WjI+mYk7agSbx9mNVMbS6Dr3k1z2YMY2oRiCQjxYBuo4MLKATbxj05nMQaZRWlHRUazoAu5Cng==}
+
   '@atproto/repo@0.10.12':
     resolution: {integrity: sha512-SnDSoFi1bRAfN0IcDjSPFcefknDCIIjKgJXgFsd5jvktCkopmzml8BpQEP5t2/mcZ7NvEn5onQ0kaWkXhgL+5g==}
     engines: {node: '>=22'}
 
+  '@atproto/syntax@0.5.4':
+    resolution: {integrity: sha512-9XJOpMAgsGFxMEIp8nJ8AIWv+krrY1xQMj+wULbbXhQztQV+9aZ0TbG9Jtn3Op2or8Kr6OqyWR4ga9Z189kKDw==}
+
   '@atproto/syntax@0.7.5':
     resolution: {integrity: sha512-6vnLQK8OAzg0dO6z/xnvuXn5zMV0UMI54zbxk7G7BXhGlIlLMb1yo+JVYtAlv8Nxzr+AaFdNZ8AJt+L/QhJMFQ==}
     engines: {node: '>=22'}
+
+  '@atproto/xrpc@0.7.7':
+    resolution: {integrity: sha512-K1ZyO/BU8JNtXX5dmPp7b5UrkLMMqpsIa/Lrj5D3Su+j1Xwq1m6QJ2XJ1AgjEjkI1v4Muzm7klianLE6XGxtmA==}
 
   '@babel/code-frame@7.10.4':
     resolution: {integrity: sha512-vG6SvB6oYEhvgisZNFRmRCUkLz11c7rp+tbNTynGqc6mS1d5ATd/sGyV6W0KZZnXRKMTzZDRgQT3Ou9jhpAfUg==}
@@ -2505,6 +2571,16 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
+  '@jsamr/counter-style@2.0.2':
+    resolution: {integrity: sha512-2mXudGVtSzVxWEA7B9jZLKjoXUeUFYDDtFrQoC0IFX9/Dszz4t1vZOmafi3JSw/FxD+udMQ+4TAFR8Qs0J3URQ==}
+
+  '@jsamr/react-native-li@2.3.1':
+    resolution: {integrity: sha512-Qbo4NEj48SQ4k8FZJHFE2fgZDKTWaUGmVxcIQh3msg5JezLdTMMHuRRDYctfdHI6L0FZGObmEv3haWbIvmol8w==}
+    peerDependencies:
+      '@jsamr/counter-style': ^1.0.0 || ^2.0.0
+      react: '*'
+      react-native: '*'
+
   '@leichtgewicht/ip-codec@2.0.5':
     resolution: {integrity: sha512-Vo+PSpZG2/fmgmiNzYK9qWRh8h/CHrwD0mo1h1DzL4yzHNSfWYujGTYsWGreD000gcgmZ7K4Ys6Tx9TxtsKdDw==}
 
@@ -2565,6 +2641,18 @@ packages:
 
   '@messageformat/parser@5.1.1':
     resolution: {integrity: sha512-3p0YRGCcTUCYvBKLIxtDDyrJ0YijGIwrTRu1DT8gIviIDZru8H23+FkY6MJBzM1n9n20CiM4VeDYuBsrrwnLjg==}
+
+  '@native-html/css-processor@1.11.0':
+    resolution: {integrity: sha512-NnhBEbJX5M2gBGltPKOetiLlKhNf3OHdRafc8//e2ZQxXN8JaSW/Hy8cm94pnIckQxwaMKxrtaNT3x4ZcffoNQ==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-native': '*'
+
+  '@native-html/transient-render-engine@11.2.3':
+    resolution: {integrity: sha512-zXwgA3gPUEmFs3I3syfnvDvS6WiUHXEE6jY09OBzK+trq7wkweOSFWIoyXiGkbXrozGYG0KY90YgPyr8Tg8Uyg==}
+    peerDependencies:
+      '@types/react-native': '*'
+      react-native: ^*
 
   '@noble/curves@1.9.7':
     resolution: {integrity: sha512-gbKGcRUYIjA3/zCCNaWDciTMFI0dCkvou3TL8Zmy5Nc7sJ47a0jtOeZoTaMxkuqRo9cRhjOdZJXegxYE5FN/xw==}
@@ -4069,6 +4157,9 @@ packages:
   '@types/qs@6.15.1':
     resolution: {integrity: sha512-GZHUBZR9hckSUhrxmp1nG6NwdpM9fCunJwyThLW1X3AyHgd9IlHb6VANpQQqDr2o/qQp6McZ3y/IA2rVzKzSbw==}
 
+  '@types/ramda@0.27.66':
+    resolution: {integrity: sha512-i2YW+E2U6NfMt3dp0RxNcejox+bxJUNDjB7BpYuRuoHIzv5juPHkJkNgcUOu+YSQEmaWu8cnAo/8r63C0NnuVA==}
+
   '@types/range-parser@1.2.7':
     resolution: {integrity: sha512-hKormJbkJqzQGhziax5PItDUTMAM9uE2XXQmM37dyd4hVM+5aVl7oVxMVUiVQn2oCQFN/LKCZdvSM0pFRqbSmQ==}
 
@@ -4076,6 +4167,10 @@ packages:
     resolution: {integrity: sha512-Bsc+QHgp+P/F02XDzNCY9jnZNCUuLki36KT7VKrTXXLdHf+vHMNZnW1rVu5DNW/rCK+fya3DATySbLM4yhtKUw==}
     peerDependencies:
       '@types/react': ^19.2.0
+
+  '@types/react-native@0.73.0':
+    resolution: {integrity: sha512-6ZRPQrYM72qYKGWidEttRe6M5DZBEV5F+MHMHqd4TTYx0tfkcdrUFGdef6CCxY0jXU7wldvd/zA/b0A/kTeJmA==}
+    deprecated: This is a stub types definition. react-native provides its own type definitions, so you do not need this installed.
 
   '@types/react-test-renderer@19.1.0':
     resolution: {integrity: sha512-XD0WZrHqjNrxA/MaR9O22w/RNidWR9YZmBdRGI7wcnWGrv/3dA8wKCJ8m63Sn+tLJhcjmuhOi629N66W6kgWzQ==}
@@ -4109,6 +4204,9 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
+
+  '@types/urijs@1.19.26':
+    resolution: {integrity: sha512-wkXrVzX5yoqLnndOwFsieJA7oKM8cNkOKJtf/3vVGSUFkWDKZvFHpIl9Pvqb/T9UsawBBFMTTD8xu7sK5MWuvg==}
 
   '@types/use-sync-external-store@0.0.6':
     resolution: {integrity: sha512-zFDAD+tlpf2r4asuHEj0XH6pY6i0g5NeAHPn+15wk3BV6JA69eERFXC1gyGThDkVa1zCyKr5jox1+2LbV/AMLg==}
@@ -4792,6 +4890,9 @@ packages:
     resolution: {integrity: sha512-Gmy6FhYlCY7uOElZUSbxo2UCDH8owEk996gkbrpsgGtrJLM3J7jGxl9Ic7Qwwj4ivOE5AWZWRMecDdF7hqGjFA==}
     engines: {node: '>=10'}
 
+  camelize@1.0.1:
+    resolution: {integrity: sha512-dU+Tx2fsypxTgtLoE36npi3UqcjSSMNYfkqgmoEhtZrraP5VWq0K7FkWVTYa8eMPtnU/G2txVsfdCJTn9uzpuQ==}
+
   caniuse-api@3.0.0:
     resolution: {integrity: sha512-bsTwuIg/BZZK/vreVTYYbSWoe2F+71P7K5QGEX+pT250DZbfU1MQ5prOKpPR+LL6uWKK3KMwMCAS74QB3Um1uw==}
 
@@ -4825,6 +4926,12 @@ packages:
   char-regex@2.0.2:
     resolution: {integrity: sha512-cbGOjAptfM2LVmWhwRFHEKTPkLwNddVmuqYZQt895yXwAsWsXObCG+YN4DGQ/JBtT4GP1a1lPPdio2z413LmTg==}
     engines: {node: '>=12.20'}
+
+  character-entities-html4@1.1.4:
+    resolution: {integrity: sha512-HRcDxZuZqMx3/a+qrzxdBKBPUpxWEq9xw2OPZ3a/174ihfrQKVsFhqtthBInFy1zZ9GgZyFXOatNujm8M+El3g==}
+
+  character-entities-legacy@1.1.4:
+    resolution: {integrity: sha512-3Xnr+7ZFS1uxeiUDvV02wQ+QDbc55o97tIV5zHScSPJpcLm/r0DFPcoY3tYRp+VZukxuMeKgXYmsXQHO05zQeA==}
 
   chokidar@3.5.1:
     resolution: {integrity: sha512-9+s+Od+W0VJJzawDma/gvBNQqkTiqYTWLuZoyAsivsI4AaWTCzHG06/TMjsf1cYe9Cb97UCEhjz7HvnPk2p/tw==}
@@ -5069,6 +5176,10 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
+  css-color-keywords@1.0.0:
+    resolution: {integrity: sha512-FyyrDHZKEjXDpNJYvVsV960FiqQyXc/LlYmsxl2BcdMb2WPx0OGRVgTg55rPSyLSNMqP52R9r8geSp7apN3Ofg==}
+    engines: {node: '>=4'}
+
   css-declaration-sorter@6.4.1:
     resolution: {integrity: sha512-rtdthzxKuyq6IzqX6jEcIzQF/YqccluefyCYheovBOLhFT/drQA9zj/UbRAa9J7C0o6EG6u3E6g+vKkay7/k3g==}
     engines: {node: ^10 || ^12 || >=14}
@@ -5120,6 +5231,9 @@ packages:
 
   css-select@5.2.2:
     resolution: {integrity: sha512-TizTzUddG/xYLA3NXodFM0fSbNizXjOKhqiQQwvhlspadZokn1KDy0NZFS0wuEubIYAV5/c1/lAr0TaaFXEXzw==}
+
+  css-to-react-native@3.2.0:
+    resolution: {integrity: sha512-e8RKaLXMOFii+02mOlqwjbD00KSEKqblnpO9e++1aXS1fPQOpS1YoqdVHBqPjHNoxeF2mimzVqawm2KCbEdtHQ==}
 
   css-tree@1.1.3:
     resolution: {integrity: sha512-tRpdppF7TRazZrjJ6v3stzv93qxRcSsFmW6cX0Zm2NVKpxE1WV1HblnghVv9TreireHkqI/VDEsfolRF1p6y7Q==}
@@ -5436,6 +5550,10 @@ packages:
 
   entities@2.2.0:
     resolution: {integrity: sha512-p92if5Nz619I0w+akJrLZH0MX0Pb5DX39XOwQTtXSdQQOaYH03S1uIQp4mhOZtAXrxq4ViO67YTiLBo2638o9A==}
+
+  entities@3.0.1:
+    resolution: {integrity: sha512-WiyBqoomrwMdFG1e0kqvASYfnlb0lp8M5o5Fw2OFq1hNZxxcNk8Ik0Xm7LxzBhuidnZB/UtBqVCgUz3kBOP51Q==}
+    engines: {node: '>=0.12'}
 
   entities@4.5.0:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
@@ -6356,6 +6474,9 @@ packages:
   htmlparser2@6.1.0:
     resolution: {integrity: sha512-gyyPk6rgonLFEDGoeRgQNaEUvdJ4ktTmmUh/h2t7s+M8oPpIPxgNACWa+6ESR57kXstwqPiCut0V8NRpcwgU7A==}
 
+  htmlparser2@7.2.0:
+    resolution: {integrity: sha512-H7MImA4MS6cw7nbyURtLPO1Tms7C5H602LRETv95z1MxO/7CP7rDVROehUYeYBUYEON94NXXDEPmZuq+hX4sog==}
+
   http-deceiver@1.2.7:
     resolution: {integrity: sha512-LmpOGxTfbpgtGVxJrj5k7asXHCgNZp5nLfp+hWc8QQRqtb7fUy6kRY3BO1h9ddF6yIPYUARgxGOwB42DnxIaNw==}
 
@@ -6911,6 +7032,9 @@ packages:
     resolution: {integrity: sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ==}
     hasBin: true
 
+  jose@5.10.0:
+    resolution: {integrity: sha512-s+3Al/p9g32Iq+oqXxkW//7jk2Vig6FF1CFqzVXoTUXt2qz89YWbL+OwS17NFYEvxC35n0FKeGO2LGYSxeM2Gg==}
+
   js-sha256@0.10.1:
     resolution: {integrity: sha512-5obBtsz9301ULlsgggLg542s/jqtddfOpV5KJc4hajc9JV8GeY2gZHSVpYBn4nWqAUTJ9v+xwtbJ1mIBgIH5Vw==}
 
@@ -7418,6 +7542,9 @@ packages:
 
   multiformats@13.4.2:
     resolution: {integrity: sha512-eh6eHCrRi1+POZ3dA+Dq1C6jhP1GNtr9CRINMb67OKzqW9I5DUuZM/3jLPlzhgpGeiNUlEGEbkCYChXMCc/8DQ==}
+
+  multiformats@9.9.0:
+    resolution: {integrity: sha512-HoMUjhH9T8DDBNT+6xzkrd9ga/XiBI4xLr58LJACwK6G3HTOPeMz4nB4KJs33L2BelrIJa7P0VuNaVF3hMYfjg==}
 
   multitars@1.0.2:
     resolution: {integrity: sha512-6GwVw5eLi9sThdtlS4PKwC7yRLaf45pYhIEzKBHdKxi+YOXGKFX8acIniH+Uh/+k9mS2lQOupTccjoe5r0/1IQ==}
@@ -8274,6 +8401,9 @@ packages:
       '@types/react-dom':
         optional: true
 
+  ramda@0.27.2:
+    resolution: {integrity: sha512-SbiLPU40JuJniHexQSAgad32hfwd+DRUdwF2PlVuI5RZD0/vahUco7R8vD86J/tcEKKF9vZrUVwgtmGCqlCKyA==}
+
   randombytes@2.1.0:
     resolution: {integrity: sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ==}
 
@@ -8419,6 +8549,12 @@ packages:
       react: '*'
       react-native: 0.83 - 0.87
       react-native-worklets: 0.12.1
+
+  react-native-render-html@6.3.4:
+    resolution: {integrity: sha512-H2jSMzZjidE+Wo3qCWPUMU1nm98Vs2SGCvQCz/i6xf0P3Y9uVtG/b0sDbG/cYFir2mSYBYCIlS1Dv0WC1LjYig==}
+    peerDependencies:
+      react: '*'
+      react-native: '*'
 
   react-native-safe-area-context@5.7.0:
     resolution: {integrity: sha512-/9/MtQz8ODphjsLdZ+GZAIcC/RtoqW9EeShf7Uvnfgm/pzYrJ75y3PV/J1wuAV1T5Dye5ygq4EAW20RoBq0ABQ==}
@@ -9077,6 +9213,9 @@ packages:
   string_decoder@1.3.0:
     resolution: {integrity: sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==}
 
+  stringify-entities@3.1.0:
+    resolution: {integrity: sha512-3FP+jGMmMV/ffZs86MoghGqAoqXAdxLrJP4GUdrDN1aIScYih5tuIO3eF4To5AJZ79KDZ8Fpdy7QJnK8SsL1Vg==}
+
   strip-ansi@5.2.0:
     resolution: {integrity: sha512-DuRs1gKbBqsMKIZlrffwlug8MHkcnpjs5VPmL1PAh+mA30U0DTotfDZ0d2UUsXpPmPmMMJ6W773MaA3J+lbiWA==}
     engines: {node: '>=6'}
@@ -9310,6 +9449,9 @@ packages:
   ts-plugin-sort-import-suggestions@1.0.4:
     resolution: {integrity: sha512-85n5lm2OQQ+b7aRNK9omU1gmjMNXRsgeLwojm5u4OSY5sVBkAHTcgMQPEeHMNlyyfFW0uXnwgqAU0pNfhD96Bw==}
 
+  ts-toolbelt@6.15.5:
+    resolution: {integrity: sha512-FZIXf1ksVyLcfr7M317jbB67XFJhOO1YqdTcuGaq9q5jLUoTikukZ+98TPjKiP2jC5CgmYdWWYs0s2nLSU0/1A==}
+
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
@@ -9382,6 +9524,9 @@ packages:
   uc.micro@2.1.0:
     resolution: {integrity: sha512-ARDJmphmdvUk6Glw7y9DQ2bFkKBHwQHLi2lsaH6PPmz/Ka9sFOBsBluozhDltWmnv9u/cF6Rt87znRTPV+yp/A==}
 
+  uint8arrays@3.0.0:
+    resolution: {integrity: sha512-HRCx0q6O9Bfbp+HHSfQQKD7wU70+lydKVt4EghkdOvlK/NlrF90z+eXV34mUd48rNvVJXwkrMSPpCATkct8fJA==}
+
   uint8arrays@5.1.1:
     resolution: {integrity: sha512-9muQwa4wZG4dKi9gMAIBtnk2Pw87SRpvWTH6lOGm19V2Uqxr4uomUf2PGqPnWc+qs06sN8owUU4jfcoWOcfwVQ==}
 
@@ -9441,6 +9586,9 @@ packages:
 
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
+
+  urijs@1.19.11:
+    resolution: {integrity: sha512-HXgFDgDommxn5/bIv0cnQZsPhHDA90NPHD6+c/v21U5+Sx5hoP8+dP9IZXBU1gIfvdRfhG8cel9QNPeionfcCQ==}
 
   url-parse@1.5.10:
     resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
@@ -9764,6 +9912,10 @@ packages:
   xmlchars@2.2.0:
     resolution: {integrity: sha512-JZnDKK8B0RCDw84FNdDAIpZK+JuJw+s7Lz8nksI7SIuU3UXJJslUthsi+uWBUYOwPFwW7W7PRLRfUKpxjtjFCw==}
 
+  xtend@4.0.2:
+    resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
+    engines: {node: '>=0.4'}
+
   y18n@4.0.3:
     resolution: {integrity: sha512-JKhqTOwSrqNA1NY5lSztJ1GrBiUodLMmIZuLiDaMRJ+itFd+ABVE8XBjOvIWL+rSqNDC74LCSFmlb/U4UZ4hJQ==}
 
@@ -9832,6 +9984,15 @@ packages:
 
 snapshots:
 
+  '@atproto-labs/did-resolver@0.2.6':
+    dependencies:
+      '@atproto-labs/fetch': 0.2.3
+      '@atproto-labs/pipe': 0.1.1
+      '@atproto-labs/simple-store': 0.3.0
+      '@atproto-labs/simple-store-memory': 0.1.4
+      '@atproto/did': 0.3.0
+      zod: 3.25.76
+
   '@atproto-labs/did-resolver@0.3.7':
     dependencies:
       '@atproto-labs/fetch': 0.3.5
@@ -9841,9 +10002,20 @@ snapshots:
       '@atproto/did': 0.5.4
       zod: 3.25.76
 
+  '@atproto-labs/fetch@0.2.3':
+    dependencies:
+      '@atproto-labs/pipe': 0.1.1
+
   '@atproto-labs/fetch@0.3.5':
     dependencies:
       '@atproto-labs/pipe': 0.2.4
+
+  '@atproto-labs/handle-resolver@0.3.6':
+    dependencies:
+      '@atproto-labs/simple-store': 0.3.0
+      '@atproto-labs/simple-store-memory': 0.1.4
+      '@atproto/did': 0.3.0
+      zod: 3.25.76
 
   '@atproto-labs/handle-resolver@0.4.8':
     dependencies:
@@ -9852,14 +10024,35 @@ snapshots:
       '@atproto/did': 0.5.4
       zod: 3.25.76
 
+  '@atproto-labs/identity-resolver@0.3.6':
+    dependencies:
+      '@atproto-labs/did-resolver': 0.2.6
+      '@atproto-labs/handle-resolver': 0.3.6
+
+  '@atproto-labs/pipe@0.1.1': {}
+
   '@atproto-labs/pipe@0.2.4': {}
+
+  '@atproto-labs/simple-store-memory@0.1.4':
+    dependencies:
+      '@atproto-labs/simple-store': 0.3.0
+      lru-cache: 10.4.3
 
   '@atproto-labs/simple-store-memory@0.2.6':
     dependencies:
       '@atproto-labs/simple-store': 0.5.1
       lru-cache: 10.4.3
 
+  '@atproto-labs/simple-store@0.3.0': {}
+
   '@atproto-labs/simple-store@0.5.1': {}
+
+  '@atproto/common-web@0.4.21':
+    dependencies:
+      '@atproto/lex-data': 0.0.15
+      '@atproto/lex-json': 0.0.16
+      '@atproto/syntax': 0.5.4
+      zod: 3.25.76
 
   '@atproto/common-web@0.5.10':
     dependencies:
@@ -9882,8 +10075,28 @@ snapshots:
       '@noble/hashes': 1.8.0
       uint8arrays: 5.1.1
 
+  '@atproto/did@0.3.0':
+    dependencies:
+      zod: 3.25.76
+
   '@atproto/did@0.5.4':
     dependencies:
+      zod: 3.25.76
+
+  '@atproto/jwk-jose@0.1.11':
+    dependencies:
+      '@atproto/jwk': 0.6.0
+      jose: 5.10.0
+
+  '@atproto/jwk-webcrypto@0.2.0':
+    dependencies:
+      '@atproto/jwk': 0.6.0
+      '@atproto/jwk-jose': 0.1.11
+      zod: 3.25.76
+
+  '@atproto/jwk@0.6.0':
+    dependencies:
+      multiformats: 9.9.0
       zod: 3.25.76
 
   '@atproto/lex-builder@0.1.13':
@@ -9907,6 +10120,13 @@ snapshots:
       '@atproto/lex-schema': 0.2.6
       tslib: 2.8.1
 
+  '@atproto/lex-data@0.0.15':
+    dependencies:
+      multiformats: 9.9.0
+      tslib: 2.8.1
+      uint8arrays: 3.0.0
+      unicode-segmenter: 0.14.5
+
   '@atproto/lex-data@0.1.7':
     dependencies:
       multiformats: 13.4.2
@@ -9928,6 +10148,11 @@ snapshots:
       '@atproto/lex-resolver': 0.2.10
       '@atproto/lex-schema': 0.2.6
       '@atproto/syntax': 0.7.5
+      tslib: 2.8.1
+
+  '@atproto/lex-json@0.0.16':
+    dependencies:
+      '@atproto/lex-data': 0.0.15
       tslib: 2.8.1
 
   '@atproto/lex-json@0.1.6':
@@ -9971,6 +10196,48 @@ snapshots:
       tslib: 2.8.1
       yargs: 18.1.0
 
+  '@atproto/lexicon@0.6.2':
+    dependencies:
+      '@atproto/common-web': 0.4.21
+      '@atproto/syntax': 0.5.4
+      iso-datestring-validator: 2.2.2
+      multiformats: 9.9.0
+      zod: 3.25.76
+
+  '@atproto/oauth-client-browser@0.3.42':
+    dependencies:
+      '@atproto-labs/did-resolver': 0.2.6
+      '@atproto-labs/handle-resolver': 0.3.6
+      '@atproto-labs/simple-store': 0.3.0
+      '@atproto/did': 0.3.0
+      '@atproto/jwk': 0.6.0
+      '@atproto/jwk-webcrypto': 0.2.0
+      '@atproto/oauth-client': 0.6.1
+      '@atproto/oauth-types': 0.6.3
+      core-js: 3.50.0
+
+  '@atproto/oauth-client@0.6.1':
+    dependencies:
+      '@atproto-labs/did-resolver': 0.2.6
+      '@atproto-labs/fetch': 0.2.3
+      '@atproto-labs/handle-resolver': 0.3.6
+      '@atproto-labs/identity-resolver': 0.3.6
+      '@atproto-labs/simple-store': 0.3.0
+      '@atproto-labs/simple-store-memory': 0.1.4
+      '@atproto/did': 0.3.0
+      '@atproto/jwk': 0.6.0
+      '@atproto/oauth-types': 0.6.3
+      '@atproto/xrpc': 0.7.7
+      core-js: 3.50.0
+      multiformats: 9.9.0
+      zod: 3.25.76
+
+  '@atproto/oauth-types@0.6.3':
+    dependencies:
+      '@atproto/did': 0.3.0
+      '@atproto/jwk': 0.6.0
+      zod: 3.25.76
+
   '@atproto/repo@0.10.12':
     dependencies:
       '@atproto/common': 0.8.1
@@ -9982,10 +10249,19 @@ snapshots:
       varint: 6.0.0
       zod: 3.25.76
 
+  '@atproto/syntax@0.5.4':
+    dependencies:
+      tslib: 2.8.1
+
   '@atproto/syntax@0.7.5':
     dependencies:
       iso-datestring-validator: 2.2.2
       tslib: 2.8.1
+
+  '@atproto/xrpc@0.7.7':
+    dependencies:
+      '@atproto/lexicon': 0.6.2
+      zod: 3.25.76
 
   '@babel/code-frame@7.10.4':
     dependencies:
@@ -11949,6 +12225,14 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
+  '@jsamr/counter-style@2.0.2': {}
+
+  '@jsamr/react-native-li@2.3.1(@jsamr/counter-style@2.0.2)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)':
+    dependencies:
+      '@jsamr/counter-style': 2.0.2
+      react: 19.2.3
+      react-native: 0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+
   '@leichtgewicht/ip-codec@2.0.5': {}
 
   '@lingui/babel-plugin-extract-messages@5.9.5': {}
@@ -12041,6 +12325,28 @@ snapshots:
   '@messageformat/parser@5.1.1':
     dependencies:
       moo: 0.5.3
+
+  '@native-html/css-processor@1.11.0(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)':
+    dependencies:
+      '@types/react': 19.2.18
+      '@types/react-native': 0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      css-to-react-native: 3.2.0
+      csstype: 3.2.3
+
+  '@native-html/transient-render-engine@11.2.3(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))':
+    dependencies:
+      '@native-html/css-processor': 1.11.0(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)
+      '@types/ramda': 0.27.66
+      '@types/react-native': 0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      csstype: 3.2.3
+      domelementtype: 2.3.0
+      domhandler: 4.3.1
+      domutils: 2.8.0
+      htmlparser2: 7.2.0
+      ramda: 0.27.2
+      react-native: 0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - '@types/react'
 
   '@noble/curves@1.9.7':
     dependencies:
@@ -13665,11 +13971,29 @@ snapshots:
 
   '@types/qs@6.15.1': {}
 
+  '@types/ramda@0.27.66':
+    dependencies:
+      ts-toolbelt: 6.15.5
+
   '@types/range-parser@1.2.7': {}
 
   '@types/react-dom@19.2.4(@types/react@19.2.18)':
     dependencies:
       '@types/react': 19.2.18
+
+  '@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)':
+    dependencies:
+      react-native: 0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - '@babel/core'
+      - '@react-native-community/cli'
+      - '@react-native/jest-preset'
+      - '@react-native/metro-config'
+      - '@types/react'
+      - bufferutil
+      - react
+      - supports-color
+      - utf-8-validate
 
   '@types/react-test-renderer@19.1.0':
     dependencies:
@@ -13711,6 +14035,8 @@ snapshots:
   '@types/stack-utils@2.0.3': {}
 
   '@types/tough-cookie@4.0.5': {}
+
+  '@types/urijs@1.19.26': {}
 
   '@types/use-sync-external-store@0.0.6': {}
 
@@ -14427,6 +14753,8 @@ snapshots:
 
   camelcase@6.3.0: {}
 
+  camelize@1.0.1: {}
+
   caniuse-api@3.0.0:
     dependencies:
       browserslist: 4.28.2
@@ -14459,6 +14787,10 @@ snapshots:
   char-regex@1.0.2: {}
 
   char-regex@2.0.2: {}
+
+  character-entities-html4@1.1.4: {}
+
+  character-entities-legacy@1.1.4: {}
 
   chokidar@3.5.1:
     dependencies:
@@ -14722,6 +15054,8 @@ snapshots:
       shebang-command: 2.0.0
       which: 2.0.2
 
+  css-color-keywords@1.0.0: {}
+
   css-declaration-sorter@6.4.1(postcss@8.5.14):
     dependencies:
       postcss: 8.5.14
@@ -14778,6 +15112,12 @@ snapshots:
       domhandler: 5.0.3
       domutils: 3.2.2
       nth-check: 2.1.1
+
+  css-to-react-native@3.2.0:
+    dependencies:
+      camelize: 1.0.1
+      css-color-keywords: 1.0.0
+      postcss-value-parser: 4.2.0
 
   css-tree@1.1.3:
     dependencies:
@@ -15081,6 +15421,8 @@ snapshots:
       tapable: 2.3.3
 
   entities@2.2.0: {}
+
+  entities@3.0.1: {}
 
   entities@4.5.0: {}
 
@@ -16219,6 +16561,13 @@ snapshots:
       domutils: 2.8.0
       entities: 2.2.0
 
+  htmlparser2@7.2.0:
+    dependencies:
+      domelementtype: 2.3.0
+      domhandler: 4.3.1
+      domutils: 2.8.0
+      entities: 3.0.1
+
   http-deceiver@1.2.7: {}
 
   http-errors@1.8.1:
@@ -17007,6 +17356,8 @@ snapshots:
 
   jiti@2.7.0: {}
 
+  jose@5.10.0: {}
+
   js-sha256@0.10.1: {}
 
   js-sha256@0.9.0: {}
@@ -17595,6 +17946,8 @@ snapshots:
       thunky: 1.1.0
 
   multiformats@13.4.2: {}
+
+  multiformats@9.9.0: {}
 
   multitars@1.0.2: {}
 
@@ -18402,6 +18755,8 @@ snapshots:
       '@types/react': 19.2.18
       '@types/react-dom': 19.2.4(@types/react@19.2.18)
 
+  ramda@0.27.2: {}
+
   randombytes@2.1.0:
     dependencies:
       safe-buffer: 5.2.1
@@ -18546,6 +18901,23 @@ snapshots:
       react-native-is-edge-to-edge: 1.3.1(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
       react-native-worklets: 0.12.1(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1)
       semver: 7.8.0
+
+  react-native-render-html@6.3.4(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
+    dependencies:
+      '@jsamr/counter-style': 2.0.2
+      '@jsamr/react-native-li': 2.3.1(@jsamr/counter-style@2.0.2)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3)
+      '@native-html/transient-render-engine': 11.2.3(@types/react-native@0.73.0(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(@types/react@19.2.18)(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))
+      '@types/ramda': 0.27.66
+      '@types/urijs': 1.19.26
+      prop-types: 15.8.1
+      ramda: 0.27.2
+      react: 19.2.3
+      react-native: 0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1)
+      stringify-entities: 3.1.0
+      urijs: 1.19.11
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-native'
 
   react-native-safe-area-context@5.7.0(react-native@0.86.0(patch_hash=239208992c380d6785576d1fae2e3f60f60f509d7b09d56bf552be29d6c42a06)(@babel/core@7.29.0(supports-color@8.1.1))(@react-native/jest-preset@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(react@19.2.3)(supports-color@8.1.1))(@react-native/metro-config@0.86.0(@babel/core@7.29.0(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.2.18)(react@19.2.3)(supports-color@8.1.1))(react@19.2.3):
     dependencies:
@@ -19342,6 +19714,12 @@ snapshots:
     dependencies:
       safe-buffer: 5.2.1
 
+  stringify-entities@3.1.0:
+    dependencies:
+      character-entities-html4: 1.1.4
+      character-entities-legacy: 1.1.4
+      xtend: 4.0.2
+
   strip-ansi@5.2.0:
     dependencies:
       ansi-regex: 4.1.1
@@ -19551,6 +19929,8 @@ snapshots:
 
   ts-plugin-sort-import-suggestions@1.0.4: {}
 
+  ts-toolbelt@6.15.5: {}
+
   tslib@2.8.1: {}
 
   type-check@0.4.0:
@@ -19643,6 +20023,10 @@ snapshots:
 
   uc.micro@2.1.0: {}
 
+  uint8arrays@3.0.0:
+    dependencies:
+      multiformats: 9.9.0
+
   uint8arrays@5.1.1:
     dependencies:
       multiformats: 13.4.2
@@ -19698,6 +20082,8 @@ snapshots:
   uri-js@4.4.1:
     dependencies:
       punycode: 2.3.1
+
+  urijs@1.19.11: {}
 
   url-parse@1.5.10:
     dependencies:
@@ -20065,6 +20451,8 @@ snapshots:
   xmlbuilder@15.1.1: {}
 
   xmlchars@2.2.0: {}
+
+  xtend@4.0.2: {}
 
   y18n@4.0.3: {}
 

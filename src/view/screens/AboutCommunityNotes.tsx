@@ -3,7 +3,6 @@ import {Linking, Text, View} from 'react-native'
 import Svg, {G, Path} from 'react-native-svg'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
@@ -11,7 +10,7 @@ import {
   type NativeStackScreenProps,
 } from '#/lib/routes/types'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
+import {useEnableMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import * as Layout from '#/components/Layout'
 import {ViewHeader} from '../com/util/ViewHeader'
@@ -77,13 +76,7 @@ export const AboutCommunityNotesScreen = ({}: NativeStackScreenProps<
 >) => {
   const pal = usePalette('default')
   const {_} = useLingui()
-  const setMinimalShellMode = useSetMinimalShellMode()
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
+  useEnableMinimalShellMode({enabled: false})
 
   const styles = {
     container: {

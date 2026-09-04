@@ -6,7 +6,7 @@ import {BSKY_SERVICE} from '#/lib/constants'
 import {isInvalidHandle} from '#/lib/strings/handles'
 import {startUriToStarterPackUri} from '#/lib/strings/starter-pack'
 import {logger} from '#/logger'
-import {isWeb} from '#/platform/detection'
+import {IS_WEB} from '#/env'
 
 export const BSKY_APP_HOST = 'https://bsky.app'
 export const BSKY_HOSTING_ENDSWITH = '.host.bsky.network'
@@ -428,7 +428,7 @@ export function getStaticAssetUrl(assetPath: string): string {
   // Remove leading slash if present
   const cleanPath = assetPath.replace(/^\//, '')
 
-  if (isWeb) {
+  if (IS_WEB) {
     // @ts-ignore only for web
     const currentHost = window.location.host
     if (currentHost === 'localhost:19006') {

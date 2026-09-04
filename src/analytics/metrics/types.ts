@@ -99,6 +99,7 @@ export type Events = {
       | 'saved'
       | 'settings'
       | 'menu'
+      | 'communityNotes'
     surface: 'bottomBar' | 'drawer' | 'drawerHeader' | 'topBar' | 'leftNav'
   }
   'deepLink:referrerReceived': {
