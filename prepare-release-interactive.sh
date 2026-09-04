@@ -6,13 +6,16 @@ set -o nounset
 
 echo "🔄 Starting release preparation..."
 
-BLUESKY_RELEASE_TAG=1.109.0
+# Bluesky tag/ref tooling rebases onto for a release assemble.
+# Not floating upstream/main. Override: BLUESKY_RELEASE_TAG=1.110.0 ./prepare-release-interactive.sh
+# or: ./prepare-release-interactive.sh 1.110.0
+BLUESKY_RELEASE_TAG="${1:-${BLUESKY_RELEASE_TAG:-1.109.0}}"
 
 # Fetch latest changes
 echo "📥 Fetching latest changes..."
 git fetch --all
 
-# Rebase tooling against upstream
+# Rebase tooling onto the pinned Bluesky release tag
 git co tooling
 echo "🔀 Rebasing tooling against $BLUESKY_RELEASE_TAG..."
 git rebase $BLUESKY_RELEASE_TAG

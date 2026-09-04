@@ -20,9 +20,9 @@
                         ↘         ↙
                           release
 
-# Deployment Steps
+# Ongoing sync
 
-Use the following steps to deploy a new version. Deal with any merge conflicts you may encounter along the way.
+Keep `tooling` current on `upstream/main`, then rebase both working lines onto `tooling`. This is not a release assemble.
 
     git fetch
     git co tooling
@@ -34,10 +34,7 @@ Use the following steps to deploy a new version. Deal with any merge conflicts y
     git co bluenotes-rebrand
     git rebase tooling
     git push --force
-    git co release
-    git reset bluenotes-rebrand --hard
-    git merge community-notes-feature
-    git push --force
-    just deploy
 
-Interactive assemble helper (same flow): `./prepare-release-interactive.sh`
+# Release assemble
+
+Use `./prepare-release-interactive.sh`. It rebases `tooling` onto the pinned Bluesky release tag (`BLUESKY_RELEASE_TAG`, default `1.109.0` in the script; override via that env var or the first argument), then rebases both working lines onto `tooling`, then assembles `release` (reset to `bluenotes-rebrand`, merge `community-notes-feature`, force-push). Do not use floating `upstream/main` for that assemble. Deal with any merge conflicts along the way. Deploy is `just deploy` (or the push-to-`release` Fly workflow).
