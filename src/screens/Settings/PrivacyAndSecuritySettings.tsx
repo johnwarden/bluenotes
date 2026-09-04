@@ -5,7 +5,7 @@ import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
 import {isOauthSignInAvailable} from '#/lib/oauth/config'
 import {type CommonNavigatorParams} from '#/lib/routes/types'
-import {isWeb} from '#/platform/detection'
+import {IS_WEB} from '#/env'
 import {
   useOauthSignInEnabled,
   useSetOauthSignInEnabled,
@@ -84,7 +84,7 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
             </SettingsList.ItemText>
             <Email2FAToggle />
           </SettingsList.Item>
-          {isWeb && isOauthSignInAvailable() && (
+          {IS_WEB && isOauthSignInAvailable() && (
             <SettingsList.Group contentContainerStyle={[a.gap_sm]}>
               <SettingsList.ItemIcon icon={TicketIcon} />
               <SettingsList.ItemText>

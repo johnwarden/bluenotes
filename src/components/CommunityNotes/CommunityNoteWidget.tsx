@@ -3,7 +3,6 @@ import {Pressable, View} from 'react-native'
 import {Trans} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
-import {isWeb} from '#/platform/detection'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
@@ -11,7 +10,7 @@ import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/ico
 import {Link, useLink} from '#/components/Link'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
-import {APP_NAME} from '#/env'
+import {APP_NAME, IS_WEB} from '#/env'
 import {type app} from '#/lexicons'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
@@ -146,7 +145,7 @@ export function CommunityNoteWidget({
 
   // Smart click handler that detects if an inner link was clicked
   const handlePress = (e: any) => {
-    if (isWeb) {
+    if (IS_WEB) {
       // On web, check if we clicked on or inside an anchor tag
       const target = e.target as HTMLElement
       const clickedLink = target?.closest?.('a')
@@ -213,7 +212,7 @@ export function CommunityNoteWidget({
       accessibilityRole="button"
       accessibilityLabel="Community Notes"
       accessibilityHint="Opens community notes page"
-      style={[containerStyles, isWeb && {cursor: 'pointer'}]}>
+      style={[containerStyles, IS_WEB && {cursor: 'pointer'}]}>
       {/* Base background for note body (always present) */}
       <View style={baseBackgroundStyle} />
       {/* Hover overlay */}

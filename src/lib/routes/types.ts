@@ -155,6 +155,7 @@ export type FlatNavigatorParams = CommonNavigatorParams & {
     pushToNewGroupChat?: boolean
     animation?: 'push' | 'pop'
   }
+  CommunityNotes: {tab: string}
 }
 
 export type AllNavigatorParams = CommonNavigatorParams & {
@@ -172,6 +173,8 @@ export type AllNavigatorParams = CommonNavigatorParams & {
     pushToNewGroupChat?: boolean
     animation?: 'push' | 'pop'
   }
+  CommunityNotesTab: undefined
+  CommunityNotes: {tab: string}
 }
 
 // NOTE

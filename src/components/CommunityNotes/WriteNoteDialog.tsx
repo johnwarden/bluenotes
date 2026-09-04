@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react'
+import {useMemo, useRef, useState, type ComponentRef} from 'react'
 import {ActivityIndicator, ScrollView, type TextInput, View} from 'react-native'
 import {msg} from '@lingui/core/macro'
 import {Trans} from '@lingui/react/macro'
@@ -132,7 +132,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
   const [submittedNote, setSubmittedNote] = useState<any>(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
-  const textInputRef = useRef<TextInput>(null)
+  const textInputRef = useRef<ComponentRef<typeof TextInput>>(null)
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
@@ -224,9 +224,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       // Clear form and close dialog
       setSelectedReasons([])
       setNoteText('')
-      if (textInputRef.current) {
-        textInputRef.current.clear()
-      }
+      setNoteText('')
       setHasReliableSources(null)
       setHasAttemptedSubmit(false)
       control.close()

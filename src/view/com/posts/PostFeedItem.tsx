@@ -727,4 +727,4 @@ function SeeAllNotesLink({post}: {post: app.bsky.feed.defs.PostView}) {
       </NewLink>
     </View>
   )
-})
+}

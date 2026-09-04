@@ -2,12 +2,11 @@ import {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
 import {AtUri} from '@atproto/syntax'
 import {Trans} from '@lingui/react/macro'
-import {useFocusEffect} from '@react-navigation/native'
 import type React from 'react'
 
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {useFeedSourceInfoQuery} from '#/state/queries/feed'
-import {useSetMinimalShellMode} from '#/state/shell'
+import {useEnableMinimalShellMode} from '#/state/shell'
 import {FeedSourceCard} from '#/view/com/feeds/FeedSourceCard'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
@@ -54,14 +53,8 @@ const FEED_ITEMS: Array<{
 
 export function CommunityNotesFeedsScreen() {
   const t = useTheme()
-  const setMinimalShellMode = useSetMinimalShellMode()
+  useEnableMinimalShellMode({enabled: false})
   const {data: config, isLoading: configLoading} = useCommunityNotesConfig()
-
-  useFocusEffect(
-    useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
 
   const getFeedUri = useCallback(
     (tab: CommunityNotesFeedTab): string | null => {

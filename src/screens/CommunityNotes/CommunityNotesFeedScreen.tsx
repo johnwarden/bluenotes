@@ -10,11 +10,11 @@ import {useQueryClient} from '@tanstack/react-query'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
-import {ComposeIcon2} from '#/lib/icons'
+import {Pencil_Stroke2_Corner0_Rounded as PencilIcon} from '#/components/icons/Pencil'
 import {type NavigationProp} from '#/lib/routes/types'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
 import {s} from '#/lib/styles'
-import {isNative} from '#/platform/detection'
+import {IS_NATIVE} from '#/env'
 import {listenSoftReset} from '#/state/events'
 import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
@@ -36,7 +36,7 @@ import {Button} from '#/view/com/util/forms/Button'
 import {LoadLatestBtn} from '#/view/com/util/load-latest/LoadLatestBtn'
 import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {Text} from '#/view/com/util/text/Text'
-import {ProfileFeedHeader} from '#/screens/Profile/components/ProfileFeedHeader'
+import {CustomFeedHeader} from '#/screens/CustomFeed/components/CustomFeedHeader'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
 import * as Layout from '#/components/Layout'
 import {type CommunityNotesFeedTab} from './constants'
@@ -125,7 +125,6 @@ function CommunityNotesFeedScreenInner({
   const {hasSession} = useSession()
   const {data: preferences} = usePreferencesQuery()
   const {_} = useLingui()
-  const navigation = useNavigation<NavigationProp>()
   const queryClient = useQueryClient()
   const isFocused = useIsFocused()
 
@@ -139,11 +138,6 @@ function CommunityNotesFeedScreenInner({
   const displayMode =
     tab === 'rated_helpful' ? 'rated_helpful' : 'needs_more_ratings'
 
-  // Custom back button for CN feeds - always go to feeds page
-  const onPressBack = useCallback(() => {
-    navigation.navigate('CommunityNotes', {tab: 'feeds'})
-  }, [navigation])
-
   const feedDesc = useMemo<FeedDescriptor | null>(() => {
     if (!info) return null
     return info.feedDescriptor
@@ -151,7 +145,7 @@ function CommunityNotesFeedScreenInner({
 
   const onScrollToTop = useCallback(() => {
     scrollElRef.current?.scrollToOffset({
-      animated: isNative,
+      animated: IS_NATIVE,
       offset: -1,
     })
     if (feedDesc) {
@@ -173,13 +167,13 @@ function CommunityNotesFeedScreenInner({
   }, [onScrollToTop, isFocused])
 
   const renderEmptyState = useCallback(() => {
-    return <EmptyState icon="feed" message={_(msg`This feed is empty.`)} />
+    return <EmptyState message={_(msg`This feed is empty.`)} />
   }, [_])
 
   return (
     <>
       {info && isFeedSourceFeedInfo(info) && (
-        <ProfileFeedHeader info={info} onPressBack={onPressBack} />
+        <CustomFeedHeader info={info} isTrending={false} />
       )}
 
       {feedDesc && preferences && info ? (
@@ -212,11 +206,7 @@ function CommunityNotesFeedScreenInner({
           testID="composeFAB"
           onPress={onPressCompose}
           icon={
-            <ComposeIcon2
-              strokeWidth={1.5}
-              size={29}
-              style={{color: 'white'}}
-            />
+            <PencilIcon size="lg" style={{color: 'white'}} />
           }
         />
       )}
