@@ -7,6 +7,7 @@ import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
 import {Trans} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {makeProfileLink} from '#/lib/routes/links'
 import {getChatInviteCodeFromUrl} from '#/lib/strings/url-helpers'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
@@ -15,6 +16,7 @@ import {useSession} from '#/state/session'
 import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {atoms as a, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {GalleryBleed} from '#/components/images/Gallery'
 import {ContentHider} from '#/components/moderation/ContentHider'
@@ -252,27 +254,36 @@ export function PostDetachedEmbed({
  */
 export function QuoteEmbed({
   embed,
+  post,
   onOpen,
   style,
   linkDisabled,
   isWithinQuote: parentIsWithinQuote,
   allowNestedQuotes: parentAllowNestedQuotes,
   viewContext,
+  hideCommunityNotes = false,
 }: Omit<CommonProps, 'viewContext'> & {
-  embed: EmbedType<'post'>
+  embed?: EmbedType<'post'>
+  post?: app.bsky.feed.defs.PostView
   viewContext?: PostEmbedViewContext
   linkDisabled?: boolean
+  hideCommunityNotes?: boolean
 }) {
   const moderationOpts = useModerationOpts()
-  const quote = useMemo<$Typed<app.bsky.feed.defs.PostView>>(
-    () => ({
-      ...embed.view,
+  const quote = useMemo<$Typed<app.bsky.feed.defs.PostView>>(() => {
+    if (post) {
+      return {
+        ...post,
+        $type: 'app.bsky.feed.defs#postView',
+      } as $Typed<app.bsky.feed.defs.PostView>
+    }
+    return {
+      ...embed!.view,
       $type: 'app.bsky.feed.defs#postView',
-      record: embed.view.value,
-      embed: embed.view.embeds?.[0],
-    }),
-    [embed],
-  )
+      record: embed!.view.value,
+      embed: embed!.view.embeds?.[0],
+    }
+  }, [post, embed])
   const moderation = useMemo(() => {
     return moderationOpts ? moderatePost(quote, moderationOpts) : undefined
   }, [quote, moderationOpts])
@@ -351,45 +362,57 @@ export function QuoteEmbed({
   )
 
   return (
-    <GalleryBleed>
-      <View
-        style={[viewContext !== PostEmbedViewContext.ChatMessage && a.mt_sm]}
-        onPointerEnter={linkDisabled ? undefined : onPointerEnter}
-        onPointerLeave={linkDisabled ? undefined : onPointerLeave}>
-        <ContentHider
-          modui={moderation?.ui('contentList')}
-          style={[a.rounded_md, a.border, t.atoms.border_contrast_low, style]}
-          activeStyle={[a.p_md, a.pt_sm]}
-          childContainerStyle={[a.pt_sm]}>
-          {({active}) => (
-            <>
-              {!active && !linkDisabled && (
-                <SubtleHover
-                  native
-                  hover={hover || pressed}
-                  style={[a.rounded_md]}
-                />
-              )}
-              {linkDisabled ? (
-                <View style={[!active && a.p_md]} pointerEvents="none">
-                  {contents}
-                </View>
-              ) : (
-                <Link
-                  style={[!active && a.p_md]}
-                  hoverStyle={t.atoms.border_contrast_high}
-                  href={itemHref}
-                  title={itemTitle}
-                  onBeforePress={onBeforePress}
-                  onPressIn={onPressIn}
-                  onPressOut={onPressOut}>
-                  {contents}
-                </Link>
-              )}
-            </>
-          )}
-        </ContentHider>
-      </View>
-    </GalleryBleed>
+    <View>
+      <GalleryBleed>
+        <View
+          style={[viewContext !== PostEmbedViewContext.ChatMessage && a.mt_sm]}
+          onPointerEnter={linkDisabled ? undefined : onPointerEnter}
+          onPointerLeave={linkDisabled ? undefined : onPointerLeave}>
+          <ContentHider
+            modui={moderation?.ui('contentList')}
+            style={[a.rounded_md, a.border, t.atoms.border_contrast_low, style]}
+            activeStyle={[a.p_md, a.pt_sm]}
+            childContainerStyle={[a.pt_sm]}>
+            {({active}) => (
+              <>
+                {!active && !linkDisabled && (
+                  <SubtleHover
+                    native
+                    hover={hover || pressed}
+                    style={[a.rounded_md]}
+                  />
+                )}
+                {linkDisabled ? (
+                  <View style={[!active && a.p_md]} pointerEvents="none">
+                    {contents}
+                  </View>
+                ) : (
+                  <Link
+                    style={[!active && a.p_md]}
+                    hoverStyle={t.atoms.border_contrast_high}
+                    href={itemHref}
+                    title={itemTitle}
+                    onBeforePress={onBeforePress}
+                    onPressIn={onPressIn}
+                    onPressOut={onPressOut}>
+                    {contents}
+                  </Link>
+                )}
+              </>
+            )}
+          </ContentHider>
+        </View>
+      </GalleryBleed>
+      {!hideCommunityNotes && hasHelpfulNotes(quote) && (
+        <>
+          <View style={[a.border_t, t.atoms.border_contrast_low]} />
+          <CommunityNoteWidget
+            post={quote}
+            displayMode="embedded"
+            showDisclaimer={false}
+          />
+        </>
+      )}
+    </View>
   )
 }

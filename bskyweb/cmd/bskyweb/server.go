@@ -374,6 +374,9 @@ func serve(cctx *cli.Context) error {
 	// chat invites
 	e.GET("/chat/:code", server.WebChatInvite)
 
+	// community notes
+	e.GET("/community-notes/:tab", server.WebGeneric)
+
 	// bookmarks
 	e.GET("/saved", server.WebGenericNoindex)
 

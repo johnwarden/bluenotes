@@ -22,6 +22,7 @@ import {type RichText as RichTextType} from '@bsky/sdk/richtext'
 import {useLingui} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
+import * as apilib from '#/lib/api/community-notes'
 import {DISCOVER_FEED_URI, KNOWN_SHUTDOWN_FEEDS} from '#/lib/constants'
 import {useBottomBarOffset} from '#/lib/hooks/useBottomBarOffset'
 import {useInitialNumToRender} from '#/lib/hooks/useInitialNumToRender'
@@ -224,6 +225,7 @@ let PostFeed = ({
   savedFeedConfig,
   initialNumToRender: initialNumToRenderOverride,
   isVideoFeed = false,
+  communityNotesFeedMode,
   ref,
 }: {
   feed: FeedDescriptor
@@ -249,6 +251,7 @@ let PostFeed = ({
   initialNumToRender?: number
   isVideoFeed?: boolean
   lastFetchDate?: () => number
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
   ref?: React.Ref<PostFeedRef>
 }): React.ReactNode => {
   const ax = useAnalytics()
@@ -397,6 +400,97 @@ let PostFeed = ({
       cleanup2?.()
     }
   }, [pollInterval, checkForNew])
+
+  // Community Notes: batch prefetch proposals for the newest page
+  const latestPageFetchedAt = data?.pages?.[data.pages.length - 1]?.fetchedAt
+  const cnInFlightRef = useRef<Map<string, Set<string>>>(new Map())
+  useEffect(() => {
+    if (!communityNotesFeedMode) return
+    const latestPage = data?.pages?.[data.pages.length - 1]
+    if (!latestPage) return
+
+    const uris = Array.from(
+      new Set(
+        latestPage.slices
+          .flatMap(s => s.items.map(i => i.post.uri))
+          .filter(Boolean),
+      ),
+    )
+
+    const inFlightSet =
+      cnInFlightRef.current.get(communityNotesFeedMode) ?? new Set<string>()
+    const toFetch = uris.filter(uri => {
+      const key = ['community-notes-proposals', uri, communityNotesFeedMode]
+      return !queryClient.getQueryData(key) && !inFlightSet.has(uri)
+    })
+    if (toFetch.length === 0) return
+
+    const chunk = <T,>(arr: T[], size: number) => {
+      const out: T[][] = []
+      for (let i = 0; i < arr.length; i += size)
+        out.push(arr.slice(i, i + size))
+      return out
+    }
+
+    let canceled = false
+    const run = async () => {
+      for (const uri of toFetch) inFlightSet.add(uri)
+      cnInFlightRef.current.set(communityNotesFeedMode, inFlightSet)
+
+      try {
+        const batches = chunk(toFetch, 30)
+        for (const batch of batches) {
+          const res = await apilib.getProposals(null, batch, {
+            status: communityNotesFeedMode,
+          })
+          if (canceled) return
+
+          const byTarget = new Map<
+            string,
+            ReturnType<typeof apilib.mapProposalApiResponseToCommunityNote>[]
+          >()
+          const ratingByNoteUri = new Map<
+            string,
+            | NonNullable<apilib.CommunityNoteAPIResponse['viewer']>['rating']
+            | undefined
+          >()
+          for (const apiNote of res.proposals) {
+            const mapped = apilib.mapProposalApiResponseToCommunityNote(apiNote)
+            const list = byTarget.get(apiNote.targetUri) ?? []
+            list.push(mapped)
+            byTarget.set(apiNote.targetUri, list)
+            ratingByNoteUri.set(apiNote.uri, apiNote.viewer?.rating)
+          }
+
+          for (const uri of batch) {
+            const notes = byTarget.get(uri) ?? []
+            ;(notes as { _viewerRatings?: unknown })._viewerRatings = notes.map(
+              n => ({
+                noteUri: n.uri,
+                viewerRating: ratingByNoteUri.get(n.uri),
+              }),
+            )
+            queryClient.setQueryData(
+              ['community-notes-proposals', uri, communityNotesFeedMode],
+              notes,
+            )
+          }
+        }
+      } finally {
+        for (const uri of toFetch) inFlightSet.delete(uri)
+        if (inFlightSet.size === 0)
+          cnInFlightRef.current.delete(communityNotesFeedMode)
+      }
+    }
+
+    run().catch(err => {
+      logger.warn('Batch proposal fetch failed', {err})
+    })
+
+    return () => {
+      canceled = true
+    }
+  }, [queryClient, communityNotesFeedMode, latestPageFetchedAt, data])
 
   const followProgressGuide = useProgressGuide('follow-10')
   const followAndLikeProgressGuide = useProgressGuide('like-10-and-follow-7')
@@ -890,6 +984,7 @@ let PostFeed = ({
             hideTopBorder={rowIndex === 0 && indexInSlice === 0}
             rootPost={slice.items[0].post}
             onShowLess={onPressShowLess}
+            communityNotesFeedMode={communityNotesFeedMode}
           />
         )
       } else if (row.type === 'sliceViewFullThread') {
@@ -944,6 +1039,7 @@ let PostFeed = ({
       feedCacheKey,
       onPressShowLess,
       t,
+      communityNotesFeedMode,
     ],
   )
 
