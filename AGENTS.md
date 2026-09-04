@@ -36,7 +36,7 @@ The `justfile` at the repo root defines: `lint`, `typecheck`, `web`, `deps`, `bs
 
 ### Local backend (atproto dev environment)
 
-To run against a full local dev environment with a test PDS, clone the `open-community-notes` companion repo and run `just start` in it (it also uses devbox). Then on the social app sign-in page, click the edit (pencil) icon next to "Hosting provider" to point to the local PDS URL and login with `alice.test`.
+To run against a full local dev environment with a test PDS, clone the `open-community-notes` companion repo and run `just start` in it (it also uses devbox). Then on the social app sign-in page, click the edit (pencil) icon next to "Hosting provider" to point to the local PDS URL and login with `alice.test`. Local PDS login uses the password fallback (`Use password instead` or `EXPO_PUBLIC_OAUTH=0`). See `docs/oauth.md`.
 
 ### Caveats
 

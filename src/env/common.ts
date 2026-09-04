@@ -114,3 +114,10 @@ export const BAPP_CONFIG_DEV_URL = process.env.BAPP_CONFIG_DEV_URL
  */
 export const BAPP_CONFIG_DEV_BYPASS_SECRET: string =
   process.env.BAPP_CONFIG_DEV_BYPASS_SECRET
+
+/**
+ * AT Protocol OAuth. `1`/`true` forces the OAuth sign-in UI. `0`/`false`
+ * forces password login. Unset keeps OAuth as the default on web.
+ * Not a secret. See docs/oauth.md.
+ */
+export const OAUTH_ENV_FLAG: string | undefined = process.env.EXPO_PUBLIC_OAUTH

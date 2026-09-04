@@ -33,7 +33,7 @@ export const ChooseAccountForm = ({
         // The session API isn't resilient to race conditions so let's just ignore this.
         return
       }
-      if (!account.accessJwt) {
+      if (!account.accessJwt && !account.isOauthSession) {
         // Move to login form.
         onSelectAccount(account)
         return

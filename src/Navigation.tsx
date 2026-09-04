@@ -76,6 +76,7 @@ import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
 import HashtagScreen from '#/screens/Hashtag'
 import {LogScreen} from '#/screens/Log'
+import {AuthCallback} from '#/screens/Login/AuthCallback'
 import {MessagesScreen} from '#/screens/Messages/ChatList'
 import {MessagesConversationScreen} from '#/screens/Messages/Conversation'
 import {MessagesInboxScreen} from '#/screens/Messages/Inbox'
@@ -170,6 +171,11 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="NotFound"
         getComponent={() => NotFoundScreen}
         options={{title: title(msg`Not Found`)}}
+      />
+      <Stack.Screen
+        name="AuthCallback"
+        getComponent={() => AuthCallback}
+        options={{title: title(msg`Signing in`)}}
       />
       <Stack.Screen
         name="Lists"
