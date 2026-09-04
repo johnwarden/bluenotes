@@ -39,3 +39,5 @@ Use the following steps to deploy a new version. Deal with any merge conflicts y
     git merge community-notes-feature
     git push --force
     just deploy
+
+Interactive assemble helper (same flow): `./prepare-release-interactive.sh`
