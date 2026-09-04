@@ -1,10 +1,10 @@
 # Branching Strategy
 
-- tooling: Development Tooling. Minimal tooling useful when working on all branches. Can be removed in the future (e.g. before pull reuqests)
-- community-notes-feature: The pure community notes feature. Meant to be submit as a future pull-request to Bluesky. Keep development tooling, improvements to other parts of codebsae, and Bluenotes brand-related stuff out of this
+- tooling: Development Tooling. Minimal tooling useful when working on all branches. Can be removed in the future (e.g. before pull requests)
+- community-notes-feature: The pure community notes feature. Meant to be submit as a future pull-request to Bluesky. Keep development tooling, improvements to other parts of codebase, and Bluenotes brand-related stuff out of this
 - bluenotes-rebrand: pure branding, plus changes necessary to make code deployable as independent app
 
-                        upsteram/main
+                        upstream/main
                              |
                              |
                              V
@@ -13,7 +13,7 @@
                       ↙             ↘
                     ↙                 ↘
                   ↙                     ↘
-           bluenotes-brand   community-notes-feature
+           bluenotes-rebrand   community-notes-feature
                   ↘                     ↙
                     ↘                 ↙
                       ↘             ↙
