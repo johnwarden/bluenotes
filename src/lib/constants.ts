@@ -238,9 +238,9 @@ export const DEV_ENV_APPVIEW_DID = `did:plc:dw4kbjf5mn7nhenabiqpkyh3` // always 
 
 // temp hack for e2e - esb
 export const BLUESKY_PROXY_HEADER = {
-  value: `${BLUESKY_PROXY_DID}#bsky_appview`,
+  value: BLUESKY_PROXY_DID ? `${BLUESKY_PROXY_DID}#bsky_appview` : null,
   get() {
-    return this.value as Service
+    return this.value as Service | null
   },
   set(value: string) {
     this.value = value
@@ -255,9 +255,12 @@ export const BLUESKY_PROXY_HEADER = {
  *
  * The DID comes from the env-configurable `CHAT_PROXY_DID` (via
  * `EXPO_PUBLIC_CHAT_PROXY_DID`) rather than a hard-coded constant, so the
- * target can be retargeted per environment.
+ * target can be retargeted per environment. Unset when that env var is absent
+ * so local PDS sessions do not send a production chat proxy header.
  */
-export const CHAT_PROXY_SERVICE: Service = `${CHAT_PROXY_DID}#bsky_chat`
+export const CHAT_PROXY_SERVICE: Service | undefined = CHAT_PROXY_DID
+  ? `${CHAT_PROXY_DID}#bsky_chat`
+  : undefined
 
 /**
  * Bluesky's own moderation service, in the `did#service_id` form a lex client's
@@ -278,7 +281,9 @@ export const MOD_PROXY_SERVICE: Service = `${api.moderation.did}#atproto_labeler
  * the notification service (replaces the old
  * `BLUESKY_NOTIF_SERVICE_HEADERS`).
  */
-export const NOTIF_SERVICE: Service = `${BLUESKY_PROXY_DID}#bsky_notif`
+export const NOTIF_SERVICE: Service | undefined = BLUESKY_PROXY_DID
+  ? `${BLUESKY_PROXY_DID}#bsky_notif`
+  : undefined
 
 export const webLinks = {
   tos: `https://bsky.social/about/support/tos`,
