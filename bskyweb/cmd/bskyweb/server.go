@@ -52,6 +52,15 @@ type Config struct {
 	staticCDNHost string
 }
 
+// serveOAuthClientMetadata serves a metadata file from the same FileServer used
+// for /static/* (embedded StaticFS in production, local disk in debug).
+func serveOAuthClientMetadata(staticHandler http.Handler) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("Cache-Control", "public, max-age=300")
+		return echo.WrapHandler(staticHandler)(c)
+	}
+}
+
 func serve(cctx *cli.Context) error {
 	debug := cctx.Bool("debug")
 	httpAddress := cctx.String("http-address")
@@ -252,16 +261,10 @@ func serve(cctx *cli.Context) error {
 	}
 
 	e.GET("/iframe/youtube.html", echo.WrapHandler(staticHandler))
-	e.GET("/oauth-client-metadata.json", func(c echo.Context) error {
-		c.Response().Header().Set("Content-Type", "application/json")
-		c.Response().Header().Set("Cache-Control", "public, max-age=300")
-		return c.File("static/oauth-client-metadata.json")
-	})
-	e.GET("/oauth-client-metadata.native.json", func(c echo.Context) error {
-		c.Response().Header().Set("Content-Type", "application/json")
-		c.Response().Header().Set("Cache-Control", "public, max-age=300")
-		return c.File("static/oauth-client-metadata.native.json")
-	})
+	// Serve from the same embed/disk FS as /static/* and /robots.txt.
+	// c.File reads process CWD and 404s in the Fly image (files are not on disk).
+	e.GET("/oauth-client-metadata.json", serveOAuthClientMetadata(staticHandler))
+	e.GET("/oauth-client-metadata.native.json", serveOAuthClientMetadata(staticHandler))
 	e.GET("/auth/web/callback", server.WebGeneric)
 	e.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", staticHandler)), func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
