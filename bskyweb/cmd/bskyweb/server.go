@@ -252,6 +252,17 @@ func serve(cctx *cli.Context) error {
 	}
 
 	e.GET("/iframe/youtube.html", echo.WrapHandler(staticHandler))
+	e.GET("/oauth-client-metadata.json", func(c echo.Context) error {
+		c.Response().Header().Set("Content-Type", "application/json")
+		c.Response().Header().Set("Cache-Control", "public, max-age=300")
+		return c.File("static/oauth-client-metadata.json")
+	})
+	e.GET("/oauth-client-metadata.native.json", func(c echo.Context) error {
+		c.Response().Header().Set("Content-Type", "application/json")
+		c.Response().Header().Set("Cache-Control", "public, max-age=300")
+		return c.File("static/oauth-client-metadata.native.json")
+	})
+	e.GET("/auth/web/callback", server.WebGeneric)
 	e.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", staticHandler)), func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Response().Before(func() {

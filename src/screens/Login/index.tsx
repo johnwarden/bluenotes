@@ -7,6 +7,7 @@ import {useLingui} from '@lingui/react'
 import {DEFAULT_SERVICE} from '#/lib/constants'
 import {logEvent} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
+import {useOauthSignIn} from '#/state/preferences/oauth-sign-in'
 import {useServiceQuery} from '#/state/queries/service'
 import {type SessionAccount, useSession} from '#/state/session'
 import {useLoggedOutView} from '#/state/shell/logged-out'
@@ -41,6 +42,7 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
   const startTimeRef = useRef(Date.now())
 
   const {accounts} = useSession()
+  const oauthEnabled = useOauthSignIn()
   const {requestedAccountSwitchTo} = useLoggedOutView()
   const requestedAccount = accounts.find(
     acc => acc.did === requestedAccountSwitchTo,
@@ -134,7 +136,9 @@ export const Login = ({onPressBack}: {onPressBack: () => void}) => {
   switch (currentForm) {
     case Forms.Login:
       title = _(msg`Sign in`)
-      description = _(msg`Enter your username and password`)
+      description = oauthEnabled
+        ? _(msg`Enter your handle to continue`)
+        : _(msg`Enter your username and password`)
       content = (
         <LoginForm
           error={error}

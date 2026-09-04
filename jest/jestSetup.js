@@ -83,8 +83,8 @@ jest.mock('expo-application', () => ({
   nativeBuildVersion: '1',
 }))
 
-jest.mock('expo-modules-core', () => ({
-  requireNativeModule: jest.fn().mockImplementation(moduleName => {
+jest.mock('expo-modules-core', () => {
+  const nativeModule = moduleName => {
     if (moduleName === 'ExpoPlatformInfo') {
       return {
         getIsReducedMotionEnabled: () => false,
@@ -95,11 +95,26 @@ jest.mock('expo-modules-core', () => ({
         dismissAll: () => {},
       }
     }
-  }),
-  requireNativeViewManager: jest.fn().mockImplementation(_ => {
-    return () => null
-  }),
-}))
+    return null
+  }
+  class CodedError extends Error {
+    constructor(code, message) {
+      super(message)
+      this.code = code
+    }
+  }
+  return {
+    CodedError,
+    requireNativeModule: jest.fn().mockImplementation(moduleName => {
+      return nativeModule(moduleName) ?? {}
+    }),
+    // expo-constants 18 calls this; the real API returns null when unlinked
+    requireOptionalNativeModule: jest.fn().mockImplementation(nativeModule),
+    requireNativeViewManager: jest.fn().mockImplementation(_ => {
+      return () => null
+    }),
+  }
+})
 
 jest.mock('expo-localization', () => ({
   getLocales: () => [],

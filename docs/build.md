@@ -7,6 +7,15 @@
 
 You're all set!
 
+Web sign-in defaults to AT Protocol OAuth. Local `http://127.0.0.1:19006` uses
+the loopback client automatically. Password login remains available via "Use
+password instead" (needed for `alice.test`). Step-by-step local testing against
+`atproto-community-notes` (`just start` in that repo, then `yarn web` / `just
+web` here — there is no `just dev`) is in
+[docs/oauth.md](./oauth.md#local-testing-with-atproto-community-notes).
+Production client metadata and env vars are documented in the same file. Set
+`EXPO_PUBLIC_OAUTH=0` to force password login.
+
 ## iOS/Android Build
 
 ### Native Environment Setup

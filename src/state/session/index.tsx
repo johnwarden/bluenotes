@@ -14,6 +14,11 @@ import {
   createAgentAndResume,
   sessionAccountToSession,
 } from './agent'
+import {
+  type OauthBskyAppAgent,
+  oauthCreateAgent,
+  oauthResumeSession,
+} from './oauth-agent'
 import {type Action, getInitialState, reducer, type State} from './reducer'
 
 export {isSignupQueued} from './util'
@@ -137,10 +142,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     async (params, logContext) => {
       addSessionDebugLog({type: 'method:start', method: 'login'})
       const signal = cancelPendingTask()
-      const {agent, account} = await createAgentAndLogin(
-        params,
-        onAgentSessionChange,
-      )
+      const {agent, account} = params.oauthSession
+        ? await oauthCreateAgent(params.oauthSession)
+        : await createAgentAndLogin(params, onAgentSessionChange)
 
       if (signal.aborted) {
         return
@@ -152,7 +156,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       })
       logger.metric(
         'account:loggedIn',
-        {logContext, withPassword: true},
+        {logContext, withPassword: !params.oauthSession},
         {statsig: true},
       )
       addSessionDebugLog({type: 'method:end', method: 'login', account})
@@ -206,10 +210,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         account: storedAccount,
       })
       const signal = cancelPendingTask()
-      const {agent, account} = await createAgentAndResume(
-        storedAccount,
-        onAgentSessionChange,
-      )
+      const {agent, account} = storedAccount.isOauthSession
+        ? await oauthResumeSession(storedAccount)
+        : await createAgentAndResume(storedAccount, onAgentSessionChange)
 
       if (signal.aborted) {
         return
@@ -269,10 +272,13 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       const syncedAccount = synced.accounts.find(
         a => a.did === synced.currentAccount?.did,
       )
-      if (syncedAccount && syncedAccount.refreshJwt) {
+      if (
+        syncedAccount &&
+        (syncedAccount.isOauthSession || syncedAccount.refreshJwt)
+      ) {
         if (syncedAccount.did !== state.currentAgentState.did) {
           resumeSession(syncedAccount)
-        } else {
+        } else if (!syncedAccount.isOauthSession) {
           const agent = state.currentAgentState.agent as BskyAgent
           const prevSession = agent.session
           agent.sessionManager.session = sessionAccountToSession(syncedAccount)
@@ -322,7 +328,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   // @ts-expect-error window type is not declared, debug only
   if (__DEV__ && isWeb) window.agent = state.currentAgentState.agent
 
-  const agent = state.currentAgentState.agent as BskyAppAgent
+  const agent = state.currentAgentState.agent as
+    | BskyAppAgent
+    | OauthBskyAppAgent
   const currentAgentRef = React.useRef(agent)
   React.useEffect(() => {
     if (currentAgentRef.current !== agent) {
@@ -337,7 +345,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   }, [agent])
 
   return (
-    <AgentContext.Provider value={agent}>
+    <AgentContext.Provider value={agent as BskyAgent}>
       <StateContext.Provider value={stateContext}>
         <ApiContext.Provider value={api}>{children}</ApiContext.Provider>
       </StateContext.Provider>

@@ -40,6 +40,10 @@ import {
   useSession,
   useSessionApi,
 } from '#/state/session'
+import {
+  clearOauthCallbackUrl,
+  initOAuthClient,
+} from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
 import {Provider as ComposerProvider} from '#/state/shell/composer'
@@ -72,7 +76,7 @@ beginResolveGeolocationConfig()
 function InnerApp() {
   const [isReady, setIsReady] = React.useState(false)
   const {currentAccount} = useSession()
-  const {resumeSession} = useSessionApi()
+  const {login, resumeSession} = useSessionApi()
   const theme = useColorModeTheme()
   const {_} = useLingui()
   const hasCheckedReferrer = useStarterPackEntry()
@@ -81,6 +85,20 @@ function InnerApp() {
   useEffect(() => {
     async function onLaunch(account?: SessionAccount) {
       try {
+        const oauthResult = await initOAuthClient()
+        if (oauthResult?.session && 'state' in oauthResult) {
+          await login(
+            {
+              service: '',
+              identifier: '',
+              password: '',
+              oauthSession: oauthResult.session,
+            },
+            'LoginForm',
+          )
+          clearOauthCallbackUrl()
+          return
+        }
         if (account) {
           await resumeSession(account)
         }
@@ -92,7 +110,7 @@ function InnerApp() {
     }
     const account = readLastActiveAccount()
     onLaunch(account)
-  }, [resumeSession])
+  }, [login, resumeSession])
 
   useEffect(() => {
     return listenSessionDropped(() => {
