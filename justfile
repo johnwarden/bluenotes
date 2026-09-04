@@ -20,7 +20,7 @@ lint:
 	pnpm lint
 
 typecheck:
-	npm run typecheck
+	pnpm typecheck
 
 web:
 	pnpm web
