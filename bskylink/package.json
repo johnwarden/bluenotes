@@ -4,7 +4,9 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "test": "./tests/infra/with-test-db.sh node --loader ts-node/esm --test ./tests/index.ts",
+    "test": "yarn run test:unit && yarn run test:e2e",
+    "test:e2e": "./tests/infra/with-test-db.sh node --loader ts-node/esm --test ./tests/index.ts",
+    "test:unit": "node --loader ts-node/esm --test ./src/*.test.ts",
     "build": "tsc"
   },
   "dependencies": {
@@ -21,6 +23,7 @@
     "lru-cache": "^11.1.0",
     "pg": "^8.12.0",
     "pino": "^9.2.0",
+    "prom-client": "^15.1.3",
     "uint8arrays": "^5.1.0"
   },
   "devDependencies": {

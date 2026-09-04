@@ -2,9 +2,10 @@ import {View} from 'react-native'
 import {
   type InterpretedLabelValueDefinition,
   type LabelPreference,
-} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+} from '@bsky/sdk/moderation'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {useGlobalLabelStrings} from '#/lib/moderation/useGlobalLabelStrings'
 import {useLabelBehaviorDescription} from '#/lib/moderation/useLabelBehaviorDescription'

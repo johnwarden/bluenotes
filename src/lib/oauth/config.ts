@@ -43,8 +43,17 @@ export function isOauthEnvForced(): boolean {
   return value === '1' || value === 'true'
 }
 
+/**
+ * 1.132's PasswordSession + SessionBundle cannot hold DPoP OAuth tokens.
+ * Keep this false until a SessionBundle adapter lands. Launchable OAuth
+ * remains on the 1.109 line (PR #7 / cursor/oauth-merge-6a46).
+ */
+export function isOauthSessionBundleSupported(): boolean {
+  return false
+}
+
 export function isOauthSignInAvailable(): boolean {
-  return !isOauthEnvDisabled()
+  return isOauthSessionBundleSupported() && !isOauthEnvDisabled()
 }
 
 export function getOauthClientOrigin(): string {

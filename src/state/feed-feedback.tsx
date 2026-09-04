@@ -7,11 +7,10 @@ import {
   useRef,
 } from 'react'
 import {AppState, type AppStateStatus} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
+import {type AtUriString, type DidString} from '@atproto/syntax'
 import throttle from 'lodash.throttle'
 
 import {PROD_FEEDS, STAGING_FEEDS} from '#/lib/constants'
-import {Logger} from '#/logger'
 import {
   type FeedSourceFeedInfo,
   type FeedSourceInfo,
@@ -22,12 +21,14 @@ import {
   type FeedPostSliceItem,
 } from '#/state/queries/post-feed'
 import {getItemsForFeedback} from '#/view/com/posts/PostFeed'
-import {useAgent} from './session'
+import {useAnalytics} from '#/analytics'
+import {app} from '#/lexicons'
+import {useAppviewClient} from './session'
 
 export const FEEDBACK_FEEDS = [...PROD_FEEDS, ...STAGING_FEEDS]
 
 export const THIRD_PARTY_ALLOWED_INTERACTIONS = new Set<
-  AppBskyFeedDefs.Interaction['event']
+  app.bsky.feed.defs.Interaction['event']
 >([
   // These are explicit actions and are therefore fine to send.
   'app.bsky.feed.defs#requestLess',
@@ -42,12 +43,10 @@ export const THIRD_PARTY_ALLOWED_INTERACTIONS = new Set<
   'app.bsky.feed.defs#interactionSeen',
 ])
 
-const logger = Logger.create(Logger.Context.FeedFeedback)
-
 export type StateContext = {
   enabled: boolean
   onItemSeen: (item: any) => void
-  sendInteraction: (interaction: AppBskyFeedDefs.Interaction) => void
+  sendInteraction: (interaction: app.bsky.feed.defs.Interaction) => void
   feedDescriptor: FeedDescriptor | undefined
   feedSourceInfo: FeedSourceInfo | undefined
 }
@@ -55,7 +54,7 @@ export type StateContext = {
 const stateContext = createContext<StateContext>({
   enabled: false,
   onItemSeen: (_item: any) => {},
-  sendInteraction: (_interaction: AppBskyFeedDefs.Interaction) => {},
+  sendInteraction: (_interaction: app.bsky.feed.defs.Interaction) => {},
   feedDescriptor: undefined,
   feedSourceInfo: undefined,
 })
@@ -65,7 +64,9 @@ export function useFeedFeedback(
   feedSourceInfo: FeedSourceInfo | undefined,
   hasSession: boolean,
 ) {
-  const agent = useAgent()
+  const ax = useAnalytics()
+  const logger = ax.logger.useChild(ax.logger.Context.FeedFeedback)
+  const client = useAppviewClient()
 
   const feed =
     !!feedSourceInfo && isFeedSourceFeedInfo(feedSourceInfo)
@@ -82,15 +83,48 @@ export function useFeedFeedback(
   const history = useRef<
     // Use a WeakSet so that we don't need to clear it.
     // This assumes that referential identity of slice items maps 1:1 to feed (re)fetches.
-    WeakSet<FeedPostSliceItem | AppBskyFeedDefs.Interaction>
+    WeakSet<FeedPostSliceItem | app.bsky.feed.defs.Interaction>
   >(new WeakSet())
+
+  const flushEvents = useCallback(
+    (stats: AggregatedStats | null, feedDescriptor: string) => {
+      if (stats === null) {
+        return
+      }
+
+      if (stats.clickthroughCount > 0) {
+        ax.metric('feed:clickthrough', {
+          count: stats.clickthroughCount,
+          feed: feedDescriptor,
+        })
+        stats.clickthroughCount = 0
+      }
+
+      if (stats.engagedCount > 0) {
+        ax.metric('feed:engaged', {
+          count: stats.engagedCount,
+          feed: feedDescriptor,
+        })
+        stats.engagedCount = 0
+      }
+
+      if (stats.seenCount > 0) {
+        ax.metric('feed:seen', {
+          count: stats.seenCount,
+          feed: feedDescriptor,
+        })
+        stats.seenCount = 0
+      }
+    },
+    [ax],
+  )
 
   const aggregatedStats = useRef<AggregatedStats | null>(null)
   const throttledFlushAggregatedStats = useMemo(
     () =>
       throttle(
         () =>
-          flushToStatsig(
+          flushEvents(
             aggregatedStats.current,
             feed?.feedDescriptor ?? 'unknown',
           ),
@@ -100,7 +134,7 @@ export function useFeedFeedback(
           trailing: true,
         },
       ),
-    [feed?.feedDescriptor],
+    [feed?.feedDescriptor, flushEvents],
   )
 
   const sendToFeedNoDelay = useCallback(() => {
@@ -117,31 +151,32 @@ export function useFeedFeedback(
       return
     }
 
-    // Send to the feed
-    agent.app.bsky.feed
-      .sendInteractions(
-        {interactions: interactionsToSend},
+    /*
+     * Send to the feed. Interactions go to the feed generator rather than the
+     * appview, which the agent did by setting `atproto-proxy` by hand; the
+     * client's per-call `service` option writes that same header.
+     */
+    client
+      .call(
+        app.bsky.feed.sendInteractions,
         {
-          encoding: 'application/json',
-          headers: {
-            'atproto-proxy': `${proxyDid}#bsky_fg`,
-          },
+          interactions: interactionsToSend,
+          feed: feed?.uri as AtUriString | undefined,
         },
+        {service: `${proxyDid as DidString}#bsky_fg`},
       )
       .catch(() => {}) // ignore upstream errors
 
-    // Send to Statsig
     if (aggregatedStats.current === null) {
       aggregatedStats.current = createAggregatedStats()
     }
     sendOrAggregateInteractionsForStats(
       aggregatedStats.current,
       interactionsToSend,
-      feed?.feedDescriptor ?? 'unknown',
     )
     throttledFlushAggregatedStats()
     logger.debug('flushed')
-  }, [agent, throttledFlushAggregatedStats, proxyDid, enabled, feed])
+  }, [client, throttledFlushAggregatedStats, proxyDid, enabled, feed])
 
   const sendToFeed = useMemo(
     () =>
@@ -189,7 +224,7 @@ export function useFeedFeedback(
   )
 
   const sendInteraction = useCallback(
-    (interaction: AppBskyFeedDefs.Interaction) => {
+    (interaction: app.bsky.feed.defs.Interaction) => {
       if (!enabled) {
         return
       }
@@ -237,7 +272,7 @@ export function isDiscoverFeed(feed?: FeedDescriptor) {
 function isInteractionAllowed(
   enabled: boolean,
   feed: FeedSourceFeedInfo | undefined,
-  interaction: AppBskyFeedDefs.Interaction['event'],
+  interaction: app.bsky.feed.defs.Interaction['event'],
 ) {
   if (!enabled || !feed) {
     return false
@@ -246,15 +281,19 @@ function isInteractionAllowed(
   return isDiscover ? true : THIRD_PARTY_ALLOWED_INTERACTIONS.has(interaction)
 }
 
-function toString(interaction: AppBskyFeedDefs.Interaction): string {
+function toString(interaction: app.bsky.feed.defs.Interaction): string {
   return `${interaction.item}|${interaction.event}|${
     interaction.feedContext || ''
   }|${interaction.reqId || ''}`
 }
 
-function toInteraction(str: string): AppBskyFeedDefs.Interaction {
+function toInteraction(str: string): app.bsky.feed.defs.Interaction {
   const [item, event, feedContext, reqId] = str.split('|')
-  return {item, event, feedContext, reqId}
+  /*
+   * The fields come from splitting an internally-built key, so neither the
+   * at-uri nor the event token is narrowed by the compiler here.
+   */
+  return {item, event, feedContext, reqId} as app.bsky.feed.defs.Interaction
 }
 
 type AggregatedStats = {
@@ -273,29 +312,11 @@ function createAggregatedStats(): AggregatedStats {
 
 function sendOrAggregateInteractionsForStats(
   stats: AggregatedStats,
-  interactions: AppBskyFeedDefs.Interaction[],
-  feed: string,
+  interactions: app.bsky.feed.defs.Interaction[],
 ) {
   for (let interaction of interactions) {
     switch (interaction.event) {
-      // Pressing "Show more" / "Show less" is relatively uncommon so we won't aggregate them.
-      // This lets us send the feed context together with them.
-      case 'app.bsky.feed.defs#requestLess': {
-        logger.metric('feed:showLess', {
-          feed,
-          feedContext: interaction.feedContext ?? '',
-        })
-        break
-      }
-      case 'app.bsky.feed.defs#requestMore': {
-        logger.metric('feed:showMore', {
-          feed,
-          feedContext: interaction.feedContext ?? '',
-        })
-        break
-      }
-
-      // The rest of the events are aggregated and sent later in batches.
+      // The events are aggregated and sent later in batches.
       case 'app.bsky.feed.defs#clickthroughAuthor':
       case 'app.bsky.feed.defs#clickthroughEmbed':
       case 'app.bsky.feed.defs#clickthroughItem':
@@ -316,35 +337,5 @@ function sendOrAggregateInteractionsForStats(
         break
       }
     }
-  }
-}
-
-function flushToStatsig(stats: AggregatedStats | null, feedDescriptor: string) {
-  if (stats === null) {
-    return
-  }
-
-  if (stats.clickthroughCount > 0) {
-    logger.metric('feed:clickthrough', {
-      count: stats.clickthroughCount,
-      feed: feedDescriptor,
-    })
-    stats.clickthroughCount = 0
-  }
-
-  if (stats.engagedCount > 0) {
-    logger.metric('feed:engaged', {
-      count: stats.engagedCount,
-      feed: feedDescriptor,
-    })
-    stats.engagedCount = 0
-  }
-
-  if (stats.seenCount > 0) {
-    logger.metric('feed:seen', {
-      count: stats.seenCount,
-      feed: feedDescriptor,
-    })
-    stats.seenCount = 0
   }
 }

@@ -1,23 +1,22 @@
 import {useCallback, useEffect, useMemo, useState} from 'react'
-import {useWindowDimensions, View} from 'react-native'
-import {type AppBskyGraphDefs, RichText as RichTextAPI} from '@atproto/api'
-import {msg, Plural, Trans} from '@lingui/macro'
+import {View} from 'react-native'
+import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Plural, Trans} from '@lingui/react/macro'
 
 import {cleanError} from '#/lib/strings/errors'
-import {useWarnMaxGraphemeCount} from '#/lib/strings/helpers'
+import {isOverMaxGraphemeCount} from '#/lib/strings/helpers'
 import {richTextToString} from '#/lib/strings/rich-text-helpers'
 import {shortenLinks, stripInvalidMentions} from '#/lib/strings/rich-text-manip'
 import {logger} from '#/logger'
-import {isWeb} from '#/platform/detection'
 import {type ImageMeta} from '#/state/gallery'
 import {
   useListCreateMutation,
   useListMetadataMutation,
 } from '#/state/queries/list'
-import {useAgent} from '#/state/session'
+import {useAppviewClient} from '#/state/session'
 import {ErrorMessage} from '#/view/com/util/error/ErrorMessage'
-import * as Toast from '#/view/com/util/Toast'
 import {EditableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, useTheme, web} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
@@ -25,30 +24,40 @@ import * as Dialog from '#/components/Dialog'
 import * as TextField from '#/components/forms/TextField'
 import {Loader} from '#/components/Loader'
 import * as Prompt from '#/components/Prompt'
+import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
+import {IS_WEB} from '#/env'
+import {type app} from '#/lexicons'
 
 const DISPLAY_NAME_MAX_GRAPHEMES = 64
 const DESCRIPTION_MAX_GRAPHEMES = 300
+
+export type InitialListValues = {
+  name?: string
+  description?: string
+  avatar?: string
+}
 
 export function CreateOrEditListDialog({
   control,
   list,
   purpose,
   onSave,
+  initialValues,
 }: {
   control: Dialog.DialogControlProps
-  list?: AppBskyGraphDefs.ListView
-  purpose?: AppBskyGraphDefs.ListPurpose
+  list?: app.bsky.graph.defs.ListView
+  purpose?: app.bsky.graph.defs.ListPurpose
   onSave?: (uri: string) => void
+  initialValues?: InitialListValues
 }) {
   const {_} = useLingui()
   const cancelControl = Dialog.useDialogControl()
   const [dirty, setDirty] = useState(false)
-  const {height} = useWindowDimensions()
 
   // 'You might lose unsaved changes' warning
   useEffect(() => {
-    if (isWeb && dirty) {
+    if (IS_WEB && dirty) {
       const abortController = new AbortController()
       const {signal} = abortController
       window.addEventListener('beforeunload', evt => evt.preventDefault(), {
@@ -73,7 +82,7 @@ export function CreateOrEditListDialog({
       control={control}
       nativeOptions={{
         preventDismiss: dirty,
-        minHeight: height,
+        fullHeight: true,
       }}
       testID="createOrEditListDialog">
       <DialogInner
@@ -82,6 +91,7 @@ export function CreateOrEditListDialog({
         onSave={onSave}
         setDirty={setDirty}
         onPressCancel={onPressCancel}
+        initialValues={initialValues}
       />
 
       <Prompt.Basic
@@ -102,12 +112,14 @@ function DialogInner({
   onSave,
   setDirty,
   onPressCancel,
+  initialValues,
 }: {
-  list?: AppBskyGraphDefs.ListView
-  purpose?: AppBskyGraphDefs.ListPurpose
+  list?: app.bsky.graph.defs.ListView
+  purpose?: app.bsky.graph.defs.ListPurpose
   onSave?: (uri: string) => void
   setDirty: (dirty: boolean) => void
   onPressCancel: () => void
+  initialValues?: InitialListValues
 }) {
   const activePurpose = useMemo(() => {
     if (list?.purpose) {
@@ -122,7 +134,11 @@ function DialogInner({
 
   const {_} = useLingui()
   const t = useTheme()
-  const agent = useAgent()
+  /*
+   * Facet/mention resolution is an appview job - it resolves handles through
+   * the appview, and the public fallback keeps it working when logged out.
+   */
+  const appviewClient = useAppviewClient()
   const control = Dialog.useDialogContext()
   const {
     mutateAsync: createListMutation,
@@ -138,11 +154,12 @@ function DialogInner({
   } = useListMetadataMutation()
   const [imageError, setImageError] = useState('')
   const [displayNameTooShort, setDisplayNameTooShort] = useState(false)
-  const initialDisplayName = list?.name || ''
+  const initialDisplayName = list?.name || initialValues?.name || ''
   const [displayName, setDisplayName] = useState(initialDisplayName)
-  const initialDescription = list?.description || ''
+  const initialDescription =
+    list?.description || initialValues?.description || ''
   const [descriptionRt, setDescriptionRt] = useState<RichTextAPI>(() => {
-    const text = list?.description
+    const text = list?.description ?? initialValues?.description
     const facets = list?.descriptionFacets
 
     if (!text || !facets) {
@@ -151,7 +168,10 @@ function DialogInner({
 
     // We want to be working with a blank state here, so let's get the
     // serialized version and turn it back into a RichText
-    const serialized = richTextToString(new RichTextAPI({text, facets}), false)
+    const serialized = richTextToString(
+      new RichTextAPI({text, facets: facets}),
+      false,
+    )
 
     const richText = new RichTextAPI({text: serialized})
     richText.detectFacetsWithoutResolution()
@@ -159,17 +179,22 @@ function DialogInner({
     return richText
   })
 
+  const initialAvatar = list?.avatar ?? initialValues?.avatar
   const [listAvatar, setListAvatar] = useState<string | undefined | null>(
-    list?.avatar,
+    initialAvatar,
   )
   const [newListAvatar, setNewListAvatar] = useState<
     ImageMeta | undefined | null
   >()
 
+  // When creating with pre-filled values (from Starter Pack), consider dirty
+  // immediately so the Save button is enabled
+  const hasInitialValuesForCreate = !list && initialValues != null
   const dirty =
+    hasInitialValuesForCreate ||
     displayName !== initialDisplayName ||
     descriptionRt.text !== initialDescription ||
-    listAvatar !== list?.avatar
+    listAvatar !== initialAvatar
 
   useEffect(() => {
     setDirty(dirty)
@@ -196,6 +221,16 @@ function DialogInner({
   const onPressSave = useCallback(async () => {
     setImageError('')
     setDisplayNameTooShort(false)
+    /*
+     * Hoisted above the `try`: React Compiler cannot lower a conditional
+     * expression inside one.
+     */
+    const updatedMessage = isCurateList
+      ? _(msg({message: 'User list updated', context: 'toast'}))
+      : _(msg({message: 'Moderation list updated', context: 'toast'}))
+    const createdMessage = isCurateList
+      ? _(msg({message: 'User list created', context: 'toast'}))
+      : _(msg({message: 'Moderation list created', context: 'toast'}))
     try {
       if (displayName.length === 0) {
         setDisplayNameTooShort(true)
@@ -207,7 +242,7 @@ function DialogInner({
         {cleanNewlines: true},
       )
 
-      await richText.detectFacets(agent)
+      await richText.detectFacets(appviewClient)
       richText = shortenLinks(richText)
       richText = stripInvalidMentions(richText)
 
@@ -219,11 +254,7 @@ function DialogInner({
           descriptionFacets: richText.facets,
           avatar: newListAvatar,
         })
-        Toast.show(
-          isCurateList
-            ? _(msg({message: 'User list updated', context: 'toast'}))
-            : _(msg({message: 'Moderation list updated', context: 'toast'})),
-        )
+        Toast.show(updatedMessage)
         control.close(() => onSave?.(list.uri))
       } else {
         const {uri} = await createListMutation({
@@ -233,11 +264,7 @@ function DialogInner({
           descriptionFacets: richText.facets,
           avatar: newListAvatar,
         })
-        Toast.show(
-          isCurateList
-            ? _(msg({message: 'User list created', context: 'toast'}))
-            : _(msg({message: 'Moderation list created', context: 'toast'})),
-        )
+        Toast.show(createdMessage)
         control.close(() => onSave?.(uri))
       }
     } catch (e: any) {
@@ -255,15 +282,15 @@ function DialogInner({
     setImageError,
     activePurpose,
     isCurateList,
-    agent,
+    appviewClient,
     _,
   ])
 
-  const displayNameTooLong = useWarnMaxGraphemeCount({
+  const displayNameTooLong = isOverMaxGraphemeCount({
     text: displayName,
     maxCount: DISPLAY_NAME_MAX_GRAPHEMES,
   })
-  const descriptionTooLong = useWarnMaxGraphemeCount({
+  const descriptionTooLong = isOverMaxGraphemeCount({
     text: descriptionRt,
     maxCount: DESCRIPTION_MAX_GRAPHEMES,
   })

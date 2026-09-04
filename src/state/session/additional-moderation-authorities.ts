@@ -1,7 +1,5 @@
-import {BskyAgent} from '@atproto/api'
+import {Client} from '@atproto/lex'
 
-import {getCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
-import {logger} from '#/logger'
 import {device} from '#/storage'
 
 export const BR_LABELER = 'did:plc:ekitcvx7uwnauoqy5oest3hm' // Brazil
@@ -71,34 +69,40 @@ export function isNonConfigurableModerationAuthority(did: string) {
 }
 
 export function configureAdditionalModerationAuthorities() {
-  const geolocation = device.get(['geolocation'])
+  const geolocation = device.get(['mergedGeolocation'])
   // default to all
   let additionalLabelers: string[] = MODERATION_AUTHORITIES_DIDS
 
   if (geolocation?.countryCode) {
     // overwrite with only those necessary
     additionalLabelers = MODERATION_AUTHORITIES[geolocation.countryCode] ?? []
-  } else {
-    logger.info(`no geolocation, cannot apply mod authorities`)
   }
 
   if (__DEV__) {
     additionalLabelers = []
   }
 
-  const communityNotesLabelerDid = getCommunityNotesLabelerDid()
+  /*
+   * Merge with whatever is already on the static rather than replacing it, so
+   * `switchToBskyAppLabeler`'s entry survives.
+   */
   const appLabelers = Array.from(
-    new Set([
-      ...BskyAgent.appLabelers,
-      ...additionalLabelers,
-      ...(communityNotesLabelerDid ? [communityNotesLabelerDid] : []), // Add Community Notes labeler if available
-    ]),
+    new Set<string>([...Client.appLabelers, ...additionalLabelers]),
   )
 
-  logger.info(`applying mod authorities`, {
-    additionalLabelers,
-    appLabelers,
-  })
+  configureGlobalAppLabelers(appLabelers)
+}
 
-  BskyAgent.configure({appLabelers})
+/**
+ * Set the global app labelers on the lex `Client` static, which every client
+ * reads, so a request carries the same `;redact` authorities whether or not
+ * there is a session behind it.
+ *
+ * It is a single global producer by design. The PDS client opts out with
+ * `appLabelers: null` (see `clients.ts`) because that service takes no
+ * moderation authorities. Appview and chat requests each carry one copy from
+ * their respective clients.
+ */
+export function configureGlobalAppLabelers(dids: string[]) {
+  Client.configure({appLabelers: dids as `did:${string}:${string}`[]})
 }

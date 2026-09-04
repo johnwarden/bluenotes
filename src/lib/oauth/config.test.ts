@@ -5,6 +5,8 @@ import {
   buildWebClientMetadata,
   DEFAULT_OAUTH_CLIENT_ORIGIN,
   isLoopbackOrigin,
+  isOauthSessionBundleSupported,
+  isOauthSignInAvailable,
   OAUTH_CALLBACK_PATH,
   shouldUseLoopbackClient,
 } from './config'
@@ -46,5 +48,10 @@ describe('oauth config', () => {
     expect(shouldUseLoopbackClient('http://127.0.0.1:19006')).toBe(true)
     expect(shouldUseLoopbackClient('https://bluenotes.social')).toBe(false)
     expect(shouldUseLoopbackClient(undefined)).toBe(false)
+  })
+
+  it('does not advertise OAuth sign-in until a 1.132 SessionBundle adapter exists', () => {
+    expect(isOauthSessionBundleSupported()).toBe(false)
+    expect(isOauthSignInAvailable()).toBe(false)
   })
 })

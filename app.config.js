@@ -1,5 +1,10 @@
+// @ts-check
 const pkg = require('./package.json')
 
+/**
+ * @param {import('@expo/config-types').ExpoConfig} _config
+ * @returns {{ expo: import('@expo/config-types').ExpoConfig }}
+ */
 module.exports = function (_config) {
   /**
    * App version number. Should be incremented as part of a release cycle.
@@ -11,11 +16,12 @@ module.exports = function (_config) {
    *
    * @see https://docs.expo.dev/build-reference/variables/#built-in-environment-variables
    */
-  const PLATFORM = process.env.EAS_BUILD_PLATFORM
+  const PLATFORM = process.env.EAS_BUILD_PLATFORM ?? 'web'
 
   const IS_TESTFLIGHT = process.env.EXPO_PUBLIC_ENV === 'testflight'
   const IS_PRODUCTION = process.env.EXPO_PUBLIC_ENV === 'production'
-  const IS_DEV = !IS_TESTFLIGHT || !IS_PRODUCTION
+  const IS_E2E = process.env.EXPO_PUBLIC_ENV === 'e2e'
+  const IS_DEV = !IS_TESTFLIGHT && !IS_PRODUCTION
 
   const ASSOCIATED_DOMAINS = [
     'applinks:bsky.app',
@@ -30,6 +36,13 @@ module.exports = function (_config) {
 
   const USE_SENTRY = Boolean(process.env.SENTRY_AUTH_TOKEN)
 
+  const IOS_ICON_FILE =
+    PLATFORM === 'web' // web build doesn't like .icon files
+      ? './assets/app-icons/ios_icon_default_next.png'
+      : IS_TESTFLIGHT
+        ? './assets/app-icons/ios_icon_testflight.icon'
+        : './assets/app-icons/ios_icon_default.icon'
+
   return {
     expo: {
       version: VERSION,
@@ -42,16 +55,19 @@ module.exports = function (_config) {
       },
       icon: './assets/app-icons/ios_icon_default_next.png',
       userInterfaceStyle: 'automatic',
-      primaryColor: '#1083fe',
-      newArchEnabled: false,
+      primaryColor: '#006AFF',
       ios: {
         supportsTablet: false,
         bundleIdentifier: 'xyz.blueskyweb.app',
+        appleTeamId: process.env.EXPO_APPLE_TEAM_ID,
         config: {
           usesNonExemptEncryption: false,
         },
+        icon: IOS_ICON_FILE,
         infoPlist: {
+          CADisableMinimumFrameDurationOnPhone: true,
           UIBackgroundModes: ['remote-notification'],
+          NSUserActivityTypes: ['INSendMessageIntent'],
           NSCameraUsageDescription:
             'Used for profile pictures, posts, and other kinds of content.',
           NSMicrophoneUsageDescription:
@@ -66,6 +82,7 @@ module.exports = function (_config) {
             'an',
             'ast',
             'ca',
+            'cs',
             'cy',
             'da',
             'de',
@@ -103,13 +120,15 @@ module.exports = function (_config) {
             'zh-Hans',
             'zh-Hant',
           ],
-          UIDesignRequiresCompatibility: true,
         },
         associatedDomains: ASSOCIATED_DOMAINS,
         entitlements: {
           'com.apple.developer.kernel.increased-memory-limit': true,
           'com.apple.developer.kernel.extended-virtual-addressing': true,
           'com.apple.security.application-groups': 'group.app.bsky',
+          'com.apple.developer.usernotifications.communication': true,
+          // 'com.apple.developer.device-information.user-assigned-device-name': true,
+          'com.apple.developer.declared-age-range': true,
         },
         privacyManifests: {
           NSPrivacyCollectedDataTypes: [
@@ -166,17 +185,12 @@ module.exports = function (_config) {
       androidStatusBar: {
         barStyle: 'light-content',
       },
-      // Dark nav bar in light mode is better than light nav bar in dark mode
-      androidNavigationBar: {
-        barStyle: 'light-content',
-      },
       android: {
         icon: './assets/app-icons/android_icon_default_next.png',
         adaptiveIcon: {
           foregroundImage: './assets/icon-android-foreground.png',
-          monochromeImage: './assets/icon-android-foreground.png',
-          backgroundImage: './assets/icon-android-background.png',
-          backgroundColor: '#1185FE',
+          monochromeImage: './assets/icon-android-monochrome.png',
+          backgroundColor: '#006AFF',
         },
         googleServicesFile: './google-services.json',
         package: 'xyz.blueskyweb.app',
@@ -189,10 +203,14 @@ module.exports = function (_config) {
                 scheme: 'https',
                 host: 'bsky.app',
               },
-              IS_DEV && {
-                scheme: 'http',
-                host: 'localhost:19006',
-              },
+              ...(IS_DEV
+                ? [
+                    {
+                      scheme: 'http',
+                      host: 'localhost:19006',
+                    },
+                  ]
+                : []),
             ],
             category: ['BROWSABLE', 'DEFAULT'],
           },
@@ -217,6 +235,25 @@ module.exports = function (_config) {
         checkAutomatically: 'NEVER',
       },
       plugins: [
+        [
+          'expo-dev-client',
+          {
+            toolsButton: false,
+            ...(IS_E2E
+              ? {
+                  launchMode: 'most-recent',
+                  skipOnboarding: true,
+                  showMenuAtLaunch: false,
+                  ios: {
+                    defaultLaunchURL: 'http://localhost:8081',
+                  },
+                  android: {
+                    defaultLaunchURL: 'http://10.0.2.2:8081',
+                  },
+                }
+              : {}),
+          },
+        ],
         'expo-video',
         'expo-localization',
         'expo-web-browser',
@@ -224,25 +261,39 @@ module.exports = function (_config) {
           'react-native-edge-to-edge',
           {android: {enforceNavigationBarContrast: false}},
         ],
-        USE_SENTRY && [
-          '@sentry/react-native/expo',
-          {
-            organization: 'blueskyweb',
-            project: 'app',
-            url: 'https://sentry.io',
-          },
-        ],
+        ...(USE_SENTRY
+          ? [
+              /** @type {[string, any]} */ ([
+                '@sentry/react-native/expo',
+                {
+                  organization: 'blueskyweb',
+                  project: 'app',
+                  url: 'https://sentry.io',
+                },
+              ]),
+            ]
+          : []),
         [
           'expo-build-properties',
           {
             ios: {
-              deploymentTarget: '15.1',
+              deploymentTarget: '16.4',
               buildReactNativeFromSource: true,
+              ccacheEnabled: IS_DEV,
+              cxxLanguageStandard: 'c++23',
+              extraPods: [
+                {
+                  name: 'MCEmojiPicker',
+                  git: 'https://github.com/bluesky-social/MCEmojiPicker.git',
+                  branch: 'main',
+                },
+              ],
             },
             android: {
-              compileSdkVersion: 35,
-              targetSdkVersion: 35,
-              buildToolsVersion: '35.0.0',
+              compileSdkVersion: 36,
+              targetSdkVersion: 36,
+              buildToolsVersion: '36.0.0',
+              buildReactNativeFromSource: IS_PRODUCTION,
             },
           },
         ],
@@ -254,7 +305,6 @@ module.exports = function (_config) {
             sounds: PLATFORM === 'ios' ? ['assets/dm.aiff'] : ['assets/dm.mp3'],
           },
         ],
-        'react-native-compressor',
         [
           '@bitdrift/react-native',
           {
@@ -267,7 +317,6 @@ module.exports = function (_config) {
         './plugins/withAndroidManifestFCMIconPlugin.js',
         './plugins/withAndroidManifestIntentQueriesPlugin.js',
         './plugins/withAndroidStylesAccentColorPlugin.js',
-        './plugins/withAndroidDayNightThemePlugin.js',
         './plugins/withAndroidNoJitpackPlugin.js',
         './plugins/shareExtension/withShareExtensions.js',
         './plugins/notificationsExtension/withNotificationsExtension.js',
@@ -293,48 +342,43 @@ module.exports = function (_config) {
           'expo-splash-screen',
           {
             ios: {
-              enableFullScreenImage_legacy: true,
-              backgroundColor: '#ffffff',
-              image: './assets/splash.png',
+              enableFullScreenImage_legacy: true, // iOS only
+              backgroundColor: '#006AFF', // primary_500
+              image: './assets/splash/splash.png',
               resizeMode: 'cover',
               dark: {
-                enableFullScreenImage_legacy: true,
-                backgroundColor: '#001429',
-                image: './assets/splash-dark.png',
+                enableFullScreenImage_legacy: true, // iOS only
+                backgroundColor: '#002861', // primary_900
+                image: './assets/splash/splash-dark.png',
                 resizeMode: 'cover',
               },
             },
             android: {
-              backgroundColor: '#0c7cff',
-              image: './assets/splash-android-icon.png',
-              imageWidth: 150,
+              backgroundColor: '#006AFF', // primary_500
+              image: './assets/splash/android-splash-logo-white.png',
+              imageWidth: 102, // even division of 306px
               dark: {
-                backgroundColor: '#0c2a49',
-                image: './assets/splash-android-icon-dark.png',
-                imageWidth: 150,
+                backgroundColor: '#002861', // primary_900
+                image: './assets/splash/android-splash-logo-white.png',
+                imageWidth: 102,
               },
             },
           },
         ],
         [
-          '@mozzius/expo-dynamic-app-icon',
+          '@bsky.app/expo-dynamic-app-icon',
           {
             /**
              * Default set
              */
             default_light: {
-              ios: './assets/app-icons/ios_icon_default_light.png',
-              android: './assets/app-icons/android_icon_default_light.png',
+              ios: './assets/app-icons/ios_icon_legacy_light.png',
+              android: './assets/app-icons/android_icon_legacy_light.png',
               prerendered: true,
             },
             default_dark: {
-              ios: './assets/app-icons/ios_icon_default_dark.png',
-              android: './assets/app-icons/android_icon_default_dark.png',
-              prerendered: true,
-            },
-            next: {
-              ios: './assets/app-icons/ios_icon_default_next.png',
-              android: './assets/app-icons/android_icon_default_next.png',
+              ios: './assets/app-icons/ios_icon_legacy_dark.png',
+              android: './assets/app-icons/android_icon_legacy_dark.png',
               prerendered: true,
             },
 
@@ -390,7 +434,14 @@ module.exports = function (_config) {
         ],
         ['expo-screen-orientation', {initialOrientation: 'PORTRAIT_UP'}],
         ['expo-location'],
-      ].filter(Boolean),
+        [
+          'expo-contacts',
+          {
+            contactsPermission:
+              'I agree to allow Bluesky to use my contacts for friend discovery until I opt out.',
+          },
+        ],
+      ],
       extra: {
         eas: {
           build: {

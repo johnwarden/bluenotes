@@ -1,7 +1,6 @@
 import {useState} from 'react'
 import {Pressable, View} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
-import {Trans} from '@lingui/macro'
+import {Trans} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
 import {isWeb} from '#/platform/detection'
@@ -13,11 +12,12 @@ import {Link, useLink} from '#/components/Link'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
 import {APP_NAME} from '#/env'
+import {type app} from '#/lexicons'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
 
 interface CommunityNoteWidgetProps {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   displayMode: DisplayMode
   showRatingPrompt?: boolean
   showDisclaimer?: boolean

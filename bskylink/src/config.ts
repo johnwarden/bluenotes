@@ -7,6 +7,7 @@ export type Config = {
 
 export type ServiceConfig = {
   port: number
+  metricsPort: number
   version?: string
   hostnames: string[]
   hostnamesSet: Set<string>
@@ -15,6 +16,7 @@ export type ServiceConfig = {
   safelinkPdsUrl?: string
   safelinkAgentIdentifier?: string
   safelinkAgentPass?: string
+  metricsApiHost?: string
 }
 
 export type DbConfig = {
@@ -32,6 +34,7 @@ export type DbPoolConfig = {
 
 export type Environment = {
   port?: number
+  metricsPort?: number
   version?: string
   hostnames: string[]
   appHostname?: string
@@ -45,11 +48,13 @@ export type Environment = {
   safelinkPdsUrl?: string
   safelinkAgentIdentifier?: string
   safelinkAgentPass?: string
+  metricsApiHost?: string
 }
 
 export const readEnv = (): Environment => {
   return {
     port: envInt('LINK_PORT'),
+    metricsPort: envInt('LINK_METRICS_PORT'),
     version: envStr('LINK_VERSION'),
     hostnames: envList('LINK_HOSTNAMES'),
     appHostname: envStr('LINK_APP_HOSTNAME'),
@@ -65,12 +70,14 @@ export const readEnv = (): Environment => {
     safelinkPdsUrl: envStr('LINK_SAFELINK_PDS_URL'),
     safelinkAgentIdentifier: envStr('LINK_SAFELINK_AGENT_IDENTIFIER'),
     safelinkAgentPass: envStr('LINK_SAFELINK_AGENT_PASS'),
+    metricsApiHost: envStr('LINK_METRICS_API_HOST'),
   }
 }
 
 export const envToCfg = (env: Environment): Config => {
   const serviceCfg: ServiceConfig = {
     port: env.port ?? 3000,
+    metricsPort: env.metricsPort ?? 9090,
     version: env.version,
     hostnames: env.hostnames,
     hostnamesSet: new Set(env.hostnames),
@@ -79,6 +86,7 @@ export const envToCfg = (env: Environment): Config => {
     safelinkPdsUrl: env.safelinkPdsUrl,
     safelinkAgentIdentifier: env.safelinkAgentIdentifier,
     safelinkAgentPass: env.safelinkAgentPass,
+    metricsApiHost: env.metricsApiHost,
   }
   if (!env.dbPostgresUrl) {
     throw new Error('Must configure postgres url (LINK_DB_POSTGRES_URL)')

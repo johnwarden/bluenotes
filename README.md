@@ -16,7 +16,7 @@ There is a small amount of Go language source code (in `./bskyweb/`), for a web 
 
 The [Build Instructions](./docs/build.md) are a good place to get started with the app itself.
 
-Web sign-in uses **AT Protocol OAuth** by default (password login remains a fallback). See [docs/oauth.md](./docs/oauth.md) for client metadata, env vars, and the production deploy checklist.
+Web sign-in on this 1.132 merge is **password / app-password**. AT Protocol OAuth client metadata is in-tree; completing OAuth login needs a SessionBundle adapter. Launchable web OAuth is on the 1.109 line ([PR #7](https://github.com/johnwarden/bluenotes/pull/7)). See [docs/oauth.md](./docs/oauth.md).
 
 The Authenticated Transfer Protocol ("AT Protocol" or "atproto") is a decentralized social media protocol. You don't *need* to understand AT Protocol to work with this application, but it can help. Learn more at:
 
@@ -59,6 +59,15 @@ Please be sure to:
 - Change all branding in the repository and UI to clearly differentiate from Bluesky.
 - Change any support links (feedback, email, terms of service, etc) to your own systems.
 - Replace any analytics or error-collection systems with your own so we don't get super confused.
+- Replace the landing-screen illustration in `assets/illustrations/`. It is commissioned artwork licensed to Bluesky alone, and our MIT license does not cover it.
+- Source your own UI icons. The glyph set in `assets/icons/` is licensed to us by a third party for our own use, and that license does not extend to you.
+- Replace the Bluesky logo, app icons, and other brand assets. Our trademarks are not licensed with the code.
+
+Please read [./ASSETS.md](./ASSETS.md) before you ship. Not every file in this repository is
+covered by our MIT license — some of the artwork, icons, fonts, and brand assets are licensed to
+us by third parties or are trademarks, and `ASSETS.md` says which ones and what to do about them.
+That file is new. Its absence is why some forks have shipped assets they did not have rights to,
+and that was our omission rather than theirs.
 
 ## Security disclosures
 
@@ -70,7 +79,11 @@ Bluesky is an open social network built on the AT Protocol, a flexible technolog
 
 ## License (MIT)
 
-See [./LICENSE](./LICENSE) for the full license.
+See [./LICENSE](./LICENSE) for the full license, which covers the source code in this repository.
+
+It does not cover every file. Certain images, icons, fonts, and brand assets are licensed to us
+by third parties, or are trademarks, and are carved out — see [./ASSETS.md](./ASSETS.md). Required
+third-party attribution notices are collected in [./NOTICE.md](./NOTICE.md).
 
 Bluesky Social PBC has committed to a software patent non-aggression pledge. For details see [the original announcement](https://bsky.social/about/blog/10-01-2025-patent-pledge).
 

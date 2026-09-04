@@ -8,7 +8,7 @@ Bluenotes Social is a Community Notes-enabled fork of Bluesky. It's a React Nati
 
 ### Environment
 
-This project uses **devbox** to manage development dependencies (Node.js, Yarn, Python, cmake, pkg-config, sqlite, clang, llvm). The Nix daemon must be running for devbox to work. All commands should be run through `devbox run --` to ensure the correct tool versions are available.
+This project uses **devbox** to manage development dependencies (Node.js, **pnpm 11.21**, Python, cmake, pkg-config, sqlite, clang, llvm). Upstream 1.132 requires **Node >= 24.19**. The Nix daemon must be running for devbox to work. All commands should be run through `devbox run --` to ensure the correct tool versions are available.
 
 Before running devbox commands, ensure the Nix daemon is running:
 ```
@@ -26,21 +26,22 @@ Prefer `just` commands (defined in the root `justfile`). Run through devbox: `de
 | Lint | `devbox run -- just lint` |
 | Typecheck | `devbox run -- just typecheck` |
 | Run web dev server | `devbox run -- just web` (serves on port 19006) |
-| Unit tests | `devbox run -- yarn test` |
-| Build i18n | `devbox run -- yarn intl:build` |
+| Unit tests | `devbox run -- pnpm test` |
+| Build i18n | `devbox run -- pnpm intl:build` |
 | List all recipes | `devbox run -- just --list` |
 
 ### Justfile recipes
 
-The `justfile` at the repo root defines: `lint`, `typecheck`, `web`, `deps`, `bskyweb`, `ios`, `ios-simulator`. Always use `just` when a recipe exists rather than calling yarn/npm directly.
+The `justfile` at the repo root defines: `lint`, `typecheck`, `web`, `deps`, `bskyweb`, `ios`, `ios-simulator`. Always use `just` when a recipe exists rather than calling pnpm/npm directly.
 
 ### Local backend (atproto dev environment)
 
-To run against a full local dev environment with a test PDS, clone the `open-community-notes` companion repo and run `just start` in it (it also uses devbox). Then on the social app sign-in page, click the edit (pencil) icon next to "Hosting provider" to point to the local PDS URL and login with `alice.test`. Local PDS login uses the password fallback (`Use password instead` or `EXPO_PUBLIC_OAUTH=0`). See `docs/oauth.md`.
+To run against a full local dev environment with a test PDS, clone the `open-community-notes` companion repo and run `just start` in it (it also uses devbox). Then on the social app sign-in page, click the edit (pencil) icon next to "Hosting provider" to point to the local PDS URL and login with `alice.test`. See `docs/oauth.md`.
 
 ### Caveats
 
-- The devbox `init_hook` in `devbox.json` runs `yarn` automatically when entering the devbox shell or running `devbox run`. This means running `devbox run -- just <cmd>` will first run `yarn install` if needed.
+- Upstream 1.132 switched the package manager from Yarn to **pnpm** (`pnpm-lock.yaml`). `just deps` runs `pnpm install --frozen-lockfile`.
+- AT Protocol OAuth: launchable on the 1.109 Community Notes line (PR #7). This 1.132 merge keeps client metadata but password login is the working path until a SessionBundle adapter lands. See `docs/oauth.md`.
 - 8 of 22 Jest test suites fail due to Expo native module resolution (`requireOptionalNativeModule`). This is expected in a web-only/non-native environment and is pre-existing.
 - The web dev server (Expo) listens on **port 19006** (webpack) and **port 8081** (Metro).
 - Chrome "Aw, Snap!" crashes (Error code 4) can occur after long dev sessions due to accumulated memory. Fix by restarting the Expo server (`just web`) and opening a fresh Chrome tab.

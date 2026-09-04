@@ -1,6 +1,19 @@
 # AT Protocol OAuth (Blue Notes)
 
-Blue Notes signs in with **AT Protocol OAuth** by default on web. Password /
+## Current status (read this first)
+
+There are two Blue Notes lines after this work:
+
+| Line | App version | Sign-in |
+| --- | --- | --- |
+| `community-notes-feature` + [PR #7](https://github.com/johnwarden/bluenotes/pull/7) (`cursor/oauth-merge-6a46`) | 1.109 | **Launchable web OAuth.** Handle-only form, loopback on localhost, password fallback. |
+| This branch (`cursor/upstream-rebase-6a46`) merged onto Bluesky `main` | 1.132 | **Password login only.** OAuth client, metadata, and docs are present. Completing sign-in needs a `SessionBundle` adapter (DPoP tokens cannot be stuffed into `PasswordSession`). |
+
+Do not treat this 1.132 merge as an OAuth launch. Ship web OAuth from the 1.109 line until the adapter lands.
+
+On 1.132, an OAuth redirect is consumed in `App.web.tsx` and the user is told to use a password. `login({oauthSession})` throws rather than calling `PasswordSession.login` with empty credentials.
+
+Blue Notes **will** sign in with AT Protocol OAuth on the 1.109 line. Password /
 app-password login remains available as a fallback (required for the local
 `alice.test` PDS and until production client metadata is live).
 
@@ -95,7 +108,21 @@ raw `hailey/oauth*` branches:
   the session provider, hardcodes `bsky.hailey.at`, and uses an AuthCallback
   route that never renders while logged out.
 - Latest `bluesky-social/social-app` `main` (1.132) still has **no** OAuth
-  login. Rebasing first would not land OAuth.
+  login. Rebasing first would not land OAuth, so OAuth was ported onto 1.109
+  first, then this repo was **merged** (not rebased) onto upstream `main`.
+  Replaying ~150 Community Notes commits onto ~1650 upstream commits would
+  have been worse than a merge with a few dozen conflicts.
+
+### 1.132 SessionBundle adapter (required to launch OAuth here)
+
+`SessionBundle` is `{session: PasswordSession, appviewClient, pdsClient, chatClient}`.
+A follow-up must:
+
+1. Build lex `Client`s from `OAuthSession.fetchHandler` via `createLexClient`.
+2. Persist `isOauthSession` accounts without `refreshJwt` / `accessJwt`.
+3. Skip expiry-rescue and cross-tab JWT generation checks for those accounts
+   (`resumeSession` currently bails when `refreshJwt` is missing).
+4. Re-enable `isOauthSessionBundleSupported()` and the handle-only LoginForm.
 
 Password sessions and Community Notes behavior are unchanged when OAuth is
 off.

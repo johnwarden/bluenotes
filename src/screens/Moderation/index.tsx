@@ -1,18 +1,17 @@
 import {Fragment, useCallback} from 'react'
 import {Linking, View} from 'react-native'
-import {LABELS} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
-import {useFocusEffect} from '@react-navigation/native'
+import {LABELS} from '@bsky/sdk/moderation'
+import {plural} from '@lingui/core/macro'
+import {Trans, useLingui} from '@lingui/react/macro'
 
-import {getLabelingServiceTitle} from '#/lib/moderation'
+import {getLabelingServiceTitle, isAppLabeler} from '#/lib/moderation'
 import {
   type CommonNavigatorParams,
   type NativeStackScreenProps,
 } from '#/lib/routes/types'
 import {logger} from '#/logger'
-import {isIOS} from '#/platform/detection'
-import {useAgeAssurance} from '#/state/ageAssurance/useAgeAssurance'
+import {useIsBirthdateUpdateAllowed} from '#/state/birthdate'
+import {useRemoveLabelersMutation} from '#/state/queries/labeler'
 import {
   useMyLabelersQuery,
   usePreferencesQuery,
@@ -20,13 +19,11 @@ import {
   usePreferencesSetAdultContentMutation,
 } from '#/state/queries/preferences'
 import {isNonConfigurableModerationAuthority} from '#/state/session/additional-moderation-authorities'
-import {useSetMinimalShellMode} from '#/state/shell'
 import {atoms as a, useBreakpoints, useTheme, type ViewStyleProp} from '#/alf'
-import {Admonition} from '#/components/Admonition'
+import * as Admonition from '#/components/Admonition'
 import {AgeAssuranceAdmonition} from '#/components/ageAssurance/AgeAssuranceAdmonition'
-import {Button, ButtonText} from '#/components/Button'
-import * as Dialog from '#/components/Dialog'
-import {BirthDateSettingsDialog} from '#/components/dialogs/BirthDateSettings'
+import {useAgeAssuranceCopy} from '#/components/ageAssurance/useAgeAssuranceCopy'
+import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {useGlobalDialogsControlContext} from '#/components/dialogs/Context'
 import {Divider} from '#/components/Divider'
 import * as Toggle from '#/components/forms/Toggle'
@@ -34,9 +31,10 @@ import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRight} from '#/components
 import {CircleBanSign_Stroke2_Corner0_Rounded as CircleBanSign} from '#/components/icons/CircleBanSign'
 import {CircleCheck_Stroke2_Corner0_Rounded as CircleCheck} from '#/components/icons/CircleCheck'
 import {type Props as SVGIconProps} from '#/components/icons/common'
-import {EditBig_Stroke2_Corner0_Rounded as EditBig} from '#/components/icons/EditBig'
+import {EditBig_Stroke2_Corner2_Rounded as EditBig} from '#/components/icons/EditBig'
 import {Filter_Stroke2_Corner0_Rounded as Filter} from '#/components/icons/Filter'
 import {Group3_Stroke2_Corner0_Rounded as Group} from '#/components/icons/Group'
+import {Inbox_Stroke2_Corner2_Rounded as Inbox} from '#/components/icons/Inbox'
 import {Person_Stroke2_Corner0_Rounded as Person} from '#/components/icons/Person'
 import * as LabelingService from '#/components/LabelingServiceCard'
 import * as Layout from '#/components/Layout'
@@ -44,7 +42,13 @@ import {InlineLinkText, Link} from '#/components/Link'
 import {ListMaybePlaceholder} from '#/components/Lists'
 import {Loader} from '#/components/Loader'
 import {GlobalLabelPreference} from '#/components/moderation/LabelPreference'
+import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
+import {useAgeAssurance} from '#/ageAssurance'
+import {useAnalytics} from '#/analytics'
+import {IS_IOS} from '#/env'
+
+const UNREAD_NOTIFICATION_CAP = 100
 
 function ErrorState({error}: {error: string}) {
   const t = useTheme()
@@ -80,15 +84,14 @@ function ErrorState({error}: {error: string}) {
 export function ModerationScreen(
   _props: NativeStackScreenProps<CommonNavigatorParams, 'Moderation'>,
 ) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const {
     isLoading: isPreferencesLoading,
     error: preferencesError,
     data: preferences,
   } = usePreferencesQuery()
-  const {isReady: isAgeInfoReady} = useAgeAssurance()
 
-  const isLoading = isPreferencesLoading || !isAgeInfoReady
+  const isLoading = isPreferencesLoading
   const error = preferencesError
 
   return (
@@ -109,7 +112,7 @@ export function ModerationScreen(
           <ErrorState
             error={
               preferencesError?.toString() ||
-              _(msg`Something went wrong, please try again.`)
+              l`Something went wrong, please try again.`
             }
           />
         ) : (
@@ -123,12 +126,15 @@ export function ModerationScreen(
 function SubItem({
   title,
   icon: Icon,
+  badge,
   style,
 }: ViewStyleProp & {
   title: string
   icon: React.ComponentType<SVGIconProps>
+  badge?: number
 }) {
   const t = useTheme()
+  const {t: l, i18n} = useLingui()
   return (
     <View
       style={[
@@ -144,10 +150,41 @@ function SubItem({
         <Icon size="md" style={[t.atoms.text_contrast_medium]} />
         <Text style={[a.text_sm, a.font_semi_bold]}>{title}</Text>
       </View>
-      <ChevronRight
-        size="sm"
-        style={[t.atoms.text_contrast_low, a.self_end, {paddingBottom: 2}]}
-      />
+      <View style={[a.flex_row, a.align_center, a.gap_md]}>
+        {badge ? (
+          <View
+            style={[
+              a.rounded_lg,
+              a.align_center,
+              a.justify_center,
+              a.px_sm,
+              {
+                minWidth: 24,
+                height: 24,
+                backgroundColor: t.palette.primary_500,
+              },
+            ]}>
+            <Text
+              style={[
+                a.text_xs,
+                a.font_semi_bold,
+                {color: t.palette.white, fontVariant: ['tabular-nums']},
+              ]}>
+              {badge >= UNREAD_NOTIFICATION_CAP
+                ? l({
+                    message: `${i18n.number(UNREAD_NOTIFICATION_CAP - 1)}+ updates`,
+                    comment:
+                      'Displayed when the number of notifications exceeds the cap – for example, 99+ notifications',
+                  })
+                : plural(badge, {
+                    one: '# update',
+                    other: '# updates',
+                  })}
+            </Text>
+          </View>
+        ) : null}
+        <ChevronRight size="sm" style={[t.atoms.text_contrast_low]} />
+      </View>
     </View>
   )
 }
@@ -157,31 +194,61 @@ export function ModerationScreenInner({
 }: {
   preferences: UsePreferencesQueryResponse
 }) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const t = useTheme()
-  const setMinimalShellMode = useSetMinimalShellMode()
   const {gtMobile} = useBreakpoints()
   const {mutedWordsDialogControl} = useGlobalDialogsControlContext()
-  const birthdateDialogControl = Dialog.useDialogControl()
+  const ax = useAnalytics()
+  const isModerationInboxEnabled = ax.features.enabled(
+    ax.features.ModerationInboxEnable,
+  )
   const {
     isLoading: isLabelersLoading,
     data: labelers,
     error: labelersError,
   } = useMyLabelersQuery()
-  const {declaredAge, isDeclaredUnderage, isAgeRestricted} = useAgeAssurance()
+  const {mutateAsync: removeLabelers, isPending: isRemovingLabelers} =
+    useRemoveLabelersMutation()
+  const aa = useAgeAssurance()
+  const isBirthdateUpdateAllowed = useIsBirthdateUpdateAllowed()
+  const aaCopy = useAgeAssuranceCopy()
 
-  useFocusEffect(
-    useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
+  const subscribedDids = preferences.moderationPrefs.labelers.map(l => l.did)
+  const returnedDids = new Set(labelers?.map(l => l.creator.did))
+  const unavailableDids = subscribedDids.filter(
+    did =>
+      !returnedDids.has(did) &&
+      !isAppLabeler(did) &&
+      !isNonConfigurableModerationAuthority(did),
   )
+
+  const handleCleanup = async () => {
+    try {
+      await removeLabelers({dids: unavailableDids})
+      Toast.show(l`Removed unavailable services`, {
+        type: 'success',
+      })
+    } catch (error) {
+      const e = error as Error
+      logger.error('Failed to remove unavailable labelers', {
+        safeMessage: e.message,
+      })
+    }
+  }
 
   const {mutateAsync: setAdultContentPref, variables: optimisticAdultContent} =
     usePreferencesSetAdultContentMutation()
-  const adultContentEnabled = !!(
+  let adultContentEnabled = !!(
     (optimisticAdultContent && optimisticAdultContent.enabled) ||
     (!optimisticAdultContent && preferences.moderationPrefs.adultContentEnabled)
   )
+  const adultContentUIDisabledOnIOS = IS_IOS && !adultContentEnabled
+  let adultContentUIDisabled = adultContentUIDisabledOnIOS
+
+  if (aa.flags.adultContentDisabled) {
+    adultContentEnabled = false
+    adultContentUIDisabled = true
+  }
 
   const onToggleAdultContentEnabled = useCallback(
     async (selected: boolean) => {
@@ -189,7 +256,8 @@ export function ModerationScreenInner({
         await setAdultContentPref({
           enabled: selected,
         })
-      } catch (e: any) {
+      } catch (error) {
+        const e = error as Error
         logger.error(`Failed to set adult content pref`, {
           message: e.message,
         })
@@ -198,28 +266,44 @@ export function ModerationScreenInner({
     [setAdultContentPref],
   )
 
-  const disabledOnIOS = isIOS && !adultContentEnabled
-
   return (
     <View style={[a.pt_2xl, a.px_lg, gtMobile && a.px_2xl]}>
-      {isDeclaredUnderage && (
+      {aa.flags.isDeclaredUnderAdultAge && isBirthdateUpdateAllowed && (
         <View style={[a.pb_2xl]}>
-          <Admonition type="tip" style={[a.pb_md]}>
+          <Admonition.Admonition type="tip" style={[a.pb_md]}>
             <Trans>
               Your declared age is under 18. Some settings below may be
               disabled. If this was a mistake, you may edit your birthdate in
               your{' '}
               <InlineLinkText
                 to="/settings/account"
-                label={_(msg`Go to account settings`)}>
+                label={l`Go to account settings`}>
                 account settings
               </InlineLinkText>
               .
             </Trans>
-          </Admonition>
+          </Admonition.Admonition>
         </View>
       )}
-
+      {isModerationInboxEnabled && (
+        <Link
+          label={l`View your moderation inbox`}
+          testID="moderationInboxBtn"
+          to="/moderation/inbox"
+          style={[a.mb_2xl, a.rounded_md, a.overflow_hidden]}>
+          {state => (
+            <SubItem
+              title={l`Moderation inbox`}
+              icon={Inbox}
+              badge={3} // TODO This is a placeholder value. -dsb
+              style={[
+                t.atoms.bg_contrast_25,
+                (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
+              ]}
+            />
+          )}
+        </Link>
+      )}
       <Text
         style={[
           a.text_md,
@@ -229,7 +313,6 @@ export function ModerationScreenInner({
         ]}>
         <Trans>Moderation tools</Trans>
       </Text>
-
       <View
         style={[
           a.w_full,
@@ -238,12 +321,12 @@ export function ModerationScreenInner({
           t.atoms.bg_contrast_25,
         ]}>
         <Link
-          label={_(msg`View your default post interaction settings`)}
+          label={l`View your default post interaction settings`}
           testID="interactionSettingsBtn"
           to="/moderation/interaction-settings">
           {state => (
             <SubItem
-              title={_(msg`Interaction settings`)}
+              title={l`Interaction settings`}
               icon={EditBig}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -254,11 +337,11 @@ export function ModerationScreenInner({
         <Divider />
         <Button
           testID="mutedWordsBtn"
-          label={_(msg`Open muted words and tags settings`)}
+          label={l`Open muted words and tags settings`}
           onPress={() => mutedWordsDialogControl.open()}>
           {state => (
             <SubItem
-              title={_(msg`Muted words & tags`)}
+              title={l`Muted words & tags`}
               icon={Filter}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -268,12 +351,12 @@ export function ModerationScreenInner({
         </Button>
         <Divider />
         <Link
-          label={_(msg`View your moderation lists`)}
+          label={l`View your moderation lists`}
           testID="moderationlistsBtn"
           to="/moderation/modlists">
           {state => (
             <SubItem
-              title={_(msg`Moderation lists`)}
+              title={l`Moderation lists`}
               icon={Group}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -283,12 +366,12 @@ export function ModerationScreenInner({
         </Link>
         <Divider />
         <Link
-          label={_(msg`View your muted accounts`)}
+          label={l`View your muted accounts`}
           testID="mutedAccountsBtn"
           to="/moderation/muted-accounts">
           {state => (
             <SubItem
-              title={_(msg`Muted accounts`)}
+              title={l`Muted accounts`}
               icon={Person}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -298,12 +381,12 @@ export function ModerationScreenInner({
         </Link>
         <Divider />
         <Link
-          label={_(msg`View your blocked accounts`)}
+          label={l`View your blocked accounts`}
           testID="blockedAccountsBtn"
           to="/moderation/blocked-accounts">
           {state => (
             <SubItem
-              title={_(msg`Blocked accounts`)}
+              title={l`Blocked accounts`}
               icon={CircleBanSign}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -313,12 +396,12 @@ export function ModerationScreenInner({
         </Link>
         <Divider />
         <Link
-          label={_(msg`Manage verification settings`)}
+          label={l`Manage verification settings`}
           testID="verificationSettingsBtn"
           to="/moderation/verification-settings">
           {state => (
             <SubItem
-              title={_(msg`Verification settings`)}
+              title={l`Verification settings`}
               icon={CircleCheck}
               style={[
                 (state.hovered || state.pressed) && [t.atoms.bg_contrast_50],
@@ -327,136 +410,100 @@ export function ModerationScreenInner({
           )}
         </Link>
       </View>
-
-      {(!isDeclaredUnderage || declaredAge === undefined) && (
-        <Text
+      <Text
+        style={[
+          a.pt_2xl,
+          a.pb_md,
+          a.text_md,
+          a.font_semi_bold,
+          t.atoms.text_contrast_high,
+        ]}>
+        <Trans>Content filters</Trans>
+      </Text>
+      <AgeAssuranceAdmonition style={[a.pb_md]}>
+        {aaCopy.notice}
+      </AgeAssuranceAdmonition>
+      <View style={[a.gap_md]}>
+        <View
           style={[
-            a.pt_2xl,
-            a.pb_md,
-            a.text_md,
-            a.font_semi_bold,
-            t.atoms.text_contrast_high,
+            a.w_full,
+            a.rounded_md,
+            a.overflow_hidden,
+            t.atoms.bg_contrast_25,
           ]}>
-          <Trans>Content filters</Trans>
-        </Text>
-      )}
-
-      {declaredAge === undefined ? (
-        <>
-          <Button
-            label={_(msg`Confirm your birthdate`)}
-            size="small"
-            variant="solid"
-            color="secondary"
-            onPress={() => {
-              birthdateDialogControl.open()
-            }}
-            style={[a.justify_between, a.rounded_md, a.px_lg, a.py_lg]}>
-            <ButtonText>
-              <Trans>Confirm your age:</Trans>
-            </ButtonText>
-            <ButtonText>
-              <Trans>Set birthdate</Trans>
-            </ButtonText>
-          </Button>
-
-          <BirthDateSettingsDialog control={birthdateDialogControl} />
-        </>
-      ) : !isDeclaredUnderage ? (
-        <>
-          <AgeAssuranceAdmonition style={[a.pb_md]}>
-            <Trans>
-              You must complete age assurance in order to access the settings
-              below.
-            </Trans>
-          </AgeAssuranceAdmonition>
-
-          <View style={[a.gap_md]}>
-            <View
-              style={[
-                a.w_full,
-                a.rounded_md,
-                a.overflow_hidden,
-                t.atoms.bg_contrast_25,
-              ]}>
-              {!isDeclaredUnderage && (
-                <>
-                  <View
-                    style={[
-                      a.py_lg,
-                      a.px_lg,
-                      a.flex_row,
-                      a.align_center,
-                      a.justify_between,
-                      disabledOnIOS && {opacity: 0.5},
-                    ]}>
-                    <Text
-                      style={[a.font_semi_bold, t.atoms.text_contrast_high]}>
-                      <Trans>Enable adult content</Trans>
+          {aa.state.access === aa.Access.Full && (
+            <>
+              <View
+                style={[
+                  a.py_lg,
+                  a.px_lg,
+                  a.flex_row,
+                  a.align_center,
+                  a.justify_between,
+                  adultContentUIDisabled && {opacity: 0.5},
+                ]}>
+                <Text style={[a.font_semi_bold, t.atoms.text_contrast_high]}>
+                  <Trans>Enable adult content</Trans>
+                </Text>
+                <Toggle.Item
+                  label={l`Toggle to enable or disable adult content`}
+                  disabled={adultContentUIDisabled}
+                  name="adultContent"
+                  value={adultContentEnabled}
+                  onChange={(selected: boolean) =>
+                    void onToggleAdultContentEnabled(selected)
+                  }>
+                  <View style={[a.flex_row, a.align_center, a.gap_sm]}>
+                    <Text style={[t.atoms.text_contrast_medium]}>
+                      {adultContentEnabled ? (
+                        <Trans>Enabled</Trans>
+                      ) : (
+                        <Trans>Disabled</Trans>
+                      )}
                     </Text>
-                    <Toggle.Item
-                      label={_(msg`Toggle to enable or disable adult content`)}
-                      disabled={disabledOnIOS || isAgeRestricted}
-                      name="adultContent"
-                      value={adultContentEnabled}
-                      onChange={onToggleAdultContentEnabled}>
-                      <View style={[a.flex_row, a.align_center, a.gap_sm]}>
-                        <Text style={[t.atoms.text_contrast_medium]}>
-                          {adultContentEnabled ? (
-                            <Trans>Enabled</Trans>
-                          ) : (
-                            <Trans>Disabled</Trans>
-                          )}
-                        </Text>
-                        <Toggle.Switch />
-                      </View>
-                    </Toggle.Item>
+                    <Toggle.Switch />
                   </View>
-                  {disabledOnIOS && (
-                    <View style={[a.pb_lg, a.px_lg]}>
-                      <Text>
-                        <Trans>
-                          Adult content can only be enabled via the Web at{' '}
-                          <InlineLinkText
-                            label={_(msg`The Bluesky web application`)}
-                            to=""
-                            onPress={evt => {
-                              evt.preventDefault()
-                              Linking.openURL('https://bsky.app/')
-                              return false
-                            }}>
-                            bsky.app
-                          </InlineLinkText>
-                          .
-                        </Trans>
-                      </Text>
-                    </View>
-                  )}
+                </Toggle.Item>
+              </View>
+              {adultContentUIDisabledOnIOS && (
+                <View style={[a.pb_lg, a.px_lg]}>
+                  <Text>
+                    <Trans>
+                      Adult content can only be enabled via the Web at{' '}
+                      <InlineLinkText
+                        label={l`The Bluesky web application`}
+                        to=""
+                        onPress={evt => {
+                          evt.preventDefault()
+                          void Linking.openURL('https://bsky.app/')
+                          return false
+                        }}>
+                        bsky.app
+                      </InlineLinkText>
+                      .
+                    </Trans>
+                  </Text>
+                </View>
+              )}
 
-                  {adultContentEnabled && (
-                    <>
-                      <Divider />
-                      <GlobalLabelPreference labelDefinition={LABELS.porn} />
-                      <Divider />
-                      <GlobalLabelPreference labelDefinition={LABELS.sexual} />
-                      <Divider />
-                      <GlobalLabelPreference
-                        labelDefinition={LABELS['graphic-media']}
-                      />
-                      <Divider />
-                      <GlobalLabelPreference
-                        disabled={isDeclaredUnderage || isAgeRestricted}
-                        labelDefinition={LABELS.nudity}
-                      />
-                    </>
-                  )}
+              {adultContentEnabled && (
+                <>
+                  <Divider />
+                  <GlobalLabelPreference labelDefinition={LABELS.porn} />
+                  <Divider />
+                  <GlobalLabelPreference labelDefinition={LABELS.sexual} />
+                  <Divider />
+                  <GlobalLabelPreference
+                    labelDefinition={LABELS['graphic-media']}
+                  />
+                  <Divider />
+                  <GlobalLabelPreference labelDefinition={LABELS.nudity} />
                 </>
               )}
-            </View>
-          </View>
-        </>
-      ) : null}
-
+            </>
+          )}
+        </View>
+      </View>
       <Text
         style={[
           a.text_md,
@@ -467,7 +514,30 @@ export function ModerationScreenInner({
         ]}>
         <Trans>Advanced</Trans>
       </Text>
-
+      {unavailableDids.length > 0 && (
+        <Admonition.Outer type="tip" style={[a.mb_md]}>
+          <Admonition.Row>
+            <Admonition.Icon />
+            <Admonition.Content>
+              <Admonition.Text>
+                <Trans>
+                  Some moderation services in your list are no longer available.
+                </Trans>
+              </Admonition.Text>
+            </Admonition.Content>
+            <Admonition.Button
+              color="primary_subtle"
+              label={l`Remove unavailable moderation services`}
+              onPress={handleCleanup}
+              disabled={isRemovingLabelers}>
+              <ButtonText>
+                <Trans>Remove</Trans>
+              </ButtonText>
+              {isRemovingLabelers && <ButtonIcon icon={Loader} />}
+            </Admonition.Button>
+          </Admonition.Row>
+        </Admonition.Outer>
+      )}
       {isLabelersLoading ? (
         <View style={[a.w_full, a.align_center, a.p_lg]}>
           <Loader size="xl" />

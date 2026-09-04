@@ -1,15 +1,12 @@
-import {useCallback, useContext, useState} from 'react'
+import {useCallback, useState} from 'react'
 import {View} from 'react-native'
-import {
-  type AppBskyActorDefs,
-  type AppBskyActorProfile,
-  type AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
-  type Un$Typed,
-} from '@atproto/api'
 import {TID} from '@atproto/common-web'
-import {msg, Trans} from '@lingui/macro'
+import {type Un$Typed} from '@atproto/lex'
+import {type AtUriString, toDatetimeString} from '@atproto/syntax'
+import {overwriteSavedFeeds, setInterestsPref, upsertProfile} from '@bsky/sdk'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {uploadBlob} from '#/lib/api'
@@ -20,97 +17,107 @@ import {
   VIDEO_SAVED_FEED,
 } from '#/lib/constants'
 import {useRequestNotificationsPermission} from '#/lib/notifications/notifications'
-import {logEvent, useGate} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
-import {isWeb} from '#/platform/detection'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
 import {getAllListMembers} from '#/state/queries/list-members'
 import {preferencesQueryKey} from '#/state/queries/preferences'
 import {RQKEY as profileRQKey} from '#/state/queries/profile'
-import {useAgent} from '#/state/session'
+import {useAppviewClient, usePdsClient} from '#/state/session'
 import {useOnboardingDispatch} from '#/state/shell'
-import {useProgressGuideControls} from '#/state/shell/progress-guide'
 import {
   useActiveStarterPack,
   useSetActiveStarterPack,
-} from '#/state/shell/starter-pack'
+} from '#/state/shell/landing'
+import {useProgressGuideControls} from '#/state/shell/progress-guide'
 import {
-  DescriptionText,
   OnboardingControls,
   OnboardingHeaderSlot,
-  TitleText,
 } from '#/screens/Onboarding/Layout'
-import {Context, type OnboardingState} from '#/screens/Onboarding/state'
+import {
+  type OnboardingState,
+  useOnboardingInternalState,
+} from '#/screens/Onboarding/state'
 import {bulkWriteFollows} from '#/screens/Onboarding/util'
-import {atoms as a, useBreakpoints, useTheme} from '#/alf'
+import {atoms as a, useBreakpoints} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
-import {IconCircle} from '#/components/IconCircle'
 import {ArrowRight_Stroke2_Corner0_Rounded as ArrowRight} from '#/components/icons/Arrow'
-import {Check_Stroke2_Corner0_Rounded as Check} from '#/components/icons/Check'
-import {Growth_Stroke2_Corner0_Rounded as Growth} from '#/components/icons/Growth'
-import {News2_Stroke2_Corner0_Rounded as News} from '#/components/icons/News2'
-import {Trending2_Stroke2_Corner2_Rounded as Trending} from '#/components/icons/Trending'
 import {Loader} from '#/components/Loader'
-import {Text} from '#/components/Typography'
+import {useAnalytics} from '#/analytics'
+import {IS_WEB} from '#/env'
+import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
 import {ValuePropositionPager} from './ValuePropositionPager'
 
 export function StepFinished() {
-  const {state, dispatch} = useContext(Context)
+  const {state, dispatch} = useOnboardingInternalState()
+  const ax = useAnalytics()
   const onboardDispatch = useOnboardingDispatch()
   const [saving, setSaving] = useState(false)
   const queryClient = useQueryClient()
-  const agent = useAgent()
+  const pdsClient = usePdsClient()
+  const appviewClient = useAppviewClient()
   const requestNotificationsPermission = useRequestNotificationsPermission()
   const activeStarterPack = useActiveStarterPack()
   const setActiveStarterPack = useSetActiveStarterPack()
   const setHasCheckedForStarterPack = useSetHasCheckedForStarterPack()
   const {startProgressGuide} = useProgressGuideControls()
-  const gate = useGate()
 
   const finishOnboarding = useCallback(async () => {
     setSaving(true)
 
-    let starterPack: AppBskyGraphDefs.StarterPackView | undefined
-    let listItems: AppBskyGraphDefs.ListItemView[] | undefined
+    let starterPack: app.bsky.graph.defs.StarterPackView | undefined
+    let listItems: app.bsky.graph.defs.ListItemView[] | undefined
 
     if (activeStarterPack?.uri) {
       try {
-        const spRes = await agent.app.bsky.graph.getStarterPack({
-          starterPack: activeStarterPack.uri,
+        const spRes = await appviewClient.call(app.bsky.graph.getStarterPack, {
+          starterPack: activeStarterPack.uri as AtUriString,
         })
-        starterPack = spRes.data.starterPack
+        starterPack = spRes.starterPack
       } catch (e) {
-        logger.error('Failed to fetch starter pack', {safeMessage: e})
+        logger.error('Failed to fetch Starter Pack', {safeMessage: e})
         // don't tell the user, just get them through onboarding.
       }
+      const starterPackList = starterPack?.list
       try {
-        if (starterPack?.list) {
-          listItems = await getAllListMembers(agent, starterPack.list.uri)
+        if (starterPackList) {
+          listItems = await getAllListMembers(
+            appviewClient,
+            starterPackList.uri,
+          )
         }
       } catch (e) {
-        logger.error('Failed to fetch starter pack list items', {
+        logger.error('Failed to fetch Starter Pack list items', {
           safeMessage: e,
         })
         // don't tell the user, just get them through onboarding.
       }
     }
 
+    /*
+     * Hoisted above the `try`: React Compiler cannot lower these inside one, and
+     * `listItems` is already settled by the earlier try/catch.
+     */
+    const followDids = [
+      BSKY_APP_ACCOUNT_DID,
+      ...(listItems?.map(i => i.subject.did) ?? []),
+    ]
+    const starterPackRef = starterPack
+      ? {uri: starterPack.uri, cid: starterPack.cid}
+      : undefined
+
     try {
       const {interestsStepResults, profileStepResults} = state
       const {selectedInterests} = interestsStepResults
 
       await Promise.all([
-        bulkWriteFollows(agent, [
-          BSKY_APP_ACCOUNT_DID,
-          ...(listItems?.map(i => i.subject.did) ?? []),
-        ]),
+        bulkWriteFollows(pdsClient, appviewClient, followDids, starterPackRef),
         (async () => {
           // Interests need to get saved first, then we can write the feeds to prefs
-          await agent.setInterestsPref({tags: selectedInterests})
+          await pdsClient.call(setInterestsPref, {tags: selectedInterests})
 
           // Default feeds that every user should have pinned when landing in the app
-          const feedsToSave: AppBskyActorDefs.SavedFeed[] = [
+          const feedsToSave: app.bsky.actor.defs.SavedFeed[] = [
             {
               ...DISCOVER_SAVED_FEED,
               id: TID.nextStr(),
@@ -119,19 +126,17 @@ export function StepFinished() {
               ...TIMELINE_SAVED_FEED,
               id: TID.nextStr(),
             },
-          ]
-          if (gate('onboarding_add_video_feed')) {
-            feedsToSave.push({
+            {
               ...VIDEO_SAVED_FEED,
               id: TID.nextStr(),
-            })
-          }
+            },
+          ]
 
-          // Any starter pack feeds will be pinned _after_ the defaults
+          // Any Starter Pack feeds will be pinned _after_ the defaults
           if (starterPack && starterPack.feeds?.length) {
             feedsToSave.push(
               ...starterPack.feeds.map(f => ({
-                type: 'feed',
+                type: 'feed' as const,
                 value: f.uri,
                 pinned: true,
                 id: TID.nextStr(),
@@ -139,22 +144,22 @@ export function StepFinished() {
             )
           }
 
-          await agent.overwriteSavedFeeds(feedsToSave)
+          await pdsClient.call(overwriteSavedFeeds, feedsToSave)
         })(),
         (async () => {
           const {imageUri, imageMime} = profileStepResults
           const blobPromise =
             imageUri && imageMime
-              ? uploadBlob(agent, imageUri, imageMime)
+              ? uploadBlob(pdsClient, imageUri, imageMime)
               : undefined
 
-          await agent.upsertProfile(async existing => {
-            let next: Un$Typed<AppBskyActorProfile.Record> = existing ?? {}
+          await pdsClient.call(upsertProfile, async existing => {
+            let next: Un$Typed<app.bsky.actor.profile.Main> = existing ?? {}
 
             if (blobPromise) {
               const res = await blobPromise
-              if (res.data.blob) {
-                next.avatar = res.data.blob
+              if (res.blob) {
+                next.avatar = res.blob
               }
             }
 
@@ -166,15 +171,14 @@ export function StepFinished() {
             }
 
             next.displayName = ''
-            // HACKFIX
-            // creating a bunch of identical profile objects is breaking the relay
-            // tossing this unspecced field onto it to reduce the size of the problem
-            // -prf
-            next.createdAt = new Date().toISOString()
+
+            if (!next.createdAt) {
+              next.createdAt = toDatetimeString(new Date())
+            }
             return next
           })
 
-          logEvent('onboarding:finished:avatarResult', {
+          ax.metric('onboarding:finished:avatarResult', {
             avatarResult: profileStepResults.isCreatedAvatar
               ? 'created'
               : profileStepResults.image
@@ -196,7 +200,7 @@ export function StepFinished() {
         queryKey: preferencesQueryKey,
       }),
       queryClient.invalidateQueries({
-        queryKey: profileRQKey(agent.session?.did ?? ''),
+        queryKey: profileRQKey(pdsClient.did ?? ''),
       }),
     ]).catch(e => {
       logger.error(e)
@@ -206,19 +210,14 @@ export function StepFinished() {
     setSaving(false)
     setActiveStarterPack(undefined)
     setHasCheckedForStarterPack(true)
-    startProgressGuide(
-      gate('old_postonboarding') ? 'like-10-and-follow-7' : 'follow-10',
-    )
+    startProgressGuide('follow-10')
     dispatch({type: 'finish'})
     onboardDispatch({type: 'finish'})
-    logEvent('onboarding:finished:nextPressed', {
+    ax.metric('onboarding:finished:nextPressed', {
       usedStarterPack: Boolean(starterPack),
       starterPackName:
         starterPack &&
-        bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
-          starterPack.record,
-          AppBskyGraphStarterpack.isRecord,
-        )
+        bsky.isType(app.bsky.graph.starterpack, starterPack.record)
           ? starterPack.record.name
           : undefined,
       starterPackCreator: starterPack?.creator.did,
@@ -227,15 +226,17 @@ export function StepFinished() {
       feedsPinned: starterPack?.feeds?.length ?? 0,
     })
     if (starterPack && listItems?.length) {
-      logEvent('starterPack:followAll', {
+      ax.metric('starterPack:followAll', {
         logContext: 'Onboarding',
         starterPack: starterPack.uri,
         count: listItems?.length,
       })
     }
   }, [
+    ax,
     queryClient,
-    agent,
+    pdsClient,
+    appviewClient,
     dispatch,
     onboardDispatch,
     activeStarterPack,
@@ -244,17 +245,10 @@ export function StepFinished() {
     setActiveStarterPack,
     setHasCheckedForStarterPack,
     startProgressGuide,
-    gate,
   ])
 
-  return state.experiments?.onboarding_value_prop ? (
+  return (
     <ValueProposition
-      finishOnboarding={finishOnboarding}
-      saving={saving}
-      state={state}
-    />
-  ) : (
-    <LegacyFinalStep
       finishOnboarding={finishOnboarding}
       saving={saving}
       state={state}
@@ -273,6 +267,7 @@ function ValueProposition({
 }) {
   const [subStep, setSubStep] = useState<0 | 1 | 2>(0)
   const {_} = useLingui()
+  const ax = useAnalytics()
   const {gtMobile} = useBreakpoints()
 
   const onPress = () => {
@@ -280,10 +275,10 @@ function ValueProposition({
       finishOnboarding() // has its own metrics
     } else if (subStep === 1) {
       setSubStep(2)
-      logger.metric('onboarding:valueProp:stepTwo:nextPressed', {})
+      ax.metric('onboarding:valueProp:stepTwo:nextPressed', {})
     } else if (subStep === 0) {
       setSubStep(1)
-      logger.metric('onboarding:valueProp:stepOne:nextPressed', {})
+      ax.metric('onboarding:valueProp:stepOne:nextPressed', {})
     }
   }
 
@@ -298,7 +293,7 @@ function ValueProposition({
             size="small"
             label={_(msg`Skip introduction and start using your account`)}
             onPress={() => {
-              logger.metric('onboarding:valueProp:skipPressed', {})
+              ax.metric('onboarding:valueProp:skipPressed', {})
               finishOnboarding()
             }}
             style={[a.bg_transparent]}>
@@ -317,7 +312,7 @@ function ValueProposition({
 
       <OnboardingControls.Portal>
         <View style={gtMobile && [a.gap_md, a.flex_row]}>
-          {gtMobile && (isWeb ? subStep !== 2 : true) && (
+          {gtMobile && (IS_WEB ? subStep !== 2 : true) && (
             <Button
               disabled={saving}
               color="secondary"
@@ -357,92 +352,5 @@ function ValueProposition({
         </View>
       </OnboardingControls.Portal>
     </>
-  )
-}
-
-function LegacyFinalStep({
-  finishOnboarding,
-  saving,
-  state,
-}: {
-  finishOnboarding: () => void
-  saving: boolean
-  state: OnboardingState
-}) {
-  const t = useTheme()
-  const {_} = useLingui()
-
-  return (
-    <View style={[a.align_start]}>
-      <IconCircle icon={Check} style={[a.mb_2xl]} />
-
-      <TitleText>
-        <Trans>You're ready to go!</Trans>
-      </TitleText>
-      <DescriptionText>
-        <Trans>We hope you have a wonderful time. Remember, Bluesky is:</Trans>
-      </DescriptionText>
-
-      <View style={[a.pt_5xl, a.gap_3xl]}>
-        <View style={[a.flex_row, a.align_center, a.w_full, a.gap_lg]}>
-          <IconCircle icon={Growth} size="lg" style={{width: 48, height: 48}} />
-          <View style={[a.flex_1, a.gap_xs]}>
-            <Text style={[a.font_semi_bold, a.text_lg]}>
-              <Trans>Public</Trans>
-            </Text>
-            <Text
-              style={[t.atoms.text_contrast_medium, a.text_md, a.leading_snug]}>
-              <Trans>
-                Your posts, likes, and blocks are public. Mutes are private.
-              </Trans>
-            </Text>
-          </View>
-        </View>
-        <View style={[a.flex_row, a.align_center, a.w_full, a.gap_lg]}>
-          <IconCircle icon={News} size="lg" style={{width: 48, height: 48}} />
-          <View style={[a.flex_1, a.gap_xs]}>
-            <Text style={[a.font_semi_bold, a.text_lg]}>
-              <Trans>Open</Trans>
-            </Text>
-            <Text
-              style={[t.atoms.text_contrast_medium, a.text_md, a.leading_snug]}>
-              <Trans>Never lose access to your followers or data.</Trans>
-            </Text>
-          </View>
-        </View>
-        <View style={[a.flex_row, a.align_center, a.w_full, a.gap_lg]}>
-          <IconCircle
-            icon={Trending}
-            size="lg"
-            style={{width: 48, height: 48}}
-          />
-          <View style={[a.flex_1, a.gap_xs]}>
-            <Text style={[a.font_semi_bold, a.text_lg]}>
-              <Trans>Flexible</Trans>
-            </Text>
-            <Text
-              style={[t.atoms.text_contrast_medium, a.text_md, a.leading_snug]}>
-              <Trans>Choose the algorithms that power your custom feeds.</Trans>
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <OnboardingControls.Portal>
-        <Button
-          testID="onboardingFinish"
-          disabled={saving}
-          key={state.activeStep} // remove focus state on nav
-          color="primary"
-          size="large"
-          label={_(msg`Complete onboarding and start using your account`)}
-          onPress={finishOnboarding}>
-          <ButtonText>
-            {saving ? <Trans>Finalizing</Trans> : <Trans>Let's go!</Trans>}
-          </ButtonText>
-          {saving && <ButtonIcon icon={Loader} position="right" />}
-        </Button>
-      </OnboardingControls.Portal>
-    </View>
   )
 }

@@ -1,6 +1,5 @@
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
-import {msg, plural} from '@lingui/macro'
+import {msg, plural} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
 
 import {makeProfileLink} from '#/lib/routes/links'
@@ -9,11 +8,12 @@ import {formatCount} from '#/view/com/util/numeric/format'
 import {atoms as a, useTheme} from '#/alf'
 import {InlineLinkText} from '#/components/Link'
 import {Text} from '#/components/Typography'
+import {type app} from '#/lexicons'
 
 export function ProfileHeaderMetrics({
   profile,
 }: {
-  profile: Shadow<AppBskyActorDefs.ProfileViewDetailed>
+  profile: Shadow<app.bsky.actor.defs.ProfileViewDetailed>
 }) {
   const t = useTheme()
   const {_, i18n} = useLingui()
