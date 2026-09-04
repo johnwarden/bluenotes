@@ -3,17 +3,25 @@ import {msg, Trans} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 
+import {isOauthSignInAvailable} from '#/lib/oauth/config'
 import {type CommonNavigatorParams} from '#/lib/routes/types'
+import {isWeb} from '#/platform/detection'
+import {
+  useOauthSignInEnabled,
+  useSetOauthSignInEnabled,
+} from '#/state/preferences/oauth-sign-in'
 import {useNotificationDeclarationQuery} from '#/state/queries/activity-subscriptions'
 import {useAppPasswordsQuery} from '#/state/queries/app-passwords'
 import {useSession} from '#/state/session'
 import * as SettingsList from '#/screens/Settings/components/SettingsList'
 import {atoms as a, useTheme} from '#/alf'
 import * as Admonition from '#/components/Admonition'
+import * as Toggle from '#/components/forms/Toggle'
 import {BellRinging_Stroke2_Corner0_Rounded as BellRingingIcon} from '#/components/icons/BellRinging'
 import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/icons/EyeSlash'
 import {Key_Stroke2_Corner2_Rounded as KeyIcon} from '#/components/icons/Key'
 import {ShieldCheck_Stroke2_Corner0_Rounded as ShieldIcon} from '#/components/icons/Shield'
+import {Ticket_Stroke2_Corner0_Rounded as TicketIcon} from '#/components/icons/Ticket'
 import * as Layout from '#/components/Layout'
 import {InlineLinkText} from '#/components/Link'
 import {Email2FAToggle} from './components/Email2FAToggle'
@@ -29,6 +37,8 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
   const t = useTheme()
   const {data: appPasswords} = useAppPasswordsQuery()
   const {currentAccount} = useSession()
+  const oauthSignInEnabled = useOauthSignInEnabled()
+  const setOauthSignInEnabled = useSetOauthSignInEnabled()
   const {
     data: notificationDeclaration,
     isPending,
@@ -66,6 +76,25 @@ export function PrivacyAndSecuritySettingsScreen({}: Props) {
             </SettingsList.ItemText>
             <Email2FAToggle />
           </SettingsList.Item>
+          {isWeb && isOauthSignInAvailable() && (
+            <SettingsList.Group contentContainerStyle={[a.gap_sm]}>
+              <SettingsList.ItemIcon icon={TicketIcon} />
+              <SettingsList.ItemText>
+                <Trans>Sign-in method</Trans>
+              </SettingsList.ItemText>
+              <Toggle.Item
+                name="oauth_sign_in"
+                label={_(msg`Sign in with OAuth`)}
+                value={oauthSignInEnabled}
+                onChange={value => setOauthSignInEnabled(value)}
+                style={[a.w_full]}>
+                <Toggle.LabelText style={[a.flex_1]}>
+                  <Trans>Sign in with OAuth</Trans>
+                </Toggle.LabelText>
+                <Toggle.Platform />
+              </Toggle.Item>
+            </SettingsList.Group>
+          )}
           <SettingsList.LinkItem
             to="/settings/app-passwords"
             label={_(msg`App passwords`)}>
