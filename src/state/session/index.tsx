@@ -171,12 +171,12 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     logContext => {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
-      const state = store.getState()
+      const storeState = store.getState()
       // Fire-and-forget AS revoke; do not block logout UI.
       revokeOAuthSessionsForLogout(
-        state.accounts,
+        storeState.accounts,
         'current',
-        state.currentAgentState.did,
+        storeState.currentAgentState.did,
       )
       store.dispatch({
         type: 'logged-out-current-account',
@@ -197,11 +197,11 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     logContext => {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
-      const state = store.getState()
+      const storeState = store.getState()
       revokeOAuthSessionsForLogout(
-        state.accounts,
+        storeState.accounts,
         'every',
-        state.currentAgentState.did,
+        storeState.currentAgentState.did,
       )
       store.dispatch({
         type: 'logged-out-every-account',

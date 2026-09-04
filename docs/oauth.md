@@ -153,12 +153,14 @@ These steps are outside the agent. No paid accounts are required.
   authorization server invalidates the token set. Failures are logged and
   do not block the logout UI. The native stub is a no-op (native OAuth is
   not launched).
-- `OAuthSession` in `@atproto/oauth-client` 0.5.x has no event API.
-  Session invalidation is observed on `BrowserOAuthClient` via `deleted`
-  (and `updated`) EventTarget events and mapped to the password-path
-  `persistSession` events `expired` / `create-failed`. Failed OAuth
-  `restore()` also dispatches `create-failed` so the session store drops
-  the account the same way a failed password resume does.
+- `OAuthSession` has no event API. On `@atproto/oauth-client` 0.6.x
+  (what `oauth-client-browser` 0.3.42 pulls in), invalidation is the
+  constructor `onDelete` hook (plus `onUpdate` for token refresh).
+  Older clients used EventTarget `deleted` / `updated`; there is no
+  `sessionadd`. Those events map to password-path `persistSession`
+  `expired` / `create-failed`. Failed OAuth `restore()` also dispatches
+  `create-failed` so the session store drops the account the same way a
+  failed password resume does.
 
 ## Remaining native / store work
 

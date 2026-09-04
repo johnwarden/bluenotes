@@ -54,7 +54,7 @@ export function revokeOAuthSessionsForLogout(
   revoke: (did: string) => Promise<void> = revokeOAuthSession,
 ): void {
   for (const did of oauthDidsToRevokeOnLogout(accounts, scope, currentDid)) {
-    void revoke(did)
+    revoke(did).catch(() => {})
   }
 }
 

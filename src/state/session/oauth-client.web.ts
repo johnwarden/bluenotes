@@ -13,6 +13,15 @@ import {logger} from '#/logger'
 let client: BrowserOAuthClient | undefined
 let initPromise: Promise<OauthInitResult | undefined> | undefined
 
+type OauthDeletedDetail = {sub: string; cause: unknown}
+const deletedListeners = new Set<(detail: OauthDeletedDetail) => void>()
+
+function emitOAuthSessionDeleted(sub: string, cause: unknown) {
+  for (const listener of deletedListeners) {
+    listener({sub, cause})
+  }
+}
+
 export type OauthInitResult = {
   session: Awaited<ReturnType<BrowserOAuthClient['restore']>>
   state?: string
@@ -38,6 +47,10 @@ export function createWebOAuthClient(): BrowserOAuthClient {
           origin || undefined,
         ) as OAuthClientMetadataInput),
     responseMode: 'fragment',
+    // @atproto/oauth-client 0.6.x: SessionHooks (not EventTarget).
+    onDelete: (sub, cause) => {
+      emitOAuthSessionDeleted(sub, cause)
+    },
   })
 }
 
@@ -103,16 +116,16 @@ export function isLocalOAuthRevokeInProgress(did: string): boolean {
   return localRevokesInProgress.has(did)
 }
 
-type OauthDeletedDetail = {sub: string; cause: unknown}
-
 /**
- * Subscribe to BrowserOAuthClient `deleted` events (EventTarget).
- * OAuthSession has no addEventListener in @atproto/oauth-client 0.5.x.
+ * Subscribe to OAuth session invalidation.
+ * 0.6.x emits via constructor `onDelete`; older clients used EventTarget
+ * `deleted`. OAuthSession itself has no event API.
  */
 export function subscribeOAuthSessionDeleted(
   listener: (detail: OauthDeletedDetail) => void,
 ): () => void {
-  const client = getOAuthClient() as BrowserOAuthClient & {
+  deletedListeners.add(listener)
+  const oauthClient = getOAuthClient() as BrowserOAuthClient & {
     addEventListener?: (
       type: 'deleted',
       listener: (event: CustomEvent<OauthDeletedDetail>) => void,
@@ -122,15 +135,20 @@ export function subscribeOAuthSessionDeleted(
       listener: (event: CustomEvent<OauthDeletedDetail>) => void,
     ) => void
   }
-  if (typeof client.addEventListener !== 'function') {
-    return () => {}
+  let eventTargetHandler:
+    | ((event: CustomEvent<OauthDeletedDetail>) => void)
+    | undefined
+  if (typeof oauthClient.addEventListener === 'function') {
+    eventTargetHandler = (event: CustomEvent<OauthDeletedDetail>) => {
+      listener(event.detail)
+    }
+    oauthClient.addEventListener('deleted', eventTargetHandler)
   }
-  const handler = (event: CustomEvent<OauthDeletedDetail>) => {
-    listener(event.detail)
-  }
-  client.addEventListener('deleted', handler)
   return () => {
-    client.removeEventListener?.('deleted', handler)
+    deletedListeners.delete(listener)
+    if (eventTargetHandler) {
+      oauthClient.removeEventListener?.('deleted', eventTargetHandler)
+    }
   }
 }
 
