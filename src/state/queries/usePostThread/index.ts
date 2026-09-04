@@ -3,6 +3,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query'
 
 import {isWeb} from '#/platform/detection'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
+import {useCommunityNotesConfigReady} from '#/state/queries/community-notes-config'
 import {useThreadPreferences} from '#/state/queries/preferences/useThreadPreferences'
 import {
   LINEAR_VIEW_BELOW,
@@ -51,6 +52,12 @@ export function usePostThread({anchor}: {anchor?: string}) {
     setView: baseSetView,
     prioritizeFollowedUsers,
   } = useThreadPreferences()
+  /**
+   * Wait for Community Notes config so Atproto-Accept-Labelers includes the
+   * OCN labeler DID. Without this, getPostThreadV2 can fire on deep-link /
+   * refresh before the labeler is configured and notes never appear.
+   */
+  const isCommunityNotesConfigReady = useCommunityNotesConfigReady()
   const below = useMemo(() => {
     return view === 'linear'
       ? LINEAR_VIEW_BELOW
@@ -71,7 +78,11 @@ export function usePostThread({anchor}: {anchor?: string}) {
   })
 
   const query = useQuery<UsePostThreadQueryResult>({
-    enabled: isThreadPreferencesLoaded && !!anchor && !!moderationOpts,
+    enabled:
+      isThreadPreferencesLoaded &&
+      !!anchor &&
+      !!moderationOpts &&
+      isCommunityNotesConfigReady,
     queryKey: postThreadQueryKey,
     async queryFn(ctx) {
       const {data} = await agent.app.bsky.unspecced.getPostThreadV2({
