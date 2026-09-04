@@ -82,6 +82,58 @@ export async function restoreOAuthSession(did: string) {
   return getOAuthClient().restore(did)
 }
 
+/**
+ * Best-effort AS revoke + local IndexedDB delete. Errors are logged and do
+ * not throw so logout UI is never blocked.
+ */
+export async function revokeOAuthSession(did: string): Promise<void> {
+  localRevokesInProgress.add(did)
+  try {
+    await getOAuthClient().revoke(did)
+  } catch (e) {
+    logger.error(`oauth: failed to revoke session`, {message: e})
+  } finally {
+    localRevokesInProgress.delete(did)
+  }
+}
+
+const localRevokesInProgress = new Set<string>()
+
+export function isLocalOAuthRevokeInProgress(did: string): boolean {
+  return localRevokesInProgress.has(did)
+}
+
+type OauthDeletedDetail = {sub: string; cause: unknown}
+
+/**
+ * Subscribe to BrowserOAuthClient `deleted` events (EventTarget).
+ * OAuthSession has no addEventListener in @atproto/oauth-client 0.5.x.
+ */
+export function subscribeOAuthSessionDeleted(
+  listener: (detail: OauthDeletedDetail) => void,
+): () => void {
+  const client = getOAuthClient() as BrowserOAuthClient & {
+    addEventListener?: (
+      type: 'deleted',
+      listener: (event: CustomEvent<OauthDeletedDetail>) => void,
+    ) => void
+    removeEventListener?: (
+      type: 'deleted',
+      listener: (event: CustomEvent<OauthDeletedDetail>) => void,
+    ) => void
+  }
+  if (typeof client.addEventListener !== 'function') {
+    return () => {}
+  }
+  const handler = (event: CustomEvent<OauthDeletedDetail>) => {
+    listener(event.detail)
+  }
+  client.addEventListener('deleted', handler)
+  return () => {
+    client.removeEventListener?.('deleted', handler)
+  }
+}
+
 export function clearOauthCallbackUrl() {
   if (typeof window === 'undefined') {
     return

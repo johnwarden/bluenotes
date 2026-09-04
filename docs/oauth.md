@@ -146,6 +146,20 @@ These steps are outside the agent. No paid accounts are required.
 - **In-app:** Settings → Privacy and Security → "Sign in with OAuth".
 - Preference is stored in persisted local state (`oauthSignInEnabled`).
 
+## Logout / revoke
+
+- Web logout (`logoutCurrentAccount` / `logoutEveryAccount`) calls
+  `BrowserOAuthClient.revoke(sub)` for each OAuth account so the
+  authorization server invalidates the token set. Failures are logged and
+  do not block the logout UI. The native stub is a no-op (native OAuth is
+  not launched).
+- `OAuthSession` in `@atproto/oauth-client` 0.5.x has no event API.
+  Session invalidation is observed on `BrowserOAuthClient` via `deleted`
+  (and `updated`) EventTarget events and mapped to the password-path
+  `persistSession` events `expired` / `create-failed`. Failed OAuth
+  `restore()` also dispatches `create-failed` so the session store drops
+  the account the same way a failed password resume does.
+
 ## Remaining native / store work
 
 - Add `expo-atproto-auth` (or the current Expo ATProto helper) and implement

@@ -19,6 +19,7 @@ import {
   oauthCreateAgent,
   oauthResumeSession,
 } from './oauth-agent'
+import {revokeOAuthSessionsForLogout} from './oauth-session-lifecycle'
 import {type Action, getInitialState, reducer, type State} from './reducer'
 
 export {isSignupQueued} from './util'
@@ -143,7 +144,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       addSessionDebugLog({type: 'method:start', method: 'login'})
       const signal = cancelPendingTask()
       const {agent, account} = params.oauthSession
-        ? await oauthCreateAgent(params.oauthSession)
+        ? await oauthCreateAgent(params.oauthSession, onAgentSessionChange)
         : await createAgentAndLogin(params, onAgentSessionChange)
 
       if (signal.aborted) {
@@ -170,6 +171,13 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     logContext => {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
+      const state = store.getState()
+      // Fire-and-forget AS revoke; do not block logout UI.
+      revokeOAuthSessionsForLogout(
+        state.accounts,
+        'current',
+        state.currentAgentState.did,
+      )
       store.dispatch({
         type: 'logged-out-current-account',
       })
@@ -189,6 +197,12 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     logContext => {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
+      const state = store.getState()
+      revokeOAuthSessionsForLogout(
+        state.accounts,
+        'every',
+        state.currentAgentState.did,
+      )
       store.dispatch({
         type: 'logged-out-every-account',
       })
@@ -211,7 +225,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       })
       const signal = cancelPendingTask()
       const {agent, account} = storedAccount.isOauthSession
-        ? await oauthResumeSession(storedAccount)
+        ? await oauthResumeSession(storedAccount, onAgentSessionChange)
         : await createAgentAndResume(storedAccount, onAgentSessionChange)
 
       if (signal.aborted) {
