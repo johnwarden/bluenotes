@@ -71,7 +71,7 @@ Bluenotes Social is a Community Notes-enabled fork of Bluesky. It's a React Nati
 
 ### Environment
 
-This project uses **devbox** to manage development dependencies (Node.js, Yarn, Python, cmake, pkg-config, sqlite, clang, llvm). The Nix daemon must be running for devbox to work. All commands should be run through `devbox run --` to ensure the correct tool versions are available.
+This project uses **devbox** to manage development dependencies (Node.js, pnpm, Python, cmake, pkg-config, sqlite, clang, llvm). Upstream 1.133+ uses **pnpm** (not yarn). The Nix daemon must be running for devbox to work. All commands should be run through `devbox run --` to ensure the correct tool versions are available.
 
 Before running devbox commands, ensure the Nix daemon is running:
 ```
@@ -89,13 +89,13 @@ Prefer `just` commands (defined in the root `justfile`). Run through `devbox run
 | Lint | `devbox run -- just lint` |
 | Typecheck | `devbox run -- just typecheck` |
 | Run web dev server | `devbox run -- just web` (serves on port 19006) |
-| Unit tests | `devbox run -- yarn test` |
-| Build i18n | `devbox run -- yarn intl:build` |
+| Unit tests | `devbox run -- pnpm test` |
+| Build i18n | `devbox run -- pnpm intl:build` |
 | List all recipes | `devbox run -- just --list` |
 
 ### Justfile recipes
 
-The `justfile` at the repo root defines: `lint`, `typecheck`, `web`, `deps`, `bskyweb`, `ios`, `ios-simulator`. Always use `just` when a recipe exists rather than calling yarn/npm directly.
+The `justfile` at the repo root defines: `lint`, `typecheck`, `web`, `deps`, `bskyweb`, `ios`, `ios-simulator`. Always use `just` when a recipe exists rather than calling pnpm/npm directly.
 
 ### Local backend (atproto dev environment)
 
@@ -103,7 +103,7 @@ To run against a full local dev environment with a test PDS, clone the `open-com
 
 ### Caveats
 
-- The devbox `init_hook` in `devbox.json` runs `yarn` automatically when entering the devbox shell or running `devbox run`. This means running `devbox run -- just <cmd>` will first run `yarn install` if needed.
+- The devbox `init_hook` in `devbox.json` enables corepack and runs `pnpm install` when entering the devbox shell or running `devbox run`. This means running `devbox run -- just <cmd>` will first install JS deps if needed.
 - 8 of 22 Jest test suites fail due to Expo native module resolution (`requireOptionalNativeModule`). This is expected in a web-only/non-native environment and is pre-existing.
 - The web dev server (Expo) listens on **port 19006** (webpack) and **port 8081** (Metro).
 - Console shows CORS errors for `https://10.bsky.app/config` and React Native prop warnings (e.g., `accessibilityHint`, `hitSlop`). These are harmless in development.
