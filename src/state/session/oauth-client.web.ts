@@ -13,6 +13,15 @@ import {logger} from '#/logger'
 let client: BrowserOAuthClient | undefined
 let initPromise: Promise<OauthInitResult | undefined> | undefined
 
+type OauthDeletedDetail = {sub: string; cause: unknown}
+const deletedListeners = new Set<(detail: OauthDeletedDetail) => void>()
+
+function emitOAuthSessionDeleted(sub: string, cause: unknown) {
+  for (const listener of deletedListeners) {
+    listener({sub, cause})
+  }
+}
+
 export type OauthInitResult = {
   session: Awaited<ReturnType<BrowserOAuthClient['restore']>>
   state?: string
@@ -38,6 +47,10 @@ export function createWebOAuthClient(): BrowserOAuthClient {
           origin || undefined,
         ) as OAuthClientMetadataInput),
     responseMode: 'fragment',
+    // @atproto/oauth-client 0.6.x: SessionHooks (not EventTarget).
+    onDelete: (sub, cause) => {
+      emitOAuthSessionDeleted(sub, cause)
+    },
   })
 }
 
@@ -80,6 +93,63 @@ export async function signInWithOAuth(identifier: string): Promise<void> {
 
 export async function restoreOAuthSession(did: string) {
   return getOAuthClient().restore(did)
+}
+
+/**
+ * Best-effort AS revoke + local IndexedDB delete. Errors are logged and do
+ * not throw so logout UI is never blocked.
+ */
+export async function revokeOAuthSession(did: string): Promise<void> {
+  localRevokesInProgress.add(did)
+  try {
+    await getOAuthClient().revoke(did)
+  } catch (e) {
+    logger.error(`oauth: failed to revoke session`, {message: e})
+  } finally {
+    localRevokesInProgress.delete(did)
+  }
+}
+
+const localRevokesInProgress = new Set<string>()
+
+export function isLocalOAuthRevokeInProgress(did: string): boolean {
+  return localRevokesInProgress.has(did)
+}
+
+/**
+ * Subscribe to OAuth session invalidation.
+ * 0.6.x emits via constructor `onDelete`; older clients used EventTarget
+ * `deleted`. OAuthSession itself has no event API.
+ */
+export function subscribeOAuthSessionDeleted(
+  listener: (detail: OauthDeletedDetail) => void,
+): () => void {
+  deletedListeners.add(listener)
+  const oauthClient = getOAuthClient() as BrowserOAuthClient & {
+    addEventListener?: (
+      type: 'deleted',
+      listener: (event: CustomEvent<OauthDeletedDetail>) => void,
+    ) => void
+    removeEventListener?: (
+      type: 'deleted',
+      listener: (event: CustomEvent<OauthDeletedDetail>) => void,
+    ) => void
+  }
+  let eventTargetHandler:
+    | ((event: CustomEvent<OauthDeletedDetail>) => void)
+    | undefined
+  if (typeof oauthClient.addEventListener === 'function') {
+    eventTargetHandler = (event: CustomEvent<OauthDeletedDetail>) => {
+      listener(event.detail)
+    }
+    oauthClient.addEventListener('deleted', eventTargetHandler)
+  }
+  return () => {
+    deletedListeners.delete(listener)
+    if (eventTargetHandler) {
+      oauthClient.removeEventListener?.('deleted', eventTargetHandler)
+    }
+  }
 }
 
 export function clearOauthCallbackUrl() {

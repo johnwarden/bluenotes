@@ -24,4 +24,18 @@ export async function restoreOAuthSession(_did: string): Promise<never> {
   throw new Error('AT Protocol OAuth is not available in this native build')
 }
 
+export async function revokeOAuthSession(_did: string): Promise<void> {
+  // Native OAuth is not launched; nothing to revoke at the AS.
+}
+
+export function isLocalOAuthRevokeInProgress(_did: string): boolean {
+  return false
+}
+
+export function subscribeOAuthSessionDeleted(
+  _listener: (detail: {sub: string; cause: unknown}) => void,
+): () => void {
+  return () => {}
+}
+
 export function clearOauthCallbackUrl() {}
