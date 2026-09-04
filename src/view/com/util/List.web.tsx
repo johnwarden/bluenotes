@@ -1,12 +1,17 @@
-import React, {
+import {
+  forwardRef,
   isValidElement,
-  type JSX,
   memo,
   startTransition,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
   useRef,
+  useState,
 } from 'react'
 import {
   type FlatListProps,
+  type ListRenderItemInfo,
   StyleSheet,
   View,
   type ViewProps,
@@ -17,10 +22,29 @@ import {batchedUpdates} from '#/lib/batchedUpdates'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {useScrollHandlers} from '#/lib/ScrollContext'
 import {addStyle} from '#/lib/styles'
+import {useIsWithinSplitView} from '#/screens/Messages/components/splitView/context'
+import {useTheme, web} from '#/alf'
 import * as Layout from '#/components/Layout'
+import {useAnalytics} from '#/analytics'
 
-export type ListMethods = any // TODO: Better types.
-export type ListProps<ItemT> = Omit<
+export type ListMethods = {
+  scrollToTop: () => void
+  // Signature kept compatible with FlatList's scrollToOffset (the native
+  // ListMethods type) so callers stay platform-agnostic.
+  scrollToOffset: (options: {animated?: boolean | null; offset: number}) => void
+  scrollToEnd: (options?: {animated?: boolean | null}) => void
+  // Signature kept compatible with FlatList's scrollToIndex (the native
+  // ListMethods type) so callers stay platform-agnostic. viewOffset is
+  // accepted for parity but not currently used by the web implementation.
+  scrollToIndex: (params: {
+    animated?: boolean | null
+    index: number
+    viewOffset?: number
+    viewPosition?: number
+  }) => void
+}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ListProps<ItemT = any> = Omit<
   FlatListProps<ItemT>,
   | 'onScroll' // Use ScrollContext instead.
   | 'refreshControl' // Pass refreshing and/or onRefresh instead.
@@ -39,19 +63,26 @@ export type ListProps<ItemT> = Omit<
    */
   sideBorders?: boolean
 }
-export type ListRef = React.MutableRefObject<any | null> // TODO: Better types.
+export type ListRef = React.RefObject<ListMethods | null>
 
 const ON_ITEM_SEEN_WAIT_DURATION = 0.5e3 // when we consider post to  be "seen"
 const ON_ITEM_SEEN_INTERSECTION_OPTS = {
   rootMargin: '-200px 0px -200px 0px',
 } // post must be 200px visible to be "seen"
 
+const PAGE_STARTED_AT = Date.now()
+const LARGE_LIST_MILESTONES = [100, 250, 500, 1000] as const
+const LONG_TASK_REPORT_INTERVAL = 60e3
+// This is diagnostic telemetry, so a session-level sample is sufficient and
+// prevents popular feed surfaces from producing an event for every user.
+const ENABLE_WEB_LIST_TELEMETRY = Math.random() < 0.1
+
 function ListImpl<ItemT>(
   {
     ListHeaderComponent,
     ListFooterComponent,
     ListEmptyComponent,
-    disableFullWindowScroll,
+    disableFullWindowScroll: disableFullWindowScrollProp,
     contentContainerStyle,
     data,
     desktopFixedHeight,
@@ -74,35 +105,41 @@ function ListImpl<ItemT>(
   ref: React.Ref<ListMethods>,
 ) {
   const contextScrollHandlers = useScrollHandlers()
+  const {isWithinSplitView} = useIsWithinSplitView()
+  const t = useTheme()
+
+  // automatically disable full window scroll when within split view
+  const disableFullWindowScroll =
+    disableFullWindowScrollProp ?? isWithinSplitView
 
   const isEmpty = !data || data.length === 0
 
-  let headerComponent: JSX.Element | null = null
+  let headerComponent: React.JSX.Element | null = null
   if (ListHeaderComponent != null) {
     if (isValidElement(ListHeaderComponent)) {
       headerComponent = ListHeaderComponent
     } else {
-      // @ts-ignore Nah it's fine.
+      // @ts-expect-error Nah it's fine.
       headerComponent = <ListHeaderComponent />
     }
   }
 
-  let footerComponent: JSX.Element | null = null
+  let footerComponent: React.JSX.Element | null = null
   if (ListFooterComponent != null) {
     if (isValidElement(ListFooterComponent)) {
       footerComponent = ListFooterComponent
     } else {
-      // @ts-ignore Nah it's fine.
+      // @ts-expect-error Nah it's fine.
       footerComponent = <ListFooterComponent />
     }
   }
 
-  let emptyComponent: JSX.Element | null = null
+  let emptyComponent: React.JSX.Element | null = null
   if (ListEmptyComponent != null) {
     if (isValidElement(ListEmptyComponent)) {
       emptyComponent = ListEmptyComponent
     } else {
-      // @ts-ignore Nah it's fine.
+      // @ts-expect-error Nah it's fine.
       emptyComponent = <ListEmptyComponent />
     }
   }
@@ -113,9 +150,9 @@ function ListImpl<ItemT>(
     })
   }
 
-  const getScrollableNode = React.useCallback(() => {
+  const getScrollableNode = useCallback(() => {
     if (disableFullWindowScroll) {
-      const element = nativeRef.current as HTMLDivElement | null
+      const element = nativeRef.current
       if (!element) return
 
       return {
@@ -143,10 +180,16 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           element.scrollBy(options)
         },
-        addEventListener(event: string, handler: any) {
+        addEventListener(
+          event: string,
+          handler: EventListenerOrEventListenerObject,
+        ) {
           element.addEventListener(event, handler)
         },
-        removeEventListener(event: string, handler: any) {
+        removeEventListener(
+          event: string,
+          handler: EventListenerOrEventListenerObject,
+        ) {
           element.removeEventListener(event, handler)
         },
       }
@@ -176,48 +219,80 @@ function ListImpl<ItemT>(
         scrollBy(options: ScrollToOptions) {
           window.scrollBy(options)
         },
-        addEventListener(event: string, handler: any) {
+        addEventListener(
+          event: string,
+          handler: EventListenerOrEventListenerObject,
+        ) {
           window.addEventListener(event, handler)
         },
-        removeEventListener(event: string, handler: any) {
+        removeEventListener(
+          event: string,
+          handler: EventListenerOrEventListenerObject,
+        ) {
           window.removeEventListener(event, handler)
         },
       }
     }
   }, [disableFullWindowScroll])
 
-  const nativeRef = React.useRef<HTMLDivElement>(null)
-  React.useImperativeHandle(
+  const nativeRef = useRef<HTMLDivElement>(null)
+
+  // Registry of item index -> row DOM node. The list renders header/footer and
+  // visibility-detector siblings too, so we can't index into the container's
+  // children directly; each Row registers its own node here keyed by index.
+  const rowNodesRef = useRef<Map<number, HTMLElement>>(new Map())
+  const registerRowNode = useCallback(
+    (index: number, node: HTMLElement | null) => {
+      if (node) {
+        rowNodesRef.current.set(index, node)
+      } else {
+        rowNodesRef.current.delete(index)
+      }
+    },
+    [],
+  )
+
+  useImperativeHandle(
     ref,
-    () =>
-      ({
-        scrollToTop() {
-          getScrollableNode()?.scrollTo({top: 0})
-        },
+    () => ({
+      scrollToTop() {
+        getScrollableNode()?.scrollTo({top: 0})
+      },
 
-        scrollToOffset({
-          animated,
-          offset,
-        }: {
-          animated: boolean
-          offset: number
-        }) {
-          getScrollableNode()?.scrollTo({
-            left: 0,
-            top: offset,
-            behavior: animated ? 'smooth' : 'instant',
-          })
-        },
+      scrollToOffset({
+        animated,
+        offset,
+      }: {
+        animated?: boolean | null
+        offset: number
+      }) {
+        getScrollableNode()?.scrollTo({
+          left: 0,
+          top: offset,
+          behavior: animated ? 'smooth' : 'instant',
+        })
+      },
 
-        scrollToEnd({animated = true}: {animated?: boolean}) {
-          const element = getScrollableNode()
-          element?.scrollTo({
-            left: 0,
-            top: element.scrollHeight,
-            behavior: animated ? 'smooth' : 'instant',
-          })
-        },
-      }) as any, // TODO: Better types.
+      scrollToEnd({animated = true} = {}) {
+        const element = getScrollableNode()
+        element?.scrollTo({
+          left: 0,
+          top: element.scrollHeight,
+          behavior: animated ? 'smooth' : 'instant',
+        })
+      },
+
+      scrollToIndex({animated = true, index}) {
+        const node = rowNodesRef.current.get(index)
+        // scrollIntoView with block: 'center' roughly matches the caller's
+        // viewPosition of 0.3 - not exact, but close enough and it respects
+        // whichever element is the scroll container (window or nativeRef).
+        node?.scrollIntoView({
+          block: 'center',
+          behavior: animated ? 'smooth' : 'instant',
+        })
+      },
+    }),
     [getScrollableNode],
   )
 
@@ -226,7 +301,13 @@ function ListImpl<ItemT>(
   useResizeObserver(containerRef, onContentSizeChange)
 
   // --- onScroll ---
-  const [isInsideVisibleTree, setIsInsideVisibleTree] = React.useState(false)
+  const [isInsideVisibleTree, setIsInsideVisibleTree] = useState(false)
+  useWebListTelemetry({
+    containerRef: nativeRef,
+    enabled: isInsideVisibleTree,
+    itemCount: data?.length ?? 0,
+    rowNodesRef,
+  })
   const handleScroll = useNonReactiveCallback(() => {
     if (!isInsideVisibleTree) return
 
@@ -253,11 +334,11 @@ function ListImpl<ItemT>(
         | 'targetContentOffset'
         | 'contentInset'
       >,
-      null as any,
+      {},
     )
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isInsideVisibleTree) {
       // Prevents hidden tabs from firing scroll events.
       // Only one list is expected to be firing these at a time.
@@ -315,14 +396,18 @@ function ListImpl<ItemT>(
     <View
       {...props}
       style={[
+        isWithinSplitView &&
+          web({
+            scrollbarWidth: 'thin',
+            scrollbarColor: `${t.palette.contrast_100} transparent`,
+          }),
         style,
         disableFullWindowScroll && {
           flex: 1,
-          // @ts-expect-error web only
-          'overflow-y': 'scroll',
+          overflowY: isWithinSplitView ? 'auto' : 'scroll',
         },
       ]}
-      ref={nativeRef as any}>
+      ref={nativeRef as unknown as React.Ref<React.ComponentRef<typeof View>>}>
       <Visibility
         onVisibleChange={setIsInsideVisibleTree}
         style={
@@ -336,7 +421,9 @@ function ListImpl<ItemT>(
           ref={containerRef}
           style={[
             contentContainerStyle,
-            desktopFixedHeight ? styles.minHeightViewport : null,
+            desktopFixedHeight && !disableFullWindowScroll
+              ? styles.minHeightViewport
+              : null,
           ]}>
           <Visibility
             root={disableFullWindowScroll ? nativeRef : null}
@@ -364,6 +451,7 @@ function ListImpl<ItemT>(
                     renderItem={renderItem}
                     extraData={extraData}
                     onItemSeen={onItemSeen}
+                    registerRowNode={registerRowNode}
                   />
                 )
               })}
@@ -382,6 +470,116 @@ function ListImpl<ItemT>(
   )
 }
 
+type ChromiumPerformance = Performance & {
+  memory?: {
+    usedJSHeapSize: number
+    jsHeapSizeLimit: number
+  }
+}
+
+function getWebListDiagnostics(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  rowNodesRef: React.RefObject<Map<number, HTMLElement>>,
+) {
+  const memory = (performance as ChromiumPerformance).memory
+  return {
+    renderedRowCount: rowNodesRef.current.size,
+    contentHeight: containerRef.current?.scrollHeight ?? 0,
+    sessionAgeMs: Date.now() - PAGE_STARTED_AT,
+    ...(memory && {
+      heapUsedBytes: memory.usedJSHeapSize,
+      heapLimitBytes: memory.jsHeapSizeLimit,
+    }),
+  }
+}
+
+/**
+ * APP-2859 diagnostic telemetry. Web List currently mounts every loaded row;
+ * these events let us correlate list growth and browser main-thread stalls by
+ * route without including any row content. Remove after the investigation.
+ */
+function useWebListTelemetry({
+  containerRef,
+  enabled,
+  itemCount,
+  rowNodesRef,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>
+  enabled: boolean
+  itemCount: number
+  rowNodesRef: React.RefObject<Map<number, HTMLElement>>
+}) {
+  const ax = useAnalytics()
+  const reportedMilestones = useRef(new Set<number>())
+  const itemCountRef = useRef(itemCount)
+  itemCountRef.current = itemCount
+  const isLargeList = itemCount >= LARGE_LIST_MILESTONES[0]
+
+  useEffect(() => {
+    if (!ENABLE_WEB_LIST_TELEMETRY || !enabled) return
+
+    for (const milestone of LARGE_LIST_MILESTONES) {
+      if (itemCount < milestone || reportedMilestones.current.has(milestone)) {
+        continue
+      }
+      reportedMilestones.current.add(milestone)
+      ax.metric('web:list:size', {
+        itemCount,
+        milestone,
+        ...getWebListDiagnostics(containerRef, rowNodesRef),
+      })
+    }
+  }, [ax, containerRef, enabled, itemCount, rowNodesRef])
+
+  useEffect(() => {
+    if (
+      !ENABLE_WEB_LIST_TELEMETRY ||
+      !enabled ||
+      !isLargeList ||
+      !('PerformanceObserver' in globalThis)
+    ) {
+      return
+    }
+
+    const stats = {taskCount: 0, totalDurationMs: 0, maxDurationMs: 0}
+    const observer = new PerformanceObserver(list => {
+      for (const entry of list.getEntries()) {
+        stats.taskCount++
+        stats.totalDurationMs += entry.duration
+        stats.maxDurationMs = Math.max(stats.maxDurationMs, entry.duration)
+      }
+    })
+
+    try {
+      observer.observe({type: 'longtask'})
+    } catch {
+      // Long Tasks API is not available in all browsers.
+      return
+    }
+
+    const report = () => {
+      if (stats.taskCount === 0) return
+      ax.metric('web:list:longTasks', {
+        itemCount: itemCountRef.current,
+        taskCount: stats.taskCount,
+        totalDurationMs: Math.round(stats.totalDurationMs),
+        maxDurationMs: Math.round(stats.maxDurationMs),
+        intervalMs: LONG_TASK_REPORT_INTERVAL,
+        ...getWebListDiagnostics(containerRef, rowNodesRef),
+      })
+      stats.taskCount = 0
+      stats.totalDurationMs = 0
+      stats.maxDurationMs = 0
+    }
+    const interval = setInterval(report, LONG_TASK_REPORT_INTERVAL)
+    return () => {
+      clearInterval(interval)
+      observer.disconnect()
+      report()
+    }
+  }, [ax, containerRef, enabled, isLargeList, rowNodesRef])
+}
+
 function EdgeVisibility({
   root,
   topMargin,
@@ -395,7 +593,7 @@ function EdgeVisibility({
   containerRef: React.RefObject<Element | null>
   onVisibleChange: (isVisible: boolean) => void
 }) {
-  const [containerHeight, setContainerHeight] = React.useState(0)
+  const [containerHeight, setContainerHeight] = useState(0)
   useResizeObserver(containerRef, (w, h) => {
     setContainerHeight(h)
   })
@@ -416,7 +614,7 @@ function useResizeObserver(
 ) {
   const handleResize = useNonReactiveCallback(onResize ?? (() => {}))
   const isActive = !!onResize
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isActive) {
       return
     }
@@ -442,20 +640,20 @@ let Row = function RowImpl<ItemT>({
   renderItem,
   extraData: _unused,
   onItemSeen,
+  registerRowNode,
 }: {
   item: ItemT
   index: number
   renderItem:
-    | null
-    | undefined
-    | ((data: {index: number; item: any; separators: any}) => React.ReactNode)
-  extraData: any
-  onItemSeen: ((item: any) => void) | undefined
+    null | undefined | ((info: ListRenderItemInfo<ItemT>) => React.ReactNode)
+  extraData: unknown
+  onItemSeen: ((item: ItemT) => void) | undefined
+  registerRowNode: (index: number, node: HTMLElement | null) => void
 }): React.ReactNode {
-  const rowRef = React.useRef(null)
-  const intersectionTimeout = React.useRef<
-    ReturnType<typeof setTimeout> | undefined
-  >(undefined)
+  const rowRef = useRef(null)
+  const intersectionTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  )
 
   const handleIntersection = useNonReactiveCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -468,12 +666,12 @@ let Row = function RowImpl<ItemT>({
             if (!intersectionTimeout.current) {
               intersectionTimeout.current = setTimeout(() => {
                 intersectionTimeout.current = undefined
-                onItemSeen!(item)
+                onItemSeen(item)
               }, ON_ITEM_SEEN_WAIT_DURATION)
             }
           } else {
             if (intersectionTimeout.current) {
-              clearTimeout(intersectionTimeout.current as NodeJS.Timeout)
+              clearTimeout(intersectionTimeout.current)
               intersectionTimeout.current = undefined
             }
           }
@@ -482,7 +680,7 @@ let Row = function RowImpl<ItemT>({
     },
   )
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!onItemSeen) {
       return
     }
@@ -490,12 +688,25 @@ let Row = function RowImpl<ItemT>({
       handleIntersection,
       ON_ITEM_SEEN_INTERSECTION_OPTS,
     )
-    const row: Element | null = rowRef.current!
-    observer.observe(row)
+    const row: Element | null = rowRef.current
+    if (row) {
+      observer.observe(row)
+    }
     return () => {
-      observer.unobserve(row)
+      if (row) {
+        observer.unobserve(row)
+      }
     }
   }, [handleIntersection, onItemSeen])
+
+  // Register this row's DOM node so the list can scroll to it by index.
+  useEffect(() => {
+    const node: HTMLElement | null = rowRef.current
+    registerRowNode(index, node)
+    return () => {
+      registerRowNode(index, null)
+    }
+  }, [index, registerRowNode])
 
   if (!renderItem) {
     return null
@@ -503,11 +714,23 @@ let Row = function RowImpl<ItemT>({
 
   return (
     <View ref={rowRef}>
-      {renderItem({item, index, separators: null as any})}
+      {renderItem({
+        item,
+        index,
+        separators: null as unknown as ListRenderItemInfo<ItemT>['separators'],
+      })}
     </View>
   )
 }
-Row = React.memo(Row)
+Row = memo(Row) as <ItemT>(props: {
+  item: ItemT
+  index: number
+  renderItem:
+    null | undefined | ((info: ListRenderItemInfo<ItemT>) => React.ReactNode)
+  extraData: unknown
+  onItemSeen: ((item: ItemT) => void) | undefined
+  registerRowNode: (index: number, node: HTMLElement | null) => void
+}) => React.ReactNode
 
 let Visibility = ({
   root,
@@ -522,8 +745,8 @@ let Visibility = ({
   onVisibleChange: (isVisible: boolean) => void
   style?: ViewProps['style']
 }): React.ReactNode => {
-  const tailRef = React.useRef(null)
-  const isIntersecting = React.useRef(false)
+  const tailRef = useRef(null)
+  const isIntersecting = useRef(false)
 
   const handleIntersection = useNonReactiveCallback(
     (entries: IntersectionObserverEntry[]) => {
@@ -538,15 +761,19 @@ let Visibility = ({
     },
   )
 
-  React.useEffect(() => {
+  useEffect(() => {
     const observer = new IntersectionObserver(handleIntersection, {
       root: root?.current ?? null,
       rootMargin: `${topMargin} 0px ${bottomMargin} 0px`,
     })
-    const tail: Element | null = tailRef.current!
-    observer.observe(tail)
+    const tail: Element | null = tailRef.current
+    if (tail) {
+      observer.observe(tail)
+    }
     return () => {
-      observer.unobserve(tail)
+      if (tail) {
+        observer.unobserve(tail)
+      }
     }
   }, [bottomMargin, handleIntersection, topMargin, root])
 
@@ -554,21 +781,20 @@ let Visibility = ({
     <View ref={tailRef} style={addStyle(styles.visibilityDetector, style)} />
   )
 }
-Visibility = React.memo(Visibility)
+Visibility = memo(Visibility)
 
-export const List = memo(React.forwardRef(ListImpl)) as <ItemT>(
+export const List = memo(forwardRef(ListImpl)) as <ItemT>(
   props: ListProps<ItemT> & {ref?: React.Ref<ListMethods>},
-) => React.ReactElement<any>
+) => React.ReactElement
 
 // https://stackoverflow.com/questions/7944460/detect-safari-browser
 
 const styles = StyleSheet.create({
   minHeightViewport: {
-    // @ts-ignore web only
     minHeight: '100vh',
   },
   parentTreeVisibilityDetector: {
-    // @ts-ignore web only
+    // @ts-expect-error web only
     position: 'fixed',
     top: 0,
     left: 0,

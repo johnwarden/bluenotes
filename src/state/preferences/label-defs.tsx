@@ -1,17 +1,15 @@
-import React from 'react'
-import {
-  type AppBskyLabelerDefs,
-  type InterpretedLabelValueDefinition,
-} from '@atproto/api'
+import {createContext, useContext} from 'react'
+import {type InterpretedLabelValueDefinition} from '@bsky/sdk/moderation'
 
+import {type app} from '#/lexicons'
 import {useLabelDefinitionsQuery} from '../queries/preferences'
 
 interface StateContext {
   labelDefs: Record<string, InterpretedLabelValueDefinition[]>
-  labelers: AppBskyLabelerDefs.LabelerViewDetailed[]
+  labelers: app.bsky.labeler.defs.LabelerViewDetailed[]
 }
 
-const stateContext = React.createContext<StateContext>({
+const stateContext = createContext<StateContext>({
   labelDefs: {},
   labelers: [],
 })
@@ -23,5 +21,5 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 }
 
 export function useLabelDefinitions() {
-  return React.useContext(stateContext)
+  return useContext(stateContext)
 }

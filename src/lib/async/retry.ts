@@ -1,5 +1,9 @@
 import {timeout} from '#/lib/async/timeout'
-import {isNetworkError} from '#/lib/strings/errors'
+import {isNetworkError, shouldRetryError} from '#/lib/strings/errors'
+
+export function isRetryableRequestError(error: unknown) {
+  return isNetworkError(error) || shouldRetryError(error)
+}
 
 export async function retry<P>(
   retries: number,
@@ -29,6 +33,7 @@ export async function retry<P>(
 export async function networkRetry<P>(
   retries: number,
   fn: () => Promise<P>,
+  delay?: number,
 ): Promise<P> {
-  return retry(retries, isNetworkError, fn)
+  return retry(retries, isNetworkError, fn, delay)
 }

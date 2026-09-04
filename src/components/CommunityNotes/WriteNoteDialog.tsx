@@ -1,6 +1,7 @@
-import {useMemo, useRef, useState} from 'react'
+import {useMemo, useRef, useState, type ComponentRef} from 'react'
 import {ActivityIndicator, ScrollView, type TextInput, View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
+import {Trans} from '@lingui/react/macro'
 import {useLingui} from '@lingui/react'
 import {useQueryClient} from '@tanstack/react-query'
 import Graphemer from 'graphemer'
@@ -8,7 +9,7 @@ import Graphemer from 'graphemer'
 import * as apilib from '#/lib/api/community-notes'
 import {updatePostShadow} from '#/state/cache/post-shadow'
 import {usePostQuery} from '#/state/queries/post'
-import {useAgent} from '#/state/session'
+import {useSession} from '#/state/session'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
@@ -119,7 +120,7 @@ interface WriteNoteDialogProps {
 export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const t = useTheme()
   const {_} = useLingui()
-  const agent = useAgent()
+  const {currentAccount} = useSession()
   const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<string[]>([])
   const [noteText, setNoteText] = useState('')
@@ -131,7 +132,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
   const [submittedNote, setSubmittedNote] = useState<any>(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
-  const textInputRef = useRef<TextInput>(null)
+  const textInputRef = useRef<ComponentRef<typeof TextInput>>(null)
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
@@ -202,7 +203,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
     try {
       const response = await apilib.propose(
-        agent,
+        apilib.communityNotesAuthFromAccount(currentAccount)!,
         postUri,
         noteText,
         selectedReasons,
@@ -223,9 +224,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       // Clear form and close dialog
       setSelectedReasons([])
       setNoteText('')
-      if (textInputRef.current) {
-        textInputRef.current.clear()
-      }
+      setNoteText('')
       setHasReliableSources(null)
       setHasAttemptedSubmit(false)
       control.close()

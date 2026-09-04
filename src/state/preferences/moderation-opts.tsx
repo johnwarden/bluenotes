@@ -1,8 +1,9 @@
 import {createContext, useContext, useMemo} from 'react'
-import {BskyAgent, type ModerationOpts} from '@atproto/api'
+import {Client} from '@atproto/lex'
+import {type ModerationOpts} from '@bsky/sdk/moderation'
 
 import {useHiddenPosts, useLabelDefinitions} from '#/state/preferences'
-import {DEFAULT_LOGGED_OUT_LABEL_PREFERENCES} from '#/state/queries/preferences/moderation'
+import {DEFAULT_LOGGED_OUT_LABEL_PREFERENCES} from '#/state/queries/preferences/const'
 import {useSession} from '#/state/session'
 import {usePreferencesQuery} from '../queries/preferences'
 
@@ -43,11 +44,16 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         ...moderationPrefs,
         labelers: moderationPrefs.labelers.length
           ? moderationPrefs.labelers
-          : BskyAgent.appLabelers.map(did => ({
+          : Client.appLabelers.map(did => ({
               did,
               labels: DEFAULT_LOGGED_OUT_LABEL_PREFERENCES,
             })),
-        hiddenPosts: hiddenPosts || [],
+        /*
+         * `hiddenPosts` comes from persisted storage typed as plain `string`,
+         * so brand it to the SDK's `AtUriString` slot.
+         */
+        hiddenPosts: (hiddenPosts ||
+          []) as ModerationOpts['prefs']['hiddenPosts'],
       },
       labelDefs,
     }

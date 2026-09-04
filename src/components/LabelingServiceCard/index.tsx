@@ -1,8 +1,7 @@
 import {View} from 'react-native'
-import {type AppBskyLabelerDefs} from '@atproto/api'
-import {msg, Plural, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
-import type React from 'react'
+import {Plural, Trans} from '@lingui/react/macro'
 
 import {getLabelingServiceTitle} from '#/lib/moderation'
 import {sanitizeHandle} from '#/lib/strings/handles'
@@ -13,10 +12,11 @@ import {Flag_Stroke2_Corner0_Rounded as Flag} from '#/components/icons/Flag'
 import {Link as InternalLink, type LinkProps} from '#/components/Link'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
+import {type app} from '#/lexicons'
 import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRight} from '../icons/Chevron'
 
 type LabelingServiceProps = {
-  labeler: AppBskyLabelerDefs.LabelerViewDetailed
+  labeler: app.bsky.labeler.defs.LabelerViewDetailed
 }
 
 export function Outer({
@@ -55,7 +55,7 @@ export function Description({value, handle}: {value?: string; handle: string}) {
   const {_} = useLingui()
   return value ? (
     <Text numberOfLines={2}>
-      <RichText value={value} style={[a.leading_snug]} />
+      <RichText value={value} />
     </Text>
   ) : (
     <Text emoji style={[a.leading_snug]}>
@@ -157,7 +157,7 @@ export function Link({
       to={{
         screen: 'Profile',
         params: {
-          name: labeler.creator.handle,
+          name: labeler.creator.did,
         },
       }}
       label={_(
@@ -187,7 +187,7 @@ export function Loader({
   loading?: React.ComponentType<{}>
   error?: React.ComponentType<{error: string}>
   component: React.ComponentType<{
-    labeler: AppBskyLabelerDefs.LabelerViewDetailed
+    labeler: app.bsky.labeler.defs.LabelerViewDetailed
   }>
 }) {
   const {isLoading, data, error} = useLabelerInfoQuery({did})

@@ -17,13 +17,13 @@ default:
 # =============================================================================
 
 lint:
-	yarn lint --quiet
+	pnpm lint
 
 typecheck:
 	npm run typecheck
 
 web:
-	yarn web
+	pnpm web
 
 ios-simulator:
 	open -a Simulator.app
@@ -32,7 +32,7 @@ ios:
 	npx expo run:ios
 
 deps:
-	yarn install --frozen-lockfile
+	pnpm install --frozen-lockfile
 	cd bskyembed && yarn install --frozen-lockfile
 
 bskyweb:

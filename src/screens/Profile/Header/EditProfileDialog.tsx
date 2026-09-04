@@ -1,17 +1,16 @@
 import {useCallback, useEffect, useState} from 'react'
-import {useWindowDimensions, View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
-import {msg, Plural, Trans} from '@lingui/macro'
+import {View} from 'react-native'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Plural, Trans} from '@lingui/react/macro'
 
-import {urls} from '#/lib/constants'
+import {MAX_DESCRIPTION, MAX_DISPLAY_NAME, urls} from '#/lib/constants'
 import {cleanError} from '#/lib/strings/errors'
-import {useWarnMaxGraphemeCount} from '#/lib/strings/helpers'
+import {isOverMaxGraphemeCount} from '#/lib/strings/helpers'
 import {logger} from '#/logger'
 import {type ImageMeta} from '#/state/gallery'
 import {useProfileUpdateMutation} from '#/state/queries/profile'
 import {ErrorMessage} from '#/view/com/util/error/ErrorMessage'
-import * as Toast from '#/view/com/util/Toast'
 import {EditableUserAvatar} from '#/view/com/util/UserAvatar'
 import {UserBanner} from '#/view/com/util/UserBanner'
 import {atoms as a, useTheme} from '#/alf'
@@ -22,25 +21,23 @@ import * as TextField from '#/components/forms/TextField'
 import {InlineLinkText} from '#/components/Link'
 import {Loader} from '#/components/Loader'
 import * as Prompt from '#/components/Prompt'
+import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
 import {useSimpleVerificationState} from '#/components/verification'
-
-const DISPLAY_NAME_MAX_GRAPHEMES = 64
-const DESCRIPTION_MAX_GRAPHEMES = 256
+import {type app} from '#/lexicons'
 
 export function EditProfileDialog({
   profile,
   control,
   onUpdate,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: app.bsky.actor.defs.ProfileViewDetailed
   control: Dialog.DialogControlProps
   onUpdate?: () => void
 }) {
   const {_} = useLingui()
   const cancelControl = Dialog.useDialogControl()
   const [dirty, setDirty] = useState(false)
-  const {height} = useWindowDimensions()
 
   const onPressCancel = useCallback(() => {
     if (dirty) {
@@ -55,7 +52,7 @@ export function EditProfileDialog({
       control={control}
       nativeOptions={{
         preventDismiss: dirty,
-        minHeight: height,
+        fullHeight: true,
       }}
       webOptions={{
         onBackgroundPress: () => {
@@ -92,7 +89,7 @@ function DialogInner({
   setDirty,
   onPressCancel,
 }: {
-  profile: AppBskyActorDefs.ProfileViewDetailed
+  profile: app.bsky.actor.defs.ProfileViewDetailed
   onUpdate?: () => void
   setDirty: (dirty: boolean) => void
   onPressCancel: () => void
@@ -203,13 +200,13 @@ function DialogInner({
     _,
   ])
 
-  const displayNameTooLong = useWarnMaxGraphemeCount({
+  const displayNameTooLong = isOverMaxGraphemeCount({
     text: displayName,
-    maxCount: DISPLAY_NAME_MAX_GRAPHEMES,
+    maxCount: MAX_DISPLAY_NAME,
   })
-  const descriptionTooLong = useWarnMaxGraphemeCount({
+  const descriptionTooLong = isOverMaxGraphemeCount({
     text: description,
-    maxCount: DESCRIPTION_MAX_GRAPHEMES,
+    maxCount: MAX_DESCRIPTION,
   })
 
   const cancelButton = useCallback(
@@ -330,7 +327,7 @@ function DialogInner({
                 {color: t.palette.negative_400},
               ]}>
               <Plural
-                value={DISPLAY_NAME_MAX_GRAPHEMES}
+                value={MAX_DISPLAY_NAME}
                 other="Display name is too long. The maximum number of characters is #."
               />
             </Text>
@@ -381,7 +378,7 @@ function DialogInner({
                 {color: t.palette.negative_400},
               ]}>
               <Plural
-                value={DESCRIPTION_MAX_GRAPHEMES}
+                value={MAX_DESCRIPTION}
                 other="Description is too long. The maximum number of characters is #."
               />
             </Text>

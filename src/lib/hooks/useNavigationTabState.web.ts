@@ -8,6 +8,8 @@ export function useNavigationTabState() {
     return {
       isAtHome: currentRoute === 'Home',
       isAtSearch: currentRoute === 'Search',
+      isAtFeeds: currentRoute === 'Feeds',
+      isAtBookmarks: currentRoute === 'Bookmarks',
       isAtCommunityNotes: currentRoute === 'CommunityNotes',
       isAtNotifications: currentRoute === 'Notifications',
       isAtMyProfile: currentRoute === 'MyProfile',

@@ -1,7 +1,8 @@
 import {StyleSheet, View} from 'react-native'
-import {AppBskyFeedDefs, type ModerationDecision} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {type ModerationDecision} from '@bsky/sdk/moderation'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {isReasonFeedSource, type ReasonFeedSource} from '#/lib/api/feed/types'
 import {createSanitizedDisplayName} from '#/lib/moderation/create-sanitized-display-name'
@@ -9,10 +10,12 @@ import {makeProfileLink} from '#/lib/routes/links'
 import {useSession} from '#/state/session'
 import {atoms as a, useTheme} from '#/alf'
 import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
-import {Repost_Stroke2_Corner2_Rounded as RepostIcon} from '#/components/icons/Repost'
-import {Link, WebOnlyInlineLinkText} from '#/components/Link'
+import {Repost_Stroke2_Corner3_Rounded as RepostIcon} from '#/components/icons/Repost'
+import {Link} from '#/components/Link'
 import {ProfileHoverCard} from '#/components/ProfileHoverCard'
 import {Text} from '#/components/Typography'
+import {app} from '#/lexicons'
+import * as bsky from '#/types/bsky'
 import {FeedNameText} from '../util/FeedInfoText'
 
 export function PostFeedReason({
@@ -22,8 +25,8 @@ export function PostFeedReason({
 }: {
   reason:
     | ReasonFeedSource
-    | AppBskyFeedDefs.ReasonRepost
-    | AppBskyFeedDefs.ReasonPin
+    | app.bsky.feed.defs.ReasonRepost
+    | app.bsky.feed.defs.ReasonPin
     | {[k: string]: unknown; $type: string}
   moderation?: ModerationDecision
   onOpenReposter?: () => void
@@ -62,7 +65,7 @@ export function PostFeedReason({
     )
   }
 
-  if (AppBskyFeedDefs.isReasonRepost(reason)) {
+  if (bsky.isType(app.bsky.feed.defs.reasonRepost, reason)) {
     const isOwner = reason.by.did === currentAccount?.did
     const reposter = createSanitizedDisplayName(
       reason.by,
@@ -82,36 +85,26 @@ export function PostFeedReason({
           width={13}
           height={13}
         />
-        <Text
-          style={[t.atoms.text_contrast_medium, a.font_medium, a.leading_snug]}
-          numberOfLines={1}>
-          {isOwner ? (
-            <Trans>Reposted by you</Trans>
-          ) : (
-            <Trans>
-              Reposted by{' '}
-              <ProfileHoverCard did={reason.by.did}>
-                <WebOnlyInlineLinkText
-                  label={reposter}
-                  numberOfLines={1}
-                  to={makeProfileLink(reason.by)}
-                  onPress={onOpenReposter}
-                  style={[
-                    t.atoms.text_contrast_medium,
-                    a.font_medium,
-                    a.leading_snug,
-                  ]}>
-                  {reposter}
-                </WebOnlyInlineLinkText>
-              </ProfileHoverCard>
-            </Trans>
-          )}
-        </Text>
+        <ProfileHoverCard did={reason.by.did}>
+          <Text
+            style={[
+              t.atoms.text_contrast_medium,
+              a.font_medium,
+              a.leading_snug,
+            ]}
+            numberOfLines={1}>
+            {isOwner ? (
+              <Trans>Reposted by you</Trans>
+            ) : (
+              <Trans>Reposted by {reposter}</Trans>
+            )}
+          </Text>
+        </ProfileHoverCard>
       </Link>
     )
   }
 
-  if (AppBskyFeedDefs.isReasonPin(reason)) {
+  if (bsky.isType(app.bsky.feed.defs.reasonPin, reason)) {
     return (
       <View style={styles.includeReason}>
         <PinIcon

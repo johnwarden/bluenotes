@@ -1,8 +1,9 @@
 import {useMemo} from 'react'
 import {View} from 'react-native'
-import {AppBskyGraphDefs, RichText as RichTextAPI} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {useHaptics} from '#/lib/haptics'
 import {makeListLink} from '#/lib/routes/links'
@@ -21,6 +22,8 @@ import {Pin_Stroke2_Corner0_Rounded as PinIcon} from '#/components/icons/Pin'
 import {Loader} from '#/components/Loader'
 import {RichText} from '#/components/RichText'
 import * as Toast from '#/components/Toast'
+import {useAnalytics} from '#/analytics'
+import {app} from '#/lexicons'
 import {MoreOptionsMenu} from './MoreOptionsMenu'
 import {SubscribeMenu} from './SubscribeMenu'
 
@@ -30,13 +33,14 @@ export function Header({
   preferences,
 }: {
   rkey: string
-  list: AppBskyGraphDefs.ListView
+  list: app.bsky.graph.defs.ListView
   preferences: UsePreferencesQueryResponse
 }) {
   const {_} = useLingui()
+  const ax = useAnalytics()
   const {currentAccount} = useSession()
-  const isCurateList = list.purpose === AppBskyGraphDefs.CURATELIST
-  const isModList = list.purpose === AppBskyGraphDefs.MODLIST
+  const isCurateList = list.purpose === app.bsky.graph.defs.curatelist.value
+  const isModList = list.purpose === app.bsky.graph.defs.modlist.value
   const isBlocking = !!list.viewer?.blocked
   const isMuting = !!list.viewer?.muted
   const playHaptic = useHaptics()
@@ -60,6 +64,14 @@ export function Header({
   const onTogglePinned = async () => {
     playHaptic()
 
+    /*
+     * Hoisted above the `try`: inside it, `pinned` is `!savedFeedConfig.pinned`,
+     * which is `!isPinned` on the branch that uses this.
+     */
+    const pinnedMessage = !isPinned
+      ? _(msg`Pinned to your feeds`)
+      : _(msg`Unpinned from your feeds`)
+
     try {
       if (savedFeedConfig) {
         const pinned = !savedFeedConfig.pinned
@@ -69,11 +81,7 @@ export function Header({
             pinned,
           },
         ])
-        Toast.show(
-          pinned
-            ? _(msg`Pinned to your feeds`)
-            : _(msg`Unpinned from your feeds`),
-        )
+        Toast.show(pinnedMessage)
       } else {
         await addSavedFeeds([
           {
@@ -96,11 +104,7 @@ export function Header({
     try {
       await muteList({uri: list.uri, mute: false})
       Toast.show(_(msg({message: 'List unmuted', context: 'toast'})))
-      logger.metric(
-        'moderation:unsubscribedFromList',
-        {listType: 'mute'},
-        {statsig: true},
-      )
+      ax.metric('moderation:unsubscribedFromList', {listType: 'mute'})
     } catch {
       Toast.show(
         _(
@@ -114,11 +118,7 @@ export function Header({
     try {
       await blockList({uri: list.uri, block: false})
       Toast.show(_(msg({message: 'List unblocked', context: 'toast'})))
-      logger.metric(
-        'moderation:unsubscribedFromList',
-        {listType: 'block'},
-        {statsig: true},
-      )
+      ax.metric('moderation:unsubscribedFromList', {listType: 'block'})
     } catch {
       Toast.show(
         _(
@@ -200,7 +200,7 @@ export function Header({
       </ProfileSubpageHeader>
       {descriptionRT ? (
         <View style={[a.px_lg, a.pt_sm, a.pb_sm, a.gap_md]}>
-          <RichText value={descriptionRT} style={[a.text_md, a.leading_snug]} />
+          <RichText value={descriptionRT} style={[a.text_md]} />
         </View>
       ) : null}
     </>
