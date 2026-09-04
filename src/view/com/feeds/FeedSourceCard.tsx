@@ -1,12 +1,9 @@
 import {type StyleProp, View, type ViewStyle} from 'react-native'
-import {
-  type $Typed,
-  AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  AtUri,
-} from '@atproto/api'
-import {msg, Plural, Trans} from '@lingui/macro'
+import {type $Typed} from '@atproto/lex'
+import {AtUri} from '@atproto/syntax'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Plural, Trans} from '@lingui/react/macro'
 
 import {sanitizeHandle} from '#/lib/strings/handles'
 import {
@@ -21,13 +18,15 @@ import {atoms as a, useTheme} from '#/alf'
 import {Link} from '#/components/Link'
 import {RichText} from '#/components/RichText'
 import {Text} from '#/components/Typography'
+import {app} from '#/lexicons'
+import * as bsky from '#/types/bsky'
 import {MissingFeed} from './MissingFeed'
 
 type FeedSourceCardProps = {
   feedUri: string
   feedData?:
-    | $Typed<AppBskyFeedDefs.GeneratorView>
-    | $Typed<AppBskyGraphDefs.ListView>
+    | $Typed<app.bsky.feed.defs.GeneratorView>
+    | $Typed<app.bsky.graph.defs.ListView>
   style?: StyleProp<ViewStyle>
   showSaveBtn?: boolean
   showDescription?: boolean
@@ -45,7 +44,7 @@ export function FeedSourceCard({
 }: FeedSourceCardProps) {
   if (feedData) {
     let feed: FeedSourceInfo
-    if (AppBskyFeedDefs.isGeneratorView(feedData)) {
+    if (bsky.isType(app.bsky.feed.defs.generatorView, feedData)) {
       feed = hydrateFeedGenerator(feedData)
     } else {
       feed = hydrateList(feedData)
@@ -182,14 +181,18 @@ export function FeedSourceCardLoaded({
     return (
       <Link
         testID={`feed-${feed.displayName}`}
-        label={_(
+        label={
           feed.type === 'feed'
-            ? msg`${feed.displayName}, a feed by ${sanitizeHandle(feed.creatorHandle, '@')}, liked by ${feed.likeCount || 0}`
-            : msg`${feed.displayName}, a list by ${sanitizeHandle(feed.creatorHandle, '@')}`,
-        )}
+            ? _(
+                msg`${feed.displayName}, a feed by ${sanitizeHandle(feed.creatorHandle, '@')}, liked by ${feed.likeCount || 0}`,
+              )
+            : _(
+                msg`${feed.displayName}, a list by ${sanitizeHandle(feed.creatorHandle, '@')}`,
+              )
+        }
         to={{
-          screen: feed.type === 'feed' ? 'ProfileFeed' : 'ProfileList',
-          params: {name: feed.creatorHandle, rkey: new AtUri(feed.uri).rkey},
+          screen: feed.type === 'feed' ? 'CustomFeed' : 'ProfileList',
+          params: {name: feed.creatorDid, rkey: new AtUri(feed.uri).rkey},
         }}
         style={[
           a.flex_1,

@@ -1,11 +1,12 @@
-import React from 'react'
+import {useCallback, useState} from 'react'
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {logger} from '#/logger'
-import {useAgent, useSessionApi} from '#/state/session'
-import {atoms as a, useBreakpoints, useTheme} from '#/alf'
+import {usePdsClient, useSessionApi} from '#/state/session'
+import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import {type DialogOuterProps} from '#/components/Dialog'
 import {Divider} from '#/components/Divider'
@@ -13,6 +14,7 @@ import {CircleInfo_Stroke2_Corner0_Rounded as CircleInfo} from '#/components/ico
 import {Loader} from '#/components/Loader'
 import * as Prompt from '#/components/Prompt'
 import {Text} from '#/components/Typography'
+import {com} from '#/lexicons'
 
 export function DeactivateAccountDialog({
   control,
@@ -32,17 +34,16 @@ function DeactivateAccountDialogInner({
   control: DialogOuterProps['control']
 }) {
   const t = useTheme()
-  const {gtMobile} = useBreakpoints()
   const {_} = useLingui()
-  const agent = useAgent()
+  const client = usePdsClient()
   const {logoutCurrentAccount} = useSessionApi()
-  const [pending, setPending] = React.useState(false)
-  const [error, setError] = React.useState<string | undefined>()
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState<string | undefined>()
 
-  const handleDeactivate = React.useCallback(async () => {
+  const handleDeactivate = useCallback(async () => {
     try {
       setPending(true)
-      await agent.com.atproto.server.deactivateAccount({})
+      await client.call(com.atproto.server.deactivateAccount, {})
       control.close(() => {
         logoutCurrentAccount('Deactivated')
       })
@@ -63,10 +64,9 @@ function DeactivateAccountDialogInner({
       logger.error(e, {
         message: 'Failed to deactivate account',
       })
-    } finally {
-      setPending(false)
     }
-  }, [agent, control, logoutCurrentAccount, _, setPending])
+    setPending(false)
+  }, [client, control, logoutCurrentAccount, _, setPending])
 
   return (
     <>
@@ -100,9 +100,8 @@ function DeactivateAccountDialogInner({
       </View>
       <Prompt.Actions>
         <Button
-          variant="solid"
           color="negative"
-          size={gtMobile ? 'small' : 'large'}
+          size="large"
           label={_(msg`Yes, deactivate`)}
           onPress={handleDeactivate}>
           <ButtonText>{_(msg`Yes, deactivate`)}</ButtonText>

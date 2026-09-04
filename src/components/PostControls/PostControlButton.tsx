@@ -27,7 +27,7 @@ export function PostControlButton({
   activeColor,
   ...props
 }: Omit<ButtonProps, 'hitSlop'> & {
-  ref?: React.Ref<View>
+  ref?: React.Ref<React.ComponentRef<typeof View>>
   active?: boolean
   big?: boolean
   color?: string
@@ -130,8 +130,11 @@ export function PostControlButtonText({style, ...props}: TextProps) {
     <Text
       style={[
         color,
+        a.user_select_none,
         big ? a.text_md : a.text_sm,
         active && a.font_semi_bold,
+        // prevent layout shift on android
+        {includeFontPadding: false, textAlignVertical: 'center'},
         style,
       ]}
       {...props}

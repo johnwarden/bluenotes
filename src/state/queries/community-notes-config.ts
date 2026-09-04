@@ -2,7 +2,7 @@ import {useQuery} from '@tanstack/react-query'
 
 import {COMMUNITY_NOTES_SERVICE} from '#/lib/constants'
 import {STALE} from '#/state/queries'
-import {useAgent} from '#/state/session'
+import {useSession} from '#/state/session'
 
 export interface CommunityNotesConfig {
   version: string
@@ -17,14 +17,12 @@ const RQKEY_ROOT = 'community-notes-config'
 export const RQKEY = () => [RQKEY_ROOT]
 
 export function useCommunityNotesConfig() {
-  const agent = useAgent()
+  const {currentAccount} = useSession()
 
   return useQuery<CommunityNotesConfig>({
     queryKey: RQKEY(),
     queryFn: async () => {
-      const serviceUrl = agent
-        ? agent.service.toString()
-        : 'https://bsky.social'
+      const serviceUrl = currentAccount?.service || 'https://bsky.social'
       const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
 
       // Fetch basic config
@@ -62,8 +60,7 @@ export function useCommunityNotesConfig() {
       return failureCount < 3
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // Only fetch if we have an agent (user is logged in or app is initialized)
-    enabled: !!agent,
+    enabled: true,
   })
 }
 

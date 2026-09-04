@@ -7,7 +7,7 @@ type AllNavigatableRoutes = Omit<
 >
 
 export const router = new Router<AllNavigatableRoutes>({
-  Home: '/',
+  Home: ['/', '/download'],
   Search: '/search',
   Feeds: '/feeds',
   Notifications: '/notifications',
@@ -17,6 +17,10 @@ export const router = new Router<AllNavigatableRoutes>({
   Lists: '/lists',
   // moderation
   Moderation: '/moderation',
+  ModerationInbox: '/moderation/inbox',
+  ModerationInboxSettings: '/moderation/inbox/settings',
+  ModerationInboxReportDetails: '/moderation/inbox/report/details',
+  ModerationInboxSubjectDetails: '/moderation/inbox/subject/details',
   ModerationModlists: '/moderation/modlists',
   ModerationMutedAccounts: '/moderation/muted-accounts',
   ModerationBlockedAccounts: '/moderation/blocked-accounts',
@@ -35,13 +39,15 @@ export const router = new Router<AllNavigatableRoutes>({
   CommunityNotes: '/community-notes/:tab',
   PostRepostedBy: '/profile/:name/post/:rkey/reposted-by',
   PostQuotes: '/profile/:name/post/:rkey/quotes',
-  ProfileFeed: '/profile/:name/feed/:rkey',
-  ProfileFeedLikedBy: '/profile/:name/feed/:rkey/liked-by',
+  CustomFeed: '/profile/:name/feed/:rkey',
+  CustomFeedLikedBy: '/profile/:name/feed/:rkey/liked-by',
   ProfileLabelerLikedBy: '/profile/:name/labeler/liked-by',
   // debug
   Debug: '/sys/debug',
   DebugMod: '/sys/debug-mod',
   Log: '/sys/log',
+  // invite friends
+  InviteScanner: '/invite/scan',
   // settings
   LanguageSettings: '/settings/language',
   AppPasswords: '/settings/app-passwords',
@@ -50,8 +56,10 @@ export const router = new Router<AllNavigatableRoutes>({
   PreferencesExternalEmbeds: '/settings/external-embeds',
   AccessibilitySettings: '/settings/accessibility',
   AppearanceSettings: '/settings/appearance',
+  BetaFeaturesSettings: '/settings/beta-features',
   SavedFeeds: '/settings/saved-feeds',
   AccountSettings: '/settings/account',
+  AutomationLabelSettings: '/settings/automation-label',
   PrivacyAndSecuritySettings: '/settings/privacy-and-security',
   ActivityPrivacySettings: '/settings/privacy-and-security/activity',
   ContentAndMediaSettings: '/settings/content-and-media',
@@ -59,18 +67,8 @@ export const router = new Router<AllNavigatableRoutes>({
   AboutSettings: '/settings/about',
   AppIconSettings: '/settings/app-icon',
   NotificationSettings: '/settings/notifications',
-  ReplyNotificationSettings: '/settings/notifications/replies',
-  MentionNotificationSettings: '/settings/notifications/mentions',
-  QuoteNotificationSettings: '/settings/notifications/quotes',
-  LikeNotificationSettings: '/settings/notifications/likes',
-  RepostNotificationSettings: '/settings/notifications/reposts',
-  NewFollowerNotificationSettings: '/settings/notifications/new-followers',
-  LikesOnRepostsNotificationSettings:
-    '/settings/notifications/likes-on-reposts',
-  RepostsOnRepostsNotificationSettings:
-    '/settings/notifications/reposts-on-reposts',
   ActivityNotificationSettings: '/settings/notifications/activity',
-  MiscellaneousNotificationSettings: '/settings/notifications/miscellaneous',
+  FindContactsSettings: '/settings/find-contacts',
   // support
   Support: '/support',
   PrivacyPolicy: '/support/privacy',
@@ -85,7 +83,9 @@ export const router = new Router<AllNavigatableRoutes>({
   MessagesSettings: '/messages/settings',
   MessagesInbox: '/messages/inbox',
   MessagesConversation: '/messages/:conversation',
-  // starter packs
+  MessagesConversationSettings: '/messages/:conversation/settings',
+  MessagesJoinRequests: '/messages/:conversation/requests',
+  // Starter Packs
   Start: '/start/:name/:rkey',
   StarterPackEdit: '/starter-pack/edit/:rkey',
   StarterPack: '/starter-pack/:name/:rkey',
@@ -93,4 +93,6 @@ export const router = new Router<AllNavigatableRoutes>({
   StarterPackWizard: '/starter-pack/create',
   VideoFeed: '/video-feed',
   Bookmarks: '/saved',
+  AuthCallback: '/auth/web/callback',
+  FindContactsFlow: '/find-contacts',
 })

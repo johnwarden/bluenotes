@@ -1,7 +1,9 @@
 import {useMemo, useState} from 'react'
 import {type TextStyle, View, type ViewStyle} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import {setInterestsPref} from '@bsky/sdk'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 import {type NativeStackScreenProps} from '@react-navigation/native-stack'
 import {useQueryClient} from '@tanstack/react-query'
 import debounce from 'lodash.debounce'
@@ -18,16 +20,18 @@ import {
 } from '#/state/queries/preferences'
 import {type UsePreferencesQueryResponse} from '#/state/queries/preferences/types'
 import {createGetSuggestedFeedsQueryKey} from '#/state/queries/trending/useGetSuggestedFeedsQuery'
-import {createGetSuggestedUsersQueryKey} from '#/state/queries/trending/useGetSuggestedUsersQuery'
+import {createGetSuggestedUsersForDiscoverQueryKey} from '#/state/queries/trending/useGetSuggestedUsersForDiscoverQuery'
+import {createGetSuggestedUsersForExploreQueryKey} from '#/state/queries/trending/useGetSuggestedUsersForExploreQuery'
+import {createGetSuggestedUsersForSeeMoreQueryKey} from '#/state/queries/trending/useGetSuggestedUsersForSeeMoreQuery'
 import {createSuggestedStarterPacksQueryKey} from '#/state/queries/useSuggestedStarterPacksQuery'
-import {useAgent} from '#/state/session'
-import * as Toast from '#/view/com/util/Toast'
+import {usePdsClient} from '#/state/session'
 import {atoms as a, useGutters, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Divider} from '#/components/Divider'
 import * as Toggle from '#/components/forms/Toggle'
 import * as Layout from '#/components/Layout'
 import {Loader} from '#/components/Loader'
+import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
 
 type Props = NativeStackScreenProps<CommonNavigatorParams, 'InterestsSettings'>
@@ -85,7 +89,7 @@ function Inner({
   setIsSaving: (isSaving: boolean) => void
 }) {
   const {_} = useLingui()
-  const agent = useAgent()
+  const pdsClient = usePdsClient()
   const qc = useQueryClient()
   const interestsDisplayNames = useInterestsDisplayNames()
   const preselectedInterests = useMemo(
@@ -107,7 +111,7 @@ function Inner({
       setIsSaving(true)
 
       try {
-        await agent.setInterestsPref({tags: interests})
+        await pdsClient.call(setInterestsPref, {tags: interests})
         qc.setQueriesData(
           {queryKey: preferencesQueryKey},
           (old?: UsePreferencesQueryResponse) => {
@@ -119,7 +123,15 @@ function Inner({
         await Promise.all([
           qc.resetQueries({queryKey: createSuggestedStarterPacksQueryKey()}),
           qc.resetQueries({queryKey: createGetSuggestedFeedsQueryKey()}),
-          qc.resetQueries({queryKey: createGetSuggestedUsersQueryKey({})}),
+          qc.resetQueries({
+            queryKey: createGetSuggestedUsersForDiscoverQueryKey({}),
+          }),
+          qc.resetQueries({
+            queryKey: createGetSuggestedUsersForExploreQueryKey({}),
+          }),
+          qc.resetQueries({
+            queryKey: createGetSuggestedUsersForSeeMoreQueryKey({}),
+          }),
         ])
 
         Toast.show(
@@ -138,13 +150,15 @@ function Inner({
               context: 'toast',
             }),
           ),
-          'xmark',
+          {
+            type: 'error',
+          },
         )
       } finally {
         setIsSaving(false)
       }
     }, 1500)
-  }, [_, agent, setIsSaving, qc, preselectedInterests])
+  }, [_, pdsClient, setIsSaving, qc, preselectedInterests])
 
   const onChangeInterests = async (interests: string[]) => {
     setInterests(interests)

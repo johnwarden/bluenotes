@@ -1,7 +1,7 @@
 // import {useState} from 'react' // Unused after removing hover state
 import {View} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
+import {Trans} from '@lingui/react/macro'
 import {useLingui} from '@lingui/react'
 
 import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
@@ -10,6 +10,7 @@ import {ArrowRight_Stroke2_Corner0_Rounded as ArrowRightIcon} from '#/components
 import {CommunityNotes as CommunityIcon} from '#/components/icons/CommunityNotes'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
+import {type app} from '#/lexicons'
 
 function RateProposedNotesPromptContent() {
   const t = useTheme()
@@ -28,7 +29,7 @@ export function RateProposedNotesPromptDefault({
   post,
   parentHover = false,
 }: {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   parentHover?: boolean
 }) {
   const {_} = useLingui()
@@ -105,7 +106,7 @@ export function RateProposedNotesPromptEmbedded({
   post,
   parentHover = false,
 }: {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   parentHover?: boolean
 }) {
   const {_} = useLingui()

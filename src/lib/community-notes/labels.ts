@@ -1,6 +1,5 @@
-import {type AppBskyFeedDefs, type ComAtprotoLabelDefs} from '@atproto/api'
-
 import {dangerousGetPostShadow} from '#/state/cache/post-shadow'
+import {type app, type com} from '#/lexicons'
 
 // Community Notes label values
 export const COMMUNITY_NOTES_LABELS = {
@@ -33,7 +32,7 @@ export function getCurrentCommunityNotesLabelerDid(): string | null {
  * Check if a post has a specific Community Notes label
  */
 export function hasLabel(
-  post: AppBskyFeedDefs.PostView,
+  post: app.bsky.feed.defs.PostView,
   labelValue: CommunityNotesLabelValue,
 ): boolean {
   if (!post.labels || post.labels.length === 0) {
@@ -41,7 +40,7 @@ export function hasLabel(
   }
 
   return post.labels.some(
-    (label: ComAtprotoLabelDefs.Label) =>
+    (label: com.atproto.label.defs.Label) =>
       label.val === labelValue && isCommunityNotesLabeler(label.src),
   )
 }
@@ -49,14 +48,14 @@ export function hasLabel(
 /**
  * Check if a post has helpful Community Notes (note label)
  */
-export function hasHelpfulNotes(post: AppBskyFeedDefs.PostView): boolean {
+export function hasHelpfulNotes(post: app.bsky.feed.defs.PostView): boolean {
   return hasLabel(post, COMMUNITY_NOTES_LABELS.NOTE)
 }
 
 /**
  * Check if a post has proposed Community Notes that need rating (proposed-annotation label)
  */
-export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
+export function hasProposedNotes(post: app.bsky.feed.defs.PostView): boolean {
   // Check shadow cache first for optimistic state
   const shadow = dangerousGetPostShadow(post)
   if (shadow?.hasOptimisticProposedNote) {
@@ -71,14 +70,14 @@ export function hasProposedNotes(post: AppBskyFeedDefs.PostView): boolean {
  * Get all Community Notes labels for a post
  */
 export function getCommunityNotesLabels(
-  post: AppBskyFeedDefs.PostView,
-): ComAtprotoLabelDefs.Label[] {
+  post: app.bsky.feed.defs.PostView,
+): com.atproto.label.defs.Label[] {
   if (!post.labels || post.labels.length === 0) {
     return []
   }
 
   return post.labels.filter(
-    (label: ComAtprotoLabelDefs.Label) =>
+    (label: com.atproto.label.defs.Label) =>
       isCommunityNotesLabeler(label.src) &&
       Object.values(COMMUNITY_NOTES_LABELS).includes(
         label.val as CommunityNotesLabelValue,
