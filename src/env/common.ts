@@ -107,3 +107,10 @@ export const GCP_PROJECT_ID: number =
  */
 export const STATSIG_API_ENDPOINT: string | undefined =
   process.env.EXPO_PUBLIC_STATSIG_API_ENDPOINT
+
+/**
+ * AT Protocol OAuth. `1`/`true` forces the OAuth sign-in UI. `0`/`false`
+ * forces password login. Unset keeps OAuth as the default on web.
+ * Not a secret. See docs/oauth.md.
+ */
+export const OAUTH_ENV_FLAG: string | undefined = process.env.EXPO_PUBLIC_OAUTH
