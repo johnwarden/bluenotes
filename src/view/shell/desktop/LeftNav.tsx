@@ -50,6 +50,7 @@ import {
   BulletList_Stroke2_Corner0_Rounded as ListIcon,
 } from '#/components/icons/BulletList'
 import {type Props as SVGIconProps} from '#/components/icons/common'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {DotGrid3x1_Stroke2_Corner0_Rounded as EllipsisIcon} from '#/components/icons/DotGrid'
 import {EditBig_Stroke2_Corner2_Rounded as EditBigIcon} from '#/components/icons/EditBig'
 import {
@@ -738,6 +739,16 @@ export function DesktopLeftNav({routeName}: {routeName: string}) {
             icons={{
               inactive: BookmarkIcon,
               active: BookmarkFilledIcon,
+            }}
+          />
+          <NavItem
+            label={l`Community Notes`}
+            href="/community-notes/feeds"
+            navItem="communityNotes"
+            minimal={leftNavMinimal}
+            icons={{
+              inactive: CommunityNotesIcon,
+              active: CommunityNotesIcon,
             }}
           />
           <NavItem

@@ -13,6 +13,7 @@ import {cleanError} from '#/lib/strings/errors'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
 import {listenSoftReset} from '#/state/events'
 import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
+import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {
   type FeedSourceFeedInfo,
   useFeedSourceInfoQuery,
@@ -33,6 +34,7 @@ import {FAB} from '#/view/com/util/fab/FAB'
 import {type ListRef} from '#/view/com/util/List'
 import {LoadLatestBtn} from '#/view/com/util/load-latest/LoadLatestBtn'
 import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
+import {CN_FEED_RKEYS} from '#/screens/CommunityNotes/constants'
 import {useTheme} from '#/alf'
 import {EditBig_Stroke2_Corner2_Rounded as EditBigIcon} from '#/components/icons/EditBig'
 import {HashtagWide_Stroke1_Corner0_Rounded as HashtagWideIcon} from '#/components/icons/Hashtag'
@@ -63,6 +65,21 @@ export function CustomFeedScreen(props: Props) {
     refetch,
     isRefetching,
   } = useResolveUriQuery(uri)
+
+  const {navigation} = props
+  const {data: cnConfig} = useCommunityNotesConfig()
+
+  useEffect(() => {
+    if (!cnConfig?.feedGeneratorDid || !resolvedUri) return
+
+    const isCNFeed =
+      resolvedUri.did === cnConfig.feedGeneratorDid &&
+      (CN_FEED_RKEYS as readonly string[]).includes(rkey)
+
+    if (isCNFeed) {
+      navigation.replace('CommunityNotes', {tab: rkey})
+    }
+  }, [cnConfig, resolvedUri, rkey, navigation])
 
   if (error && !isRefetching) {
     return (

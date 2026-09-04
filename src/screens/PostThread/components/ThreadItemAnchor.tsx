@@ -4,6 +4,7 @@ import {AtUri} from '@atproto/syntax'
 import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
 import {Plural, Trans, useLingui} from '@lingui/react/macro'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -37,6 +38,9 @@ import {
 } from '#/screens/PostThread/const'
 import {atoms as a, useTheme} from '#/alf'
 import {Button} from '#/components/Button'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {DebugFieldDisplay} from '#/components/DebugFieldDisplay'
 import {CalendarClock_Stroke2_Corner0_Rounded as CalendarClockIcon} from '#/components/icons/CalendarClock'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
@@ -389,6 +393,7 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
             </View>
           </View>
           <View style={[a.pb_sm]}>
+            <DebugLabels post={post} />
             <ContentHider
               modui={moderation.ui('contentView')}
               ignoreMute
@@ -519,6 +524,14 @@ const ThreadItemAnchorInner = memo(function ThreadItemAnchorInner({
               post={post}
               feature={Features.PostThreadKnownLikersEnable}
             />
+            {hasHelpfulNotes(post) && (
+              <CommunityNoteWidget
+                post={post}
+                displayMode="rated_helpful"
+                showDisclaimer={true}
+              />
+            )}
+            <RateCommunityNotesPrompt post={post} />
             <View
               style={[
                 a.pt_sm,

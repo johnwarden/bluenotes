@@ -38,6 +38,7 @@ import {
   Bell_Stroke2_Corner0_Rounded as Bell,
 } from '#/components/icons/Bell'
 import {CircleCheck_Stroke2_Corner0_Rounded as CircleCheckIcon} from '#/components/icons/CircleCheck'
+import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
 import {
   HomeOpen_Filled_Corner0_Rounded as HomeFilled,
   HomeOpen_Stoke2_Corner0_Rounded as Home,
@@ -67,8 +68,14 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   const ax = useAnalytics()
   const safeAreaInsets = useSafeAreaInsets()
   const {footerHeight} = useShellLayout()
-  const {isAtHome, isAtSearch, isAtNotifications, isAtMyProfile, isAtMessages} =
-    useNavigationTabState()
+  const {
+    isAtHome,
+    isAtSearch,
+    isAtCommunityNotes,
+    isAtNotifications,
+    isAtMyProfile,
+    isAtMessages,
+  } = useNavigationTabState()
   const numUnreadNotifications = useUnreadNotifications()
   const numUnreadMessages = useUnreadMessageCount()
   const aa = useAgeAssurance()
@@ -140,6 +147,9 @@ export function BottomBar({navigation}: BottomTabBarProps) {
   }, [onPressTab])
   const onPressMessages = useCallback(() => {
     onPressTab('Messages')
+  }, [onPressTab])
+  const onPressCommunityNotes = useCallback(() => {
+    onPressTab('CommunityNotes')
   }, [onPressTab])
 
   const onLongPressProfile = useCallback(() => {
@@ -214,6 +224,24 @@ export function BottomBar({navigation}: BottomTabBarProps) {
               onPress={onPressSearch}
               accessibilityRole="search"
               accessibilityLabel={l`Search`}
+              accessibilityHint=""
+            />
+            <Btn
+              testID="bottomBarCommunityNotesBtn"
+              icon={
+                <CommunityNotesIcon
+                  width={iconWidth}
+                  style={[
+                    styles.ctrlIcon,
+                    isAtCommunityNotes
+                      ? {color: t.palette.primary_500}
+                      : t.atoms.text,
+                  ]}
+                />
+              }
+              onPress={onPressCommunityNotes}
+              accessibilityRole="tab"
+              accessibilityLabel={l`Community Notes`}
               accessibilityHint=""
             />
             <Btn
