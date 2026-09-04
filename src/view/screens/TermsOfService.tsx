@@ -891,7 +891,7 @@ const supportPageHTML = `<section class="max-w-[918px] mx-auto px-4 pt-2 600:px-
 
   </li>
 
-</ol></section>`;
+</ol></section>`
 
 export const TermsOfServiceScreen = createSupportPageScreen(
   'Terms Of Service',
