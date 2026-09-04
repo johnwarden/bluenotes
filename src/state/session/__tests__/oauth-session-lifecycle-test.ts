@@ -102,15 +102,15 @@ describe('revokeOAuthSessionsForLogout', () => {
 
 describe('oauthDeletedCauseToSessionEvent', () => {
   it('maps refresh / invalid / revoked / unknown deleted causes to expired', () => {
-    expect(
-      oauthDeletedCauseToSessionEvent({name: 'TokenRefreshError'}),
-    ).toBe('expired')
-    expect(
-      oauthDeletedCauseToSessionEvent({name: 'TokenInvalidError'}),
-    ).toBe('expired')
-    expect(
-      oauthDeletedCauseToSessionEvent({name: 'TokenRevokedError'}),
-    ).toBe('expired')
+    expect(oauthDeletedCauseToSessionEvent({name: 'TokenRefreshError'})).toBe(
+      'expired',
+    )
+    expect(oauthDeletedCauseToSessionEvent({name: 'TokenInvalidError'})).toBe(
+      'expired',
+    )
+    expect(oauthDeletedCauseToSessionEvent({name: 'TokenRevokedError'})).toBe(
+      'expired',
+    )
     expect(oauthDeletedCauseToSessionEvent(new Error('nope'))).toBe('expired')
   })
 
