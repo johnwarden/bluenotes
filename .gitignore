@@ -1,7 +1,12 @@
 # OSX
 #
 .DS_Store
-.cursor
+# Local Cursor files. Track shipping start wiring only.
+# .cursor/trunk is local-only: each session names that PR’s base.
+.cursor/*
+!.cursor/session-start.sh
+!.cursor/environment.json
+!.cursor/NOTES.md
 
 # Xcode
 #

@@ -36,6 +36,8 @@ jobs:
         run: yarn intl:build
       - name: Type check
         run: yarn typecheck
+      - name: Build web
+        run: yarn build-web
   testing:
     name: Run tests
     runs-on: ubuntu-latest
