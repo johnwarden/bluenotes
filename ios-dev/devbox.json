@@ -3,7 +3,7 @@
   "packages": [
     "git",
     "nodejs@20", // Use LTS Node.js for stability
-    "yarn", // JS package manager
+    "yarn", // leftover nix pkg; JS package manager is pnpm via corepack
     "python3", // Required by node-gyp
     "cmake", // Some native modules need it
     "pkg-config", // For native library detection
@@ -22,10 +22,11 @@
       "echo 'Ruby version:' $(ruby --version)",
       "echo 'CocoaPods version:' $(pod --version)",
       "echo 'Xcode path:' $(xcode-select --print-path)",
-      "yarn install --frozen-lockfile"
+      "corepack enable",
+      "pnpm install --frozen-lockfile"
     ],
     "scripts": {
-      "ios-build": "yarn ios",
+      "ios-build": "pnpm ios",
       "ios-clean": "cd ios && rm -rf Pods Podfile.lock && pod install",
       "ios-reset": "rm -rf ios && npx expo prebuild --clean && cd ios && pod install"
     }

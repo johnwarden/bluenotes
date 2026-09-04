@@ -3,7 +3,7 @@
   "packages": [
     "git",
     "nodejs", // pulls in a modern Node (23.x by default)
-    "yarn", // our JS package manager
+    "yarn", // leftover nix pkg; JS package manager is pnpm via corepack
     "python3", // node-gyp needs Python
     "cmake", // some libs still use it
     "pkg-config", // so better-sqlite3 can locate sqlite3
@@ -13,7 +13,7 @@
     "cloc@latest", // ensure clang++ ≥ v12+
   ],
   "shell": {
-    "init_hook": ["yarn"],
+    "init_hook": ["corepack enable", "pnpm install"],
   },
   "env": {
     "CXXFLAGS": "-std=c++20",
