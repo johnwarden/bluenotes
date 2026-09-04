@@ -61,6 +61,20 @@ yarn web
 or `just web`. Expo web listens on `http://127.0.0.1:19006` and uses the
 ATProto **loopback** OAuth client automatically.
 
+If `yarn web` / webpack-dev-server on `:19006` hangs (common on low-RAM
+shared boxes), build a static bundle and serve it instead:
+
+```
+EXPO_PUBLIC_OAUTH=0 yarn build-web
+npx serve -l 19006 -s web-build
+```
+
+Then use the same password path: **Custom** hosting →
+`http://localhost:2583` → `alice.test` / `hunter2`.
+
+Confirmed 2026-09-04 on a shared box: this workaround reached the
+Following feed with local mock posts.
+
 ### 3. Sign in against the local PDS
 
 In the app sign-in UI:
