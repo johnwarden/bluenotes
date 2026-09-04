@@ -5,6 +5,7 @@ import {moderatePost, type ModerationDecision} from '@bsky/sdk/moderation'
 import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
 import {useQueryClient} from '@tanstack/react-query'
 
+import {hasHelpfulNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {makeProfileLink} from '#/lib/routes/links'
@@ -20,6 +21,9 @@ import {Link} from '#/view/com/util/Link'
 import {PostMeta} from '#/view/com/util/PostMeta'
 import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a, select, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
 import {
   GalleryBleed,
   maybeApplyGalleryOffsetStyles,
@@ -71,6 +75,7 @@ export function Post({
     () => (moderationOpts ? moderatePost(post, moderationOpts) : undefined),
     [moderationOpts, post],
   )
+
   if (postShadowed === POST_TOMBSTONE) {
     return null
   }
@@ -211,6 +216,7 @@ function PostInner({
             {replyAuthorDid !== '' && (
               <PostRepliedTo parentAuthor={replyAuthorDid} />
             )}
+            <DebugLabels post={post} />
             <ContentHider
               modui={moderation.ui('contentView')}
               style={styles.contentHider}
@@ -256,6 +262,14 @@ function PostInner({
                 </View>
               ) : null}
             </ContentHider>
+            {hasHelpfulNotes(post) && (
+              <CommunityNoteWidget
+                post={post}
+                displayMode="rated_helpful"
+                showDisclaimer={true}
+              />
+            )}
+            <RateCommunityNotesPrompt post={post} />
             <PostControls
               post={post}
               record={record}

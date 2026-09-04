@@ -3,6 +3,7 @@ import {type ModerationCause, type ModerationUI} from '@bsky/sdk/moderation'
 import {plural} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react/macro'
 
+import {COMMUNITY_NOTES_LABELS} from '#/lib/community-notes/labels'
 import {
   filterUserFacingLabels,
   getModerationCauseKey,
@@ -16,6 +17,20 @@ import {
 } from '#/components/moderation/LabelsOnMeDialog'
 import * as Pills from '#/components/Pills'
 import {type app, type com} from '#/lexicons'
+
+// Helper function to filter out community notes labels
+function filterCommunityNotesLabels(
+  cause: ModerationCause | Pills.AppModerationCause,
+): boolean {
+  if (cause.type === 'label') {
+    const labelVal = (cause as any).label?.val
+    return (
+      labelVal !== COMMUNITY_NOTES_LABELS.NOTE &&
+      labelVal !== COMMUNITY_NOTES_LABELS.PROPOSED_NOTE
+    )
+  }
+  return true
+}
 
 export function PostAlerts({
   post,
@@ -39,8 +54,9 @@ export function PostAlerts({
   const {currentAccount} = useSession()
   const size: Pills.CommonProps['size'] = view === 'expanded' ? 'lg' : 'sm'
 
-  const alerts = modui.alerts.filter(unique)
-  const informs = modui.informs.filter(unique)
+  // Filter out community notes labels since they have their own specialized UI
+  const alerts = modui.alerts.filter(unique).filter(filterCommunityNotesLabels)
+  const informs = modui.informs.filter(unique).filter(filterCommunityNotesLabels)
   /*
    * The "+n" pill surfaces labels for the author to review and appeal, so it
    * only applies when the viewer is the author, and only in expanded views.
@@ -79,10 +95,14 @@ export function PostAlerts({
     ),
   )
 
+  const filteredAdditionalCauses = additionalCauses?.filter(
+    filterCommunityNotesLabels,
+  )
+
   if (
-    !modui.alert &&
-    !modui.inform &&
-    !additionalCauses?.length &&
+    !alerts.length &&
+    !informs.length &&
+    !filteredAdditionalCauses?.length &&
     !additionalLabels.length
   ) {
     return null
@@ -106,7 +126,7 @@ export function PostAlerts({
           noBg={size === 'sm'}
         />
       ))}
-      {additionalCauses?.map(cause => (
+      {filteredAdditionalCauses?.map(cause => (
         <Pills.Label
           key={getModerationCauseKey(cause)}
           cause={cause}
