@@ -62,7 +62,8 @@ whose `client_id` and `redirect_uris` match that tunnel.
 
 ## Production deploy checklist (Jonathan)
 
-These steps are outside the agent. No paid accounts are required.
+These steps apply to **PR #7 / `bluenotes-rebrand`**, not this 1.133 PR.
+They are outside the agent. No paid accounts are required.
 
 1. **Serve client metadata at the `client_id` URL** with
    `Content-Type: application/json`.
@@ -87,9 +88,13 @@ These steps are outside the agent. No paid accounts are required.
 
 ## Feature flags
 
+On PR #7 (`bluenotes-rebrand`):
+
 - **Env:** `EXPO_PUBLIC_OAUTH=0` disables the OAuth UI for a deploy.
 - **In-app:** Settings → Privacy and Security → "Sign in with OAuth".
 - Preference is stored in persisted local state (`oauthSignInEnabled`).
+
+On this 1.133 tree the env flag and settings toggle do not complete sign-in.
 
 ## Remaining native / store work
 
