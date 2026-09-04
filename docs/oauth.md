@@ -19,6 +19,63 @@ the current session store and points the client at Blue Notes, not
 - **Native:** password login only in this revision. Native OAuth needs an Expo
   auth helper, app scheme, and hosted native client metadata (see below).
 
+## Local testing with atproto-community-notes
+
+Use this path to smoke-test the app against a local ATProto / Community Notes
+network. Local `.test` PDS accounts need **password** login. The OAuth
+handle-only flow is for real Bluesky handles (and production client metadata).
+
+There is no `just dev` recipe in this repo. Start the web app with `yarn web`
+or `just web`.
+
+### 1. Start the test network
+
+From a **separate checkout** of
+[`johnwarden/atproto-community-notes`](https://github.com/johnwarden/atproto-community-notes):
+
+```
+devbox run -- just start
+```
+
+(or `just start` inside the devbox shell)
+
+Wait until introspection is ready:
+
+```
+curl -s http://localhost:2581 | jq '.mockSetup.complete'
+```
+
+That should print `true`.
+
+- **PDS:** `http://localhost:2583`
+- **Test users:** `alice.test` / `hunter2` (also `bob.test`, `carla.test`)
+
+### 2. Start Blue Notes web
+
+From this Blue Notes branch (`bluenotes-rebrand` / this PR tip):
+
+```
+yarn web
+```
+
+or `just web`. Expo web listens on `http://127.0.0.1:19006` and uses the
+ATProto **loopback** OAuth client automatically.
+
+### 3. Sign in against the local PDS
+
+In the app sign-in UI:
+
+1. Open **Hosting provider** (pencil) → **Custom** → enter
+   `http://localhost:2583` (or `http://127.0.0.1:2583`).
+2. Use **password** login (`Use password instead` if the handle-only OAuth
+   form is showing) with `alice.test` / `hunter2`.
+
+### 4. Optional: force the password form
+
+```
+EXPO_PUBLIC_OAUTH=0 yarn web
+```
+
 ## Environment variables
 
 None of these are secrets. Do not invent or commit private keys. AT Protocol

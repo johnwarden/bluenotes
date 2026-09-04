@@ -16,7 +16,7 @@ There is a small amount of Go language source code (in `./bskyweb/`), for a web 
 
 The [Build Instructions](./docs/build.md) are a good place to get started with the app itself.
 
-Web sign-in uses **AT Protocol OAuth** by default (password login remains a fallback). See [docs/oauth.md](./docs/oauth.md) for client metadata, env vars, and the production deploy checklist.
+Web sign-in uses **AT Protocol OAuth** by default (password login remains a fallback). See [docs/oauth.md](./docs/oauth.md) for local testing with `atproto-community-notes`, client metadata, env vars, and the production deploy checklist.
 
 The Authenticated Transfer Protocol ("AT Protocol" or "atproto") is a decentralized social media protocol. You don't *need* to understand AT Protocol to work with this application, but it can help. Learn more at:
 
