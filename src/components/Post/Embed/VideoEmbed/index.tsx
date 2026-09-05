@@ -1,26 +1,32 @@
-import {useCallback, useRef, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {ActivityIndicator, View} from 'react-native'
 import {ImageBackground} from 'expo-image'
-import {type AppBskyEmbedVideo} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
+import {
+  createPlaybackTelemetry,
+  type PlaybackTelemetry,
+} from '#/lib/media/video/playbackTelemetry'
 import {ErrorBoundary} from '#/view/com/util/ErrorBoundary'
-import {ConstrainedImage} from '#/view/com/util/images/AutoSizedImage'
-import {atoms as a, useTheme} from '#/alf'
+import {atoms as a, platform} from '#/alf'
 import {Button} from '#/components/Button'
 import {useThrottledValue} from '#/components/hooks/useThrottledValue'
+import {ConstrainedImage} from '#/components/images/AutoSizedImage'
 import {PlayButtonIcon} from '#/components/video/PlayButtonIcon'
+import {useAnalytics} from '#/analytics'
+import {type app} from '#/lexicons'
+import {GifPresentationControls} from './GifPresentationControls'
 import {VideoEmbedInnerNative} from './VideoEmbedInner/VideoEmbedInnerNative'
 import * as VideoFallback from './VideoEmbedInner/VideoFallback'
 
 interface Props {
-  embed: AppBskyEmbedVideo.View
-  crop?: 'none' | 'square' | 'constrained'
+  embed: app.bsky.embed.video.View
+  post?: app.bsky.feed.defs.PostView
 }
 
-export function VideoEmbed({embed, crop}: Props) {
-  const t = useTheme()
+export function VideoEmbed({embed, post}: Props) {
   const [key, setKey] = useState(0)
 
   const renderError = useCallback(
@@ -40,50 +46,33 @@ export function VideoEmbed({embed, crop}: Props) {
   }
 
   let constrained: number | undefined
-  let max: number | undefined
   if (aspectRatio !== undefined) {
     const ratio = 1 / 2 // max of 1:2 ratio in feeds
     constrained = Math.max(aspectRatio, ratio)
-    max = Math.max(aspectRatio, 0.25) // max of 1:4 in thread
   }
-  const cropDisabled = crop === 'none'
 
   const contents = (
     <ErrorBoundary renderError={renderError} key={key}>
-      <InnerWrapper embed={embed} />
+      <InnerWrapper embed={embed} post={post} />
     </ErrorBoundary>
   )
 
   return (
     <View style={[a.pt_xs]}>
-      {cropDisabled ? (
-        <View
-          style={[
-            a.w_full,
-            a.overflow_hidden,
-            {aspectRatio: max ?? 1},
-            a.rounded_md,
-            a.overflow_hidden,
-            t.atoms.bg_contrast_25,
-          ]}>
-          {contents}
-        </View>
-      ) : (
-        <ConstrainedImage
-          fullBleed={crop === 'square'}
-          aspectRatio={constrained || 1}
-          // slightly smaller max height than images
-          // images use 16 / 9, for reference
-          minMobileAspectRatio={14 / 9}>
-          {contents}
-        </ConstrainedImage>
-      )}
+      <ConstrainedImage
+        aspectRatio={constrained || 1}
+        // slightly smaller max height than images
+        // images use 16 / 9, for reference
+        minMobileAspectRatio={14 / 9}>
+        {contents}
+      </ConstrainedImage>
     </View>
   )
 }
 
-function InnerWrapper({embed}: Props) {
+function InnerWrapper({embed, post}: Props) {
   const {_} = useLingui()
+  const ax = useAnalytics()
   const ref = useRef<{togglePlayback: () => void}>(null)
 
   const [status, setStatus] = useState<'playing' | 'paused' | 'pending'>(
@@ -92,6 +81,19 @@ function InnerWrapper({embed}: Props) {
   const [isLoading, setIsLoading] = useState(false)
   const [isActive, setIsActive] = useState(false)
   const showSpinner = useThrottledValue(isActive && isLoading, 100)
+
+  /*
+   * Created lazily on first activation so videos that are never scrolled into
+   * the active position cost nothing.
+   */
+  const telemetryRef = useRef<PlaybackTelemetry | null>(null)
+  const impressionTrackedRef = useRef(false)
+  const playbackStartTrackedRef = useRef(false)
+  useEffect(() => {
+    return () => {
+      telemetryRef.current?.deactivated()
+    }
+  }, [])
 
   const showOverlay =
     !isActive ||
@@ -107,9 +109,62 @@ function InnerWrapper({embed}: Props) {
     <>
       <VideoEmbedInnerNative
         embed={embed}
-        setStatus={setStatus}
-        setIsLoading={setIsLoading}
-        setIsActive={setIsActive}
+        setStatus={s => {
+          setStatus(s)
+          if (s === 'playing') {
+            telemetryRef.current?.playing()
+          }
+        }}
+        setIsLoading={loading => {
+          setIsLoading(loading)
+          if (!loading) {
+            telemetryRef.current?.ready()
+          }
+        }}
+        setIsActive={active => {
+          setIsActive(active)
+          if (active) {
+            if (!impressionTrackedRef.current) {
+              impressionTrackedRef.current = true
+              ax.metric('video:impression', {
+                postUri: post?.uri,
+                postAuthorDid: post?.author.did,
+                context: 'embed',
+                presentation: embed.presentation === 'gif' ? 'gif' : 'video',
+              })
+            }
+            if (telemetryRef.current == null) {
+              telemetryRef.current = createPlaybackTelemetry({
+                surface: 'feed',
+                presentation: embed.presentation === 'gif' ? 'gif' : 'video',
+              })
+            }
+            telemetryRef.current.activated()
+          } else {
+            telemetryRef.current?.deactivated()
+          }
+        }}
+        onPlaybackStart={autoplay => {
+          if (playbackStartTrackedRef.current) return
+          playbackStartTrackedRef.current = true
+          ax.metric('video:playback:start', {
+            postUri: post?.uri,
+            postAuthorDid: post?.author.did,
+            context: 'embed',
+            presentation: embed.presentation === 'gif' ? 'gif' : 'video',
+            autoplay,
+          })
+        }}
+        onError={error => {
+          telemetryRef.current?.error(error)
+          ax.metric('video:playback:failed', {
+            surface: 'feed',
+            presentation: embed.presentation === 'gif' ? 'gif' : 'video',
+            errorClass: 'PlayerError',
+            errorMessage: error.slice(0, 256),
+            playlist: embed.playlist,
+          })
+        }}
         ref={ref}
       />
       <ImageBackground
@@ -121,33 +176,40 @@ function InnerWrapper({embed}: Props) {
           {
             backgroundColor: 'transparent', // If you don't add `backgroundColor` to the styles here,
             // the play button won't show up on the first render on android 🥴😮‍💨
-            display: showOverlay ? 'flex' : 'none',
           },
+          platform({
+            android: {display: showOverlay ? 'flex' : 'none'},
+            ios: {zIndex: showOverlay ? 1 : -1},
+          }),
         ]}
         cachePolicy="memory-disk" // Preferring memory cache helps to avoid flicker when re-displaying on android
       >
-        {showOverlay && (
-          <Button
-            style={[a.flex_1, a.align_center, a.justify_center]}
-            onPress={() => {
-              ref.current?.togglePlayback()
-            }}
-            label={_(msg`Play video`)}>
-            {showSpinner ? (
-              <View
-                style={[
-                  a.rounded_full,
-                  a.p_xs,
-                  a.align_center,
-                  a.justify_center,
-                ]}>
-                <ActivityIndicator size="large" color="white" />
-              </View>
-            ) : (
-              <PlayButtonIcon />
-            )}
-          </Button>
-        )}
+        {showOverlay &&
+          (embed.presentation === 'gif' ? (
+            <GifPresentationControls
+              isPlaying={false}
+              isLoading={showSpinner}
+              onPress={() => {
+                ref.current?.togglePlayback()
+              }}
+              altText={embed.alt}
+            />
+          ) : (
+            <Button
+              style={[a.flex_1, a.align_center, a.justify_center]}
+              onPress={() => {
+                ref.current?.togglePlayback()
+              }}
+              label={_(msg`Play video`)}>
+              {showSpinner ? (
+                <View style={[a.align_center, a.justify_center]}>
+                  <ActivityIndicator size="large" color="white" />
+                </View>
+              ) : (
+                <PlayButtonIcon />
+              )}
+            </Button>
+          ))}
       </ImageBackground>
     </>
   )

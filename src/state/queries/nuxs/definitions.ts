@@ -10,6 +10,12 @@ export enum Nux {
   AgeAssuranceDismissibleNotice = 'AgeAssuranceDismissibleNotice',
   AgeAssuranceDismissibleFeedBanner = 'AgeAssuranceDismissibleFeedBanner',
   BookmarksAnnouncement = 'BookmarksAnnouncement',
+  FindContactsAnnouncement = 'FindContactsAnnouncement',
+  FindContactsDismissibleBanner = 'FindContactsDismissibleBanner',
+  LiveNowBetaDialog = 'LiveNowBetaDialog',
+  DraftsAnnouncement = 'DraftsAnnouncement',
+  GroupChatsAnnouncement = 'GroupChatsAnnouncement',
+  InviteFriendsAnnouncement = 'InviteFriendsAnnouncement',
 
   /*
    * Blocking announcements. New IDs are required for each new announcement.
@@ -52,6 +58,30 @@ export type AppNux = BaseNux<
       id: Nux.BookmarksAnnouncement
       data: undefined
     }
+  | {
+      id: Nux.FindContactsAnnouncement
+      data: undefined
+    }
+  | {
+      id: Nux.FindContactsDismissibleBanner
+      data: undefined
+    }
+  | {
+      id: Nux.LiveNowBetaDialog
+      data: undefined
+    }
+  | {
+      id: Nux.DraftsAnnouncement
+      data: undefined
+    }
+  | {
+      id: Nux.GroupChatsAnnouncement
+      data: undefined
+    }
+  | {
+      id: Nux.InviteFriendsAnnouncement
+      data: undefined
+    }
 >
 
 export const NuxSchemas: Record<Nux, zod.ZodObject<any> | undefined> = {
@@ -63,4 +93,10 @@ export const NuxSchemas: Record<Nux, zod.ZodObject<any> | undefined> = {
   [Nux.AgeAssuranceDismissibleFeedBanner]: undefined,
   [Nux.PolicyUpdate202508]: undefined,
   [Nux.BookmarksAnnouncement]: undefined,
+  [Nux.FindContactsAnnouncement]: undefined,
+  [Nux.FindContactsDismissibleBanner]: undefined,
+  [Nux.LiveNowBetaDialog]: undefined,
+  [Nux.DraftsAnnouncement]: undefined,
+  [Nux.GroupChatsAnnouncement]: undefined,
+  [Nux.InviteFriendsAnnouncement]: undefined,
 }

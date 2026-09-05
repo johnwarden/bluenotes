@@ -1,41 +1,37 @@
-import {useCallback, useState} from 'react'
+import {useCallback} from 'react'
 import {View} from 'react-native'
-import {
-  type AppBskyGraphGetStarterPacksWithMembership,
-  AppBskyGraphStarterpack,
-} from '@atproto/api'
-import {msg, Plural, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Plural, Trans, useLingui} from '@lingui/react/macro'
 import {useNavigation} from '@react-navigation/native'
-import {useQueryClient} from '@tanstack/react-query'
 
 import {useRequireEmailVerification} from '#/lib/hooks/useRequireEmailVerification'
 import {type NavigationProp} from '#/lib/routes/types'
+import {isNetworkError} from '#/lib/strings/errors'
 import {logger} from '#/logger'
-import {isWeb} from '#/platform/detection'
-import {
-  invalidateActorStarterPacksWithMembershipQuery,
-  useActorStarterPacksWithMembershipsQuery,
-} from '#/state/queries/actor-starter-packs'
+import {useActorStarterPacksWithMembershipsQuery} from '#/state/queries/actor-starter-packs'
 import {
   useListMembershipAddMutation,
   useListMembershipRemoveMutation,
 } from '#/state/queries/list-memberships'
-import * as Toast from '#/view/com/util/Toast'
-import {atoms as a, useTheme} from '#/alf'
+import {useProfileQuery} from '#/state/queries/profile'
+import {useSession} from '#/state/session'
+import {atoms as a, native, platform, useTheme} from '#/alf'
 import {AvatarStack} from '#/components/AvatarStack'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
 import {Divider} from '#/components/Divider'
 import {PlusLarge_Stroke2_Corner0_Rounded as PlusIcon} from '#/components/icons/Plus'
-import {StarterPack} from '#/components/icons/StarterPack'
+import {StarterPackMultiPathLarge as StarterPackIcon} from '#/components/icons/StarterPack'
 import {TimesLarge_Stroke2_Corner0_Rounded as XIcon} from '#/components/icons/Times'
 import {Loader} from '#/components/Loader'
+import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
+import {useAnalytics} from '#/analytics'
+import {IS_WEB} from '#/env'
+import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
 
 type StarterPackWithMembership =
-  AppBskyGraphGetStarterPacksWithMembership.StarterPackWithMembership
+  app.bsky.graph.getStarterPacksWithMembership.StarterPackWithMembership
 
 export type StarterPackDialogProps = {
   control: Dialog.DialogControlProps
@@ -69,13 +65,13 @@ export function StarterPackDialog({
   const wrappedNavToWizard = requireEmailVerification(navToWizard, {
     instructions: [
       <Trans key="nav">
-        Before creating a starter pack, you must first verify your email.
+        Before creating a Starter Pack, you must first verify your email.
       </Trans>,
     ],
   })
 
   return (
-    <Dialog.Outer control={control}>
+    <Dialog.Outer control={control} nativeOptions={{fullHeight: true}}>
       <Dialog.Handle />
       <StarterPackList
         onStartWizard={wrappedNavToWizard}
@@ -87,29 +83,28 @@ export function StarterPackDialog({
 }
 
 function Empty({onStartWizard}: {onStartWizard: () => void}) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const t = useTheme()
 
   return (
-    <View style={[a.gap_2xl, {paddingTop: isWeb ? 100 : 64}]}>
+    <View style={[a.gap_2xl, {paddingTop: IS_WEB ? 100 : 64}]}>
       <View style={[a.gap_xs, a.align_center]}>
-        <StarterPack
+        <StarterPackIcon
           width={48}
           fill={t.atoms.border_contrast_medium.borderColor}
         />
         <Text style={[a.text_center]}>
-          <Trans>You have no starter packs.</Trans>
+          <Trans>You have no Starter Packs.</Trans>
         </Text>
       </View>
-
       <View style={[a.align_center]}>
         <Button
-          label={_(msg`Create starter pack`)}
+          label={l`Create Starter Pack`}
           color="secondary_inverted"
           size="small"
           onPress={onStartWizard}>
           <ButtonText>
-            <Trans comment="Text on button to create a new starter pack">
+            <Trans comment="Text on button to create a new Starter Pack">
               Create
             </Trans>
           </ButtonText>
@@ -130,7 +125,8 @@ function StarterPackList({
   enabled?: boolean
 }) {
   const control = Dialog.useDialogContext()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
+  const {data: subject} = useProfileQuery({did: targetDid})
 
   const {
     data,
@@ -155,9 +151,13 @@ function StarterPackList({
 
   const renderItem = useCallback(
     ({item}: {item: StarterPackWithMembership}) => (
-      <StarterPackItem starterPackWithMembership={item} targetDid={targetDid} />
+      <StarterPackItem
+        starterPackWithMembership={item}
+        targetDid={targetDid}
+        subject={subject}
+      />
     ),
-    [targetDid],
+    [targetDid, subject],
   )
 
   const onClose = useCallback(() => {
@@ -168,20 +168,23 @@ function StarterPackList({
     <>
       <View
         style={[
-          {justifyContent: 'space-between', flexDirection: 'row'},
-          isWeb ? a.mb_2xl : a.my_lg,
+          a.justify_between,
           a.align_center,
+          a.flex_row,
+          a.pb_lg,
+          native(a.pt_lg),
         ]}>
         <Text style={[a.text_lg, a.font_semi_bold]}>
-          <Trans>Add to starter packs</Trans>
+          <Trans>Add to Starter Packs</Trans>
         </Text>
         <Button
-          label={_(msg`Close`)}
+          label={l`Close`}
           onPress={onClose}
           variant="ghost"
           color="secondary"
           size="small"
-          shape="round">
+          shape="round"
+          style={{margin: -8}}>
           <ButtonIcon icon={XIcon} />
         </Button>
       </View>
@@ -190,15 +193,15 @@ function StarterPackList({
           <View
             style={[a.flex_row, a.justify_between, a.align_center, a.py_md]}>
             <Text style={[a.text_md, a.font_semi_bold]}>
-              <Trans>New starter pack</Trans>
+              <Trans>New Starter Pack</Trans>
             </Text>
             <Button
-              label={_(msg`Create starter pack`)}
+              label={l`Create Starter Pack`}
               color="secondary_inverted"
               size="small"
               onPress={onStartWizard}>
               <ButtonText>
-                <Trans comment="Text on button to create a new starter pack">
+                <Trans comment="Text on button to create a new Starter Pack">
                   Create
                 </Trans>
               </ButtonText>
@@ -228,11 +231,14 @@ function StarterPackList({
           ? () => 'starter_pack_dialog_loader'
           : (item: StarterPackWithMembership) => item.starterPack.uri
       }
-      onEndReached={onEndReached}
+      onEndReached={() => void onEndReached()}
       onEndReachedThreshold={0.1}
       ListHeaderComponent={listHeader}
       ListEmptyComponent={<Empty onStartWizard={onStartWizard} />}
-      style={isWeb ? [a.px_md, {minHeight: 500}] : [a.px_2xl, a.pt_lg]}
+      style={platform({
+        web: [a.px_2xl, {minHeight: 500}],
+        native: [a.px_2xl, a.pt_lg],
+      })}
     />
   )
 }
@@ -240,75 +246,65 @@ function StarterPackList({
 function StarterPackItem({
   starterPackWithMembership,
   targetDid,
+  subject,
 }: {
   starterPackWithMembership: StarterPackWithMembership
   targetDid: string
+  subject?: bsky.profile.AnyProfileView
 }) {
-  const {_} = useLingui()
   const t = useTheme()
-  const queryClient = useQueryClient()
+  const ax = useAnalytics()
+  const {t: l} = useLingui()
+  const {currentAccount} = useSession()
+  const isSelf = subject?.did === currentAccount?.did
 
   const starterPack = starterPackWithMembership.starterPack
   const isInPack = !!starterPackWithMembership.listItem
 
-  const [isPendingRefresh, setIsPendingRefresh] = useState(false)
+  const {mutate: addMembership, isPending: isPendingAdd} =
+    useListMembershipAddMutation({
+      subject,
+      onSuccess: () => {
+        Toast.show(l`Added to Starter Pack`)
+      },
+      onError: err => {
+        if (!isNetworkError(err)) {
+          logger.error('Failed to add to Starter Pack', {safeMessage: err})
+        }
+        Toast.show(l`Failed to add to Starter Pack`, {type: 'error'})
+      },
+    })
 
-  const {mutate: addMembership} = useListMembershipAddMutation({
-    onSuccess: () => {
-      Toast.show(_(msg`Added to starter pack`))
-      // Use a timeout to wait for the appview to update, matching the pattern
-      // in list-memberships.ts
-      setTimeout(() => {
-        invalidateActorStarterPacksWithMembershipQuery({
-          queryClient,
-          did: targetDid,
-        })
-        setIsPendingRefresh(false)
-      }, 1e3)
-    },
-    onError: () => {
-      Toast.show(_(msg`Failed to add to starter pack`), 'xmark')
-      setIsPendingRefresh(false)
-    },
-  })
+  const {mutate: removeMembership, isPending: isPendingRemove} =
+    useListMembershipRemoveMutation({
+      onSuccess: () => {
+        Toast.show(l`Removed from Starter Pack`)
+      },
+      onError: err => {
+        if (!isNetworkError(err)) {
+          logger.error('Failed to remove from Starter Pack', {safeMessage: err})
+        }
+        Toast.show(l`Failed to remove from Starter Pack`, {type: 'error'})
+      },
+    })
 
-  const {mutate: removeMembership} = useListMembershipRemoveMutation({
-    onSuccess: () => {
-      Toast.show(_(msg`Removed from starter pack`))
-      // Use a timeout to wait for the appview to update, matching the pattern
-      // in list-memberships.ts
-      setTimeout(() => {
-        invalidateActorStarterPacksWithMembershipQuery({
-          queryClient,
-          did: targetDid,
-        })
-        setIsPendingRefresh(false)
-      }, 1e3)
-    },
-    onError: () => {
-      Toast.show(_(msg`Failed to remove from starter pack`), 'xmark')
-      setIsPendingRefresh(false)
-    },
-  })
+  const isPending = isPendingAdd || isPendingRemove
 
   const handleToggleMembership = () => {
-    if (!starterPack.list?.uri || isPendingRefresh) return
+    if (!starterPack.list?.uri || isPending) return
 
     const listUri = starterPack.list.uri
     const starterPackUri = starterPack.uri
-
-    setIsPendingRefresh(true)
 
     if (!isInPack) {
       addMembership({
         listUri: listUri,
         actorDid: targetDid,
       })
-      logger.metric('starterPack:addUser', {starterPack: starterPackUri})
+      ax.metric('starterPack:addUser', {starterPack: starterPackUri})
     } else {
       if (!starterPackWithMembership.listItem?.uri) {
         console.error('Cannot remove: missing membership URI')
-        setIsPendingRefresh(false)
         return
       }
       removeMembership({
@@ -316,18 +312,13 @@ function StarterPackItem({
         actorDid: targetDid,
         membershipUri: starterPackWithMembership.listItem.uri,
       })
-      logger.metric('starterPack:removeUser', {starterPack: starterPackUri})
+      ax.metric('starterPack:removeUser', {starterPack: starterPackUri})
     }
   }
 
   const {record} = starterPack
 
-  if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
-      record,
-      AppBskyGraphStarterpack.isRecord,
-    )
-  ) {
+  if (!bsky.isType(app.bsky.graph.starterpack, record)) {
     return null
   }
 
@@ -343,7 +334,7 @@ function StarterPackItem({
             starterPack.listItemsSample.length > 0 && (
               <>
                 <AvatarStack
-                  size={32}
+                  size={24}
                   profiles={starterPack.listItemsSample
                     ?.slice(0, 4)
                     .map(p => p.subject)}
@@ -369,15 +360,21 @@ function StarterPackItem({
             )}
         </View>
       </View>
-
       <Button
-        label={isInPack ? _(msg`Remove`) : _(msg`Add`)}
+        label={isInPack ? l`Remove` : l`Add`}
         color={isInPack ? 'secondary' : 'primary_subtle'}
         size="tiny"
-        disabled={isPendingRefresh}
+        disabled={isPending || isSelf}
         onPress={handleToggleMembership}>
+        {isPending && <ButtonIcon icon={Loader} />}
         <ButtonText>
-          {isInPack ? <Trans>Remove</Trans> : <Trans>Add</Trans>}
+          {isSelf ? (
+            <Trans>Owner</Trans>
+          ) : isInPack ? (
+            <Trans>Remove</Trans>
+          ) : (
+            <Trans>Add</Trans>
+          )}
         </ButtonText>
       </Button>
     </View>

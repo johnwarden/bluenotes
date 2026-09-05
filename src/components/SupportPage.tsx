@@ -3,7 +3,7 @@ import {Linking, useWindowDimensions, View} from 'react-native'
 import RenderHtml from 'react-native-render-html'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useNavigation} from '@react-navigation/native'
+import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
@@ -12,7 +12,7 @@ import {
   type NavigationProp,
 } from '#/lib/routes/types'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
+import {useEnableMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import * as Layout from '#/components/Layout'
 import {ViewHeader} from '../view/com/util/ViewHeader'
@@ -29,14 +29,8 @@ export const SupportPage: React.FC<SupportPageProps> = ({
   const pal = usePalette('default')
   const {_} = useLingui()
   const navigation = useNavigation<NavigationProp>()
-  const setMinimalShellMode = useSetMinimalShellMode()
   const {width} = useWindowDimensions()
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
+  useEnableMinimalShellMode({enabled: false})
 
   // Custom renderers for handling links - memoized to avoid "component defined during render" warning
   const renderers = React.useMemo(

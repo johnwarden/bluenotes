@@ -1,38 +1,52 @@
-import React from 'react'
-import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {useCallback, useState} from 'react'
+import {Pressable, View} from 'react-native'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {interests, useInterestsDisplayNames} from '#/lib/interests'
-import {logEvent} from '#/lib/statsig/statsig'
 import {capitalize} from '#/lib/strings/capitalize'
 import {logger} from '#/logger'
 import {
-  DescriptionText,
   OnboardingControls,
-  TitleText,
+  OnboardingDescriptionText,
+  OnboardingPosition,
+  OnboardingTitleText,
 } from '#/screens/Onboarding/Layout'
-import {Context} from '#/screens/Onboarding/state'
+import {useOnboardingInternalState} from '#/screens/Onboarding/state'
 import {InterestButton} from '#/screens/Onboarding/StepInterests/InterestButton'
 import {atoms as a} from '#/alf'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import * as Toggle from '#/components/forms/Toggle'
-import {IconCircle} from '#/components/IconCircle'
-import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRight} from '#/components/icons/Chevron'
-import {Hashtag_Stroke2_Corner0_Rounded as Hashtag} from '#/components/icons/Hashtag'
 import {Loader} from '#/components/Loader'
+import * as Tooltip from '#/components/Tooltip'
+import {useAnalytics} from '#/analytics'
 
 export function StepInterests() {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
+  const ax = useAnalytics()
   const interestsDisplayNames = useInterestsDisplayNames()
 
-  const {state, dispatch} = React.useContext(Context)
-  const [saving, setSaving] = React.useState(false)
-  const [selectedInterests, setSelectedInterests] = React.useState<string[]>(
+  const {state, dispatch} = useOnboardingInternalState()
+  const [saving, setSaving] = useState(false)
+  const [tooltipVisible, setTooltipVisible] = useState(false)
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(
     state.interestsStepResults.selectedInterests.map(i => i),
   )
+  /*
+   * Behind this gate, users must choose at least one interest before they can
+   * continue.
+   */
+  const interestRequired = ax.features.enabled(
+    ax.features.OnboardingInterestsRequiredEnable,
+  )
+  const missingRequiredInterest =
+    interestRequired && selectedInterests.length === 0
 
-  const saveInterests = React.useCallback(async () => {
+  const showMissingInterestTooltip = () => {
+    ax.metric('onboarding:interests:disabledNextPressed', {})
+    setTooltipVisible(true)
+  }
+
+  const saveInterests = useCallback(() => {
     setSaving(true)
 
     try {
@@ -42,32 +56,63 @@ export function StepInterests() {
         selectedInterests,
       })
       dispatch({type: 'next'})
-      logEvent('onboarding:interests:nextPressed', {
+      ax.metric('onboarding:interests:nextPressed', {
         selectedInterests,
         selectedInterestsLength: selectedInterests.length,
       })
-    } catch (e: any) {
-      logger.info(`onboading: error saving interests`)
+    } catch (error) {
+      const e = error as Error
+      logger.info(`onboarding: error saving interests`)
       logger.error(e)
     }
-  }, [selectedInterests, setSaving, dispatch])
+  }, [ax, selectedInterests, setSaving, dispatch])
+
+  const continueButton = (
+    <Button
+      disabled={saving || missingRequiredInterest}
+      testID="onboardingContinue"
+      variant="solid"
+      color="primary"
+      size="large"
+      label={
+        missingRequiredInterest
+          ? l`Choose an interest`
+          : l`Continue to next step`
+      }
+      onPress={() => void saveInterests()}>
+      <ButtonText style={{pointerEvents: 'none'}}>
+        {missingRequiredInterest ? (
+          <Trans>Choose an interest</Trans>
+        ) : (
+          <Trans>Continue</Trans>
+        )}
+      </ButtonText>
+      {saving && <ButtonIcon icon={Loader} />}
+    </Button>
+  )
 
   return (
-    <View style={[a.align_start]} testID="onboardingInterests">
-      <IconCircle icon={Hashtag} style={[a.mb_2xl]} />
-
-      <TitleText>
+    <View style={[a.align_start, a.gap_sm]} testID="onboardingInterests">
+      <OnboardingPosition />
+      <OnboardingTitleText>
         <Trans>What are your interests?</Trans>
-      </TitleText>
-      <DescriptionText>
-        <Trans>We'll use this to help customize your experience.</Trans>
-      </DescriptionText>
+      </OnboardingTitleText>
+      <OnboardingDescriptionText>
+        {interestRequired ? (
+          <Trans>
+            Choose at least one. We'll use this to customize your experience.
+            You can change these anytime.
+          </Trans>
+        ) : (
+          <Trans>We'll use this to help customize your experience.</Trans>
+        )}
+      </OnboardingDescriptionText>
 
-      <View style={[a.w_full, a.pt_2xl]}>
+      <View style={[a.w_full, a.pt_lg]}>
         <Toggle.Group
           values={selectedInterests}
           onChange={setSelectedInterests}
-          label={_(msg`Select your interests from the options below`)}>
+          label={l`Select your interests from the options below`}>
           <View style={[a.flex_row, a.gap_md, a.flex_wrap]}>
             {interests.map(interest => (
               <Toggle.Item
@@ -82,19 +127,34 @@ export function StepInterests() {
       </View>
 
       <OnboardingControls.Portal>
-        <Button
-          disabled={saving}
-          testID="onboardingContinue"
-          variant="solid"
-          color="primary"
-          size="large"
-          label={_(msg`Continue to next step`)}
-          onPress={saveInterests}>
-          <ButtonText>
-            <Trans>Continue</Trans>
-          </ButtonText>
-          <ButtonIcon icon={saving ? Loader : ChevronRight} />
-        </Button>
+        <View style={[a.relative]}>
+          {missingRequiredInterest ? (
+            <Tooltip.Outer
+              position="top"
+              visible={tooltipVisible}
+              onVisibleChange={setTooltipVisible}>
+              <Tooltip.Target>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={l`Choose an interest`}
+                  accessibilityHint={l`Choose at least one interest to continue`}
+                  onPress={showMissingInterestTooltip}>
+                  <View
+                    pointerEvents="none"
+                    accessibilityElementsHidden
+                    importantForAccessibility="no-hide-descendants">
+                    {continueButton}
+                  </View>
+                </Pressable>
+              </Tooltip.Target>
+              <Tooltip.BubbleText label={l`Choose at least one interest.`}>
+                <Trans>Choose at least one interest.</Trans>
+              </Tooltip.BubbleText>
+            </Tooltip.Outer>
+          ) : (
+            continueButton
+          )}
+        </View>
       </OnboardingControls.Portal>
     </View>
   )

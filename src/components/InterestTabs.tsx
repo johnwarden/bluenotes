@@ -5,12 +5,12 @@ import {
   View,
   type ViewStyle,
 } from 'react-native'
-import {msg} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
 
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
-import {isWeb} from '#/platform/detection'
 import {DraggableScrollView} from '#/view/com/pager/DraggableScrollView'
+import {BlockDrawerGesture} from '#/view/shell/BlockDrawerGesture'
 import {atoms as a, tokens, useTheme, web} from '#/alf'
 import {transparentifyColor} from '#/alf/util/colorGeneration'
 import {Button, ButtonIcon} from '#/components/Button'
@@ -19,6 +19,7 @@ import {
   ArrowRight_Stroke2_Corner0_Rounded as ArrowRight,
 } from '#/components/icons/Arrow'
 import {Text} from '#/components/Typography'
+import {IS_WEB} from '#/env'
 
 /**
  * Tab component that automatically scrolls the selected tab into view - used for interests
@@ -46,12 +47,22 @@ export function InterestTabs({
 }) {
   const t = useTheme()
   const {_} = useLingui()
-  const listRef = useRef<ScrollView>(null)
+  const listRef = useRef<React.ComponentRef<typeof ScrollView>>(null)
   const [totalWidth, setTotalWidth] = useState(0)
   const [scrollX, setScrollX] = useState(0)
   const [contentWidth, setContentWidth] = useState(0)
   const pendingTabOffsets = useRef<{x: number; width: number}[]>([])
   const [tabOffsets, setTabOffsets] = useState<{x: number; width: number}[]>([])
+
+  function scrollIntoViewIfNeeded(index: number) {
+    const btnLayout = tabOffsets[index]
+    if (!btnLayout) return
+    listRef.current?.scrollTo({
+      // centered
+      x: btnLayout.x - (totalWidth / 2 - btnLayout.width / 2),
+      animated: true,
+    })
+  }
 
   const onInitialLayout = useNonReactiveCallback(() => {
     const index = interests.indexOf(selectedInterest)
@@ -64,16 +75,6 @@ export function InterestTabs({
     }
   }, [tabOffsets, onInitialLayout])
 
-  function scrollIntoViewIfNeeded(index: number) {
-    const btnLayout = tabOffsets[index]
-    if (!btnLayout) return
-    listRef.current?.scrollTo({
-      // centered
-      x: btnLayout.x - (totalWidth / 2 - btnLayout.width / 2),
-      animated: true,
-    })
-  }
-
   function handleSelectTab(index: number) {
     const tab = interests[index]
     onSelectTab(tab)
@@ -83,7 +84,12 @@ export function InterestTabs({
   function handleTabLayout(index: number, x: number, width: number) {
     if (!tabOffsets.length) {
       pendingTabOffsets.current[index] = {x, width}
-      if (pendingTabOffsets.current.length === interests.length) {
+      // not only do we check if the length is equal to the number of interests,
+      // but we also need to ensure that the array isn't sparse. `.filter()`
+      // removes any empty slots from the array
+      if (
+        pendingTabOffsets.current.filter(o => !!o).length === interests.length
+      ) {
         setTabOffsets(pendingTabOffsets.current)
       }
     }
@@ -195,43 +201,45 @@ export function InterestTabs({
 
   return (
     <View style={[a.relative, a.flex_row]}>
-      <DraggableScrollView
-        ref={listRef}
-        contentContainerStyle={[
-          a.gap_sm,
-          {paddingHorizontal: gutterWidth},
-          contentContainerStyle,
-        ]}
-        showsHorizontalScrollIndicator={false}
-        decelerationRate="fast"
-        snapToOffsets={
-          tabOffsets.length === interests.length
-            ? tabOffsets.map(o => o.x - tokens.space.xl)
-            : undefined
-        }
-        onLayout={evt => setTotalWidth(evt.nativeEvent.layout.width)}
-        onContentSizeChange={width => setContentWidth(width)}
-        onScroll={evt => {
-          const newScrollX = evt.nativeEvent.contentOffset.x
-          setScrollX(newScrollX)
-        }}
-        scrollEventThrottle={16}>
-        {interests.map((interest, i) => {
-          const active = interest === selectedInterest && !disabled
-          return (
-            <TabComponent
-              key={interest}
-              onSelectTab={handleSelectTab}
-              active={active}
-              index={i}
-              interest={interest}
-              interestsDisplayName={interestsDisplayNames[interest]}
-              onLayout={handleTabLayout}
-            />
-          )
-        })}
-      </DraggableScrollView>
-      {isWeb && canScrollLeft && (
+      <BlockDrawerGesture>
+        <DraggableScrollView
+          ref={listRef}
+          contentContainerStyle={[
+            a.gap_sm,
+            {paddingHorizontal: gutterWidth},
+            contentContainerStyle,
+          ]}
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          snapToOffsets={
+            tabOffsets.filter(o => !!o).length === interests.length
+              ? tabOffsets.map(o => o.x - tokens.space.xl)
+              : undefined
+          }
+          onLayout={evt => setTotalWidth(evt.nativeEvent.layout.width)}
+          onContentSizeChange={width => setContentWidth(width)}
+          onScroll={evt => {
+            const newScrollX = evt.nativeEvent.contentOffset.x
+            setScrollX(newScrollX)
+          }}
+          scrollEventThrottle={16}>
+          {interests.map((interest, i) => {
+            const active = interest === selectedInterest && !disabled
+            return (
+              <TabComponent
+                key={interest}
+                onSelectTab={handleSelectTab}
+                active={active}
+                index={i}
+                interest={interest}
+                interestsDisplayName={interestsDisplayNames[interest]}
+                onLayout={handleTabLayout}
+              />
+            )
+          })}
+        </DraggableScrollView>
+      </BlockDrawerGesture>
+      {IS_WEB && canScrollLeft && (
         <View
           style={[
             a.absolute,
@@ -265,7 +273,7 @@ export function InterestTabs({
           </Button>
         </View>
       )}
-      {isWeb && canScrollRight && (
+      {IS_WEB && canScrollRight && (
         <View
           style={[
             a.absolute,

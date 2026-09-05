@@ -1,28 +1,17 @@
-import {Fragment, useMemo} from 'react'
-import {
-  Keyboard,
-  Platform,
-  type StyleProp,
-  View,
-  type ViewStyle,
-} from 'react-native'
-import {
-  type AppBskyFeedDefs,
-  AppBskyFeedPost,
-  type AppBskyGraphDefs,
-  AtUri,
-} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {Fragment, useMemo, useRef} from 'react'
+import {Keyboard, type StyleProp, View, type ViewStyle} from 'react-native'
+import {AtUri} from '@atproto/syntax'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {HITSLOP_10} from '#/lib/constants'
 import {makeListLink, makeProfileLink} from '#/lib/routes/links'
-import {isNative} from '#/platform/detection'
 import {
   type ThreadgateAllowUISetting,
   threadgateViewToAllowUISetting,
 } from '#/state/queries/threadgate'
-import {atoms as a, useTheme, web} from '#/alf'
+import {atoms as a, native, useTheme, web} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
 import {useDialogControl} from '#/components/Dialog'
@@ -30,23 +19,27 @@ import {
   PostInteractionSettingsDialog,
   usePrefetchPostInteractionSettings,
 } from '#/components/dialogs/PostInteractionSettingsDialog'
-import {CircleBanSign_Stroke2_Corner0_Rounded as CircleBanSign} from '#/components/icons/CircleBanSign'
-import {Earth_Stroke2_Corner0_Rounded as Earth} from '#/components/icons/Globe'
-import {Group3_Stroke2_Corner0_Rounded as Group} from '#/components/icons/Group'
+import {TinyChevronBottom_Stroke2_Corner0_Rounded as TinyChevronDownIcon} from '#/components/icons/Chevron'
+import {CircleBanSign_Stroke2_Corner0_Rounded as CircleBanSignIcon} from '#/components/icons/CircleBanSign'
+import {Earth_Stroke2_Corner0_Rounded as EarthIcon} from '#/components/icons/Globe'
+import {Group3_Stroke2_Corner0_Rounded as GroupIcon} from '#/components/icons/Group'
 import {InlineLinkText} from '#/components/Link'
 import {Text} from '#/components/Typography'
+import {useAnalytics} from '#/analytics'
+import {IS_NATIVE, IS_WEB} from '#/env'
+import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
-import {PencilLine_Stroke2_Corner0_Rounded as PencilLine} from './icons/Pencil'
 
 interface WhoCanReplyProps {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   isThreadAuthor: boolean
   style?: StyleProp<ViewStyle>
 }
 
 export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
-  const {_} = useLingui()
   const t = useTheme()
+  const ax = useAnalytics()
+  const {_} = useLingui()
   const infoDialogControl = useDialogControl()
   const editDialogControl = useDialogControl()
 
@@ -55,10 +48,7 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
    * unexpectedly, we should check to make sure it's for sure the root URI.
    */
   const rootUri =
-    bsky.dangerousIsType<AppBskyFeedPost.Record>(
-      post.record,
-      AppBskyFeedPost.isRecord,
-    ) && post.record.reply?.root
+    bsky.isType(app.bsky.feed.post, post.record) && post.record.reply?.root
       ? post.record.reply.root.uri
       : post.uri
   const settings = useMemo(() => {
@@ -69,6 +59,11 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
     postUri: post.uri,
     rootPostUri: rootUri,
   })
+  const prefetchPromise = useRef<Promise<void>>(Promise.resolve())
+
+  const prefetch = () => {
+    prefetchPromise.current = prefetchPostInteractionSettings()
+  }
 
   const anyoneCanReply =
     settings.length === 1 && settings[0].type === 'everybody'
@@ -80,12 +75,23 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
       : _(msg`Some people can reply`)
 
   const onPressOpen = () => {
-    if (isNative && Keyboard.isVisible()) {
+    if (IS_NATIVE && Keyboard.isVisible()) {
       Keyboard.dismiss()
     }
     if (isThreadAuthor) {
-      editDialogControl.open()
+      ax.metric('thread:click:editOwnThreadgate', {})
+
+      // wait on prefetch if it manages to resolve in under 200ms
+      // otherwise, proceed immediately and show the spinner -sfn
+      Promise.race([
+        prefetchPromise.current,
+        new Promise(res => setTimeout(res, 200)),
+      ]).finally(() => {
+        editDialogControl.open()
+      })
     } else {
+      ax.metric('thread:click:viewSomeoneElsesThreadgate', {})
+
       infoDialogControl.open()
     }
   }
@@ -98,35 +104,41 @@ export function WhoCanReply({post, isThreadAuthor, style}: WhoCanReplyProps) {
         }
         onPress={onPressOpen}
         {...(isThreadAuthor
-          ? Platform.select({
-              web: {
-                onHoverIn: prefetchPostInteractionSettings,
-              },
-              native: {
-                onPressIn: prefetchPostInteractionSettings,
-              },
-            })
+          ? IS_WEB
+            ? {onHoverIn: prefetch}
+            : {onPressIn: prefetch}
           : {})}
         hitSlop={HITSLOP_10}>
-        {({hovered}) => (
-          <View style={[a.flex_row, a.align_center, a.gap_xs, style]}>
+        {({hovered, focused, pressed}) => (
+          <View
+            style={[
+              a.flex_row,
+              a.align_center,
+              {gap: 3},
+              (hovered || focused || pressed) && native({opacity: 0.5}),
+              style,
+            ]}>
             <Icon
-              color={t.palette.contrast_400}
-              width={16}
+              color={
+                isThreadAuthor ? t.palette.primary_500 : t.palette.contrast_400
+              }
+              width={12}
               settings={settings}
             />
             <Text
               style={[
-                a.text_sm,
+                a.text_xs,
                 a.leading_tight,
-                t.atoms.text_contrast_medium,
-                hovered && a.underline,
+                isThreadAuthor
+                  ? {color: t.palette.primary_500}
+                  : t.atoms.text_contrast_high,
+                (hovered || focused || pressed) && web(a.underline),
               ]}>
               {description}
             </Text>
 
             {isThreadAuthor && (
-              <PencilLine width={12} fill={t.palette.primary_500} />
+              <TinyChevronDownIcon width={8} fill={t.palette.primary_500} />
             )}
           </View>
         )}
@@ -164,7 +176,11 @@ function Icon({
     settings.length === 0 ||
     settings.every(setting => setting.type === 'everybody')
   const isNobody = !!settings.find(gate => gate.type === 'nobody')
-  const IconComponent = isEverybody ? Earth : isNobody ? CircleBanSign : Group
+  const IconComponent = isEverybody
+    ? EarthIcon
+    : isNobody
+      ? CircleBanSignIcon
+      : GroupIcon
   return <IconComponent fill={color} width={width} />
 }
 
@@ -175,7 +191,7 @@ function WhoCanReplyDialog({
   embeddingDisabled,
 }: {
   control: Dialog.DialogControlProps
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   settings: ThreadgateAllowUISetting[]
   embeddingDisabled: boolean
 }) {
@@ -197,7 +213,7 @@ function WhoCanReplyDialog({
             embeddingDisabled={embeddingDisabled}
           />
         </View>
-        {isNative && (
+        {IS_NATIVE && (
           <Button
             label={_(msg`Close`)}
             onPress={() => control.close()}
@@ -221,7 +237,7 @@ function Rules({
   settings,
   embeddingDisabled,
 }: {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
   settings: ThreadgateAllowUISetting[]
   embeddingDisabled: boolean
 }) {
@@ -279,8 +295,8 @@ function Rule({
   lists,
 }: {
   rule: ThreadgateAllowUISetting
-  post: AppBskyFeedDefs.PostView
-  lists: AppBskyGraphDefs.ListViewBasic[] | undefined
+  post: app.bsky.feed.defs.PostView
+  lists: app.bsky.graph.defs.ListViewBasic[] | undefined
 }) {
   if (rule.type === 'mention') {
     return <Trans>mentioned users</Trans>

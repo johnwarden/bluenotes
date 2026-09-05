@@ -1,8 +1,8 @@
 import {useState} from 'react'
 import {View} from 'react-native'
-import {type AppBskyGraphDefs, AppBskyGraphStarterpack} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
@@ -10,7 +10,7 @@ import {isBlockedOrBlocking, isMuted} from '#/lib/moderation/blocked-and-muted'
 import {logger} from '#/logger'
 import {updateProfileShadow} from '#/state/cache/profile-shadow'
 import {getAllListMembers} from '#/state/queries/list-members'
-import {useAgent, useSession} from '#/state/session'
+import {useAppviewClient, usePdsClient, useSession} from '#/state/session'
 import {bulkWriteFollows} from '#/screens/Onboarding/util'
 import {AvatarStack} from '#/screens/Search/components/StarterPackCard'
 import {atoms as a, useBreakpoints, useTheme, web} from '#/alf'
@@ -19,6 +19,8 @@ import {Check_Stroke2_Corner0_Rounded as CheckIcon} from '#/components/icons/Che
 import {Loader} from '#/components/Loader'
 import * as Toast from '#/components/Toast'
 import {Text} from '#/components/Typography'
+import {useAnalytics} from '#/analytics'
+import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
 
 const IGNORED_ACCOUNT = 'did:plc:pifkcjimdcfwaxkanzhwxufp'
@@ -26,13 +28,15 @@ const IGNORED_ACCOUNT = 'did:plc:pifkcjimdcfwaxkanzhwxufp'
 export function StarterPackCard({
   view,
 }: {
-  view: AppBskyGraphDefs.StarterPackView
+  view: app.bsky.graph.defs.StarterPackView
 }) {
   const t = useTheme()
   const {_} = useLingui()
+  const ax = useAnalytics()
   const {currentAccount} = useSession()
   const {gtPhone} = useBreakpoints()
-  const agent = useAgent()
+  const appviewClient = useAppviewClient()
+  const pdsClient = usePdsClient()
   const queryClient = useQueryClient()
   const record = view.record
   const [isProcessing, setIsProcessing] = useState(false)
@@ -43,15 +47,15 @@ export function StarterPackCard({
 
     setIsProcessing(true)
 
-    let listItems: AppBskyGraphDefs.ListItemView[] = []
+    let listItems: app.bsky.graph.defs.ListItemView[] = []
     try {
-      listItems = await getAllListMembers(agent, view.list.uri)
+      listItems = await getAllListMembers(appviewClient, view.list.uri)
     } catch (e) {
       setIsProcessing(false)
       Toast.show(_(msg`An error occurred while trying to follow all`), {
         type: 'error',
       })
-      logger.error('Failed to get list members for starter pack', {
+      logger.error('Failed to get list members for Starter Pack', {
         safeMessage: e,
       })
       return
@@ -70,7 +74,10 @@ export function StarterPackCard({
 
     let followUris: Map<string, string>
     try {
-      followUris = await bulkWriteFollows(agent, dids)
+      followUris = await bulkWriteFollows(pdsClient, appviewClient, dids, {
+        uri: view.uri,
+        cid: view.cid,
+      })
     } catch (e) {
       setIsProcessing(false)
       Toast.show(_(msg`An error occurred while trying to follow all`), {
@@ -89,19 +96,14 @@ export function StarterPackCard({
       }
     })
     Toast.show(_(msg`All accounts have been followed!`), {type: 'success'})
-    logger.metric('starterPack:followAll', {
+    ax.metric('starterPack:followAll', {
       logContext: 'Onboarding',
       starterPack: view.uri,
       count: dids.length,
     })
   }
 
-  if (
-    !bsky.dangerousIsType<AppBskyGraphStarterpack.Record>(
-      record,
-      AppBskyGraphStarterpack.isRecord,
-    )
-  ) {
+  if (!bsky.isType(app.bsky.graph.starterpack, record)) {
     return null
   }
 

@@ -1,6 +1,5 @@
-import {useCallback, useMemo} from 'react'
-import {type RichText} from '@atproto/api'
-import Graphemer from 'graphemer'
+import {type RichText} from '@bsky/sdk/richtext'
+import {countGraphemes} from 'unicode-segmenter/grapheme'
 
 import {shortenLinks} from './rich-text-manip'
 
@@ -29,37 +28,18 @@ export function enforceLen(
   return str
 }
 
-export function useEnforceMaxGraphemeCount() {
-  const splitter = useMemo(() => new Graphemer(), [])
-
-  return useCallback(
-    (text: string, maxCount: number) => {
-      if (splitter.countGraphemes(text) > maxCount) {
-        return splitter.splitGraphemes(text).slice(0, maxCount).join('')
-      } else {
-        return text
-      }
-    },
-    [splitter],
-  )
-}
-
-export function useWarnMaxGraphemeCount({
+export function isOverMaxGraphemeCount({
   text,
   maxCount,
 }: {
   text: string | RichText
   maxCount: number
 }) {
-  const splitter = useMemo(() => new Graphemer(), [])
-
-  return useMemo(() => {
-    if (typeof text === 'string') {
-      return splitter.countGraphemes(text) > maxCount
-    } else {
-      return shortenLinks(text).graphemeLength > maxCount
-    }
-  }, [splitter, maxCount, text])
+  if (typeof text === 'string') {
+    return countGraphemes(text) > maxCount
+  } else {
+    return shortenLinks(text).graphemeLength > maxCount
+  }
 }
 
 export function countLines(str: string | undefined): number {
@@ -67,30 +47,12 @@ export function countLines(str: string | undefined): number {
   return str.match(/\n/g)?.length ?? 0
 }
 
-// Augments search query with additional syntax like `from:me`
-export function augmentSearchQuery(query: string, {did}: {did?: string}) {
-  // Don't do anything if there's no DID
-  if (!did) {
-    return query
-  }
-
-  // replace “smart quotes” with normal ones
-  // iOS keyboard will add fancy unicode quotes, but only normal ones work
-  query = query.replaceAll(/[“”]/g, '"')
-
-  // We don't want to replace substrings that are being "quoted" because those
-  // are exact string matches, so what we'll do here is to split them apart
-
-  // Even-indexed strings are unquoted, odd-indexed strings are quoted
-  const splits = query.split(/("(?:[^"\\]|\\.)*")/g)
-
-  return splits
-    .map((str, idx) => {
-      if (idx % 2 === 0) {
-        return str.replaceAll(/(^|\s)from:me(\s|$)/g, `$1${did}$2`)
-      }
-
-      return str
-    })
-    .join('')
+/**
+ * Normalizes a raw search query for the backend. The iOS keyboard inserts smart
+ * quotes, but only straight quotes work for exact-phrase matching. Operators
+ * like `from:me` are passed through untouched - the backend resolves `me` to
+ * the viewer.
+ */
+export function augmentSearchQuery(query: string) {
+  return query.replaceAll(/[“”]/g, '"')
 }

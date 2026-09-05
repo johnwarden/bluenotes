@@ -1,5 +1,5 @@
+import {type DidString} from '@atproto/syntax'
 import Constants from 'expo-constants'
-import {type Did} from '@atproto/api'
 
 import packageJson from '#/../package.json'
 
@@ -21,7 +21,8 @@ export const RELEASE_VERSION: string =
 /**
  * The env the app is running in e.g. development, testflight, production, e2e
  */
-export const ENV: string = process.env.EXPO_PUBLIC_ENV
+export const ENV: string = process.env.EXPO_PUBLIC_ENV as
+  'production' | 'testflight' | 'development' | 'e2e' | (string & {})
 
 /**
  * Indicates whether the app is running in TestFlight
@@ -32,6 +33,11 @@ export const IS_TESTFLIGHT = ENV === 'testflight'
  * Indicates whether the app is `__DEV__`
  */
 export const IS_DEV = __DEV__
+
+/**
+ * Indicates whether the app is running in a test environment
+ */
+export const IS_E2E = ENV === 'e2e'
 
 /**
  * Indicates whether the app is `__DEV__` or TestFlight
@@ -48,7 +54,7 @@ export const BUNDLE_IDENTIFIER: string =
 
 /**
  * This will always be in the format of YYMMDDHH, so that it always increases
- * for each build. This should only be used for StatSig reporting and shouldn't
+ * for each build. This should only be used for analytics reporting and shouldn't
  * be used to identify a specific bundle.
  */
 export const BUNDLE_DATE: number =
@@ -60,10 +66,7 @@ export const BUNDLE_DATE: number =
  * The log level for the app.
  */
 export const LOG_LEVEL = (process.env.EXPO_PUBLIC_LOG_LEVEL || 'info') as
-  | 'debug'
-  | 'info'
-  | 'warn'
-  | 'error'
+  'debug' | 'info' | 'warn' | 'error'
 
 /**
  * Enable debug logs for specific logger instances
@@ -73,14 +76,32 @@ export const LOG_DEBUG: string = process.env.EXPO_PUBLIC_LOG_DEBUG || ''
 /**
  * The DID of the Bluesky appview to proxy to
  */
-export const BLUESKY_PROXY_DID: Did | undefined =
-  process.env.EXPO_PUBLIC_BLUESKY_PROXY_DID
+export const BLUESKY_PROXY_DID: DidString =
+  process.env.EXPO_PUBLIC_BLUESKY_PROXY_DID || 'did:web:api.bsky.app'
 
 /**
  * The DID of the chat service to proxy to
  */
-export const CHAT_PROXY_DID: Did | undefined =
-  process.env.EXPO_PUBLIC_CHAT_PROXY_DID
+export const CHAT_PROXY_DID: DidString =
+  process.env.EXPO_PUBLIC_CHAT_PROXY_DID || 'did:web:api.bsky.chat'
+
+/**
+ * Metrics API host
+ */
+export const METRICS_API_HOST: string =
+  process.env.EXPO_PUBLIC_METRICS_API_HOST || 'https://events.bsky.app'
+
+/**
+ * Growthbook API host
+ */
+export const GROWTHBOOK_API_HOST: string =
+  process.env.EXPO_PUBLIC_GROWTHBOOK_API_HOST || `${METRICS_API_HOST}/gb`
+
+/**
+ * Growthbook client key
+ */
+export const GROWTHBOOK_CLIENT_KEY: string =
+  process.env.EXPO_PUBLIC_GROWTHBOOK_CLIENT_KEY || 'sdk-7gkUkGy9wguUjyFe'
 
 /**
  * Sentry DSN for telemetry
@@ -103,7 +124,38 @@ export const GCP_PROJECT_ID: number =
     : Number(process.env.EXPO_PUBLIC_GCP_PROJECT_ID)
 
 /**
- * Statsig API endpoint. If undefined, Statsig will be disabled.
+ * AT Protocol OAuth. `1`/`true` forces the OAuth sign-in UI. `0`/`false`
+ * forces password login. Unset keeps OAuth as the default on web.
+ * Not a secret. See docs/oauth.md.
  */
-export const STATSIG_API_ENDPOINT: string | undefined =
-  process.env.EXPO_PUBLIC_STATSIG_API_ENDPOINT
+export const OAUTH_ENV_FLAG: string | undefined = process.env.EXPO_PUBLIC_OAUTH
+
+/**
+ * URLs for the app config web worker. Can be a
+ * locally running server, see `env.example` for more.
+ */
+export const GEOLOCATION_DEV_URL = process.env.GEOLOCATION_DEV_URL
+export const GEOLOCATION_PROD_URL = `https://ip.bsky.app`
+export const GEOLOCATION_URL = IS_DEV
+  ? (GEOLOCATION_DEV_URL ?? GEOLOCATION_PROD_URL)
+  : GEOLOCATION_PROD_URL
+
+/**
+ * URLs for the live-event config web worker. Can be a
+ * locally running server, see `env.example` for more.
+ */
+export const LIVE_EVENTS_DEV_URL = process.env.LIVE_EVENTS_DEV_URL
+export const LIVE_EVENTS_PROD_URL = `https://live-events.workers.bsky.app`
+export const LIVE_EVENTS_URL = IS_DEV
+  ? (LIVE_EVENTS_DEV_URL ?? LIVE_EVENTS_PROD_URL)
+  : LIVE_EVENTS_PROD_URL
+
+/**
+ * URLs for the app-config web worker. Can be a
+ * locally running server, see `env.example` for more.
+ */
+export const APP_CONFIG_DEV_URL = process.env.APP_CONFIG_DEV_URL
+export const APP_CONFIG_PROD_URL = `https://app-config.workers.bsky.app`
+export const APP_CONFIG_URL = IS_DEV
+  ? (APP_CONFIG_DEV_URL ?? APP_CONFIG_PROD_URL)
+  : APP_CONFIG_PROD_URL

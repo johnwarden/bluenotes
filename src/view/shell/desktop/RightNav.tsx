@@ -1,12 +1,13 @@
 import {useEffect, useState} from 'react'
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
-import {useNavigation} from '@react-navigation/core'
+import {Trans} from '@lingui/react/macro'
+import {useNavigation} from '@react-navigation/native'
 
 import {FEEDBACK_FORM_URL} from '#/lib/constants'
-import {useKawaiiMode} from '#/state/preferences/kawaii'
 import {useSession} from '#/state/session'
+import {useLogoVariant} from '#/view/icons/useLogoVariant'
 import {DesktopFeeds} from '#/view/shell/desktop/Feeds'
 import {DesktopSearch} from '#/view/shell/desktop/Search'
 import {SidebarTrendingTopics} from '#/view/shell/desktop/SidebarTrendingTopics'
@@ -18,11 +19,11 @@ import {
   web,
 } from '#/alf'
 import {AppLanguageDropdown} from '#/components/AppLanguageDropdown'
-import {Divider} from '#/components/Divider'
 import {CENTER_COLUMN_OFFSET} from '#/components/Layout'
 import {InlineLinkText} from '#/components/Link'
 import {ProgressGuideList} from '#/components/ProgressGuide/List'
 import {Text} from '#/components/Typography'
+import {SidebarLiveEventFeedsBanner} from '#/features/liveEvents/components/SidebarLiveEventFeedsBanner'
 
 const disableFeedbackForm = true
 
@@ -47,16 +48,18 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
   const t = useTheme()
   const {_} = useLingui()
   const {hasSession, currentAccount} = useSession()
-  const kawaii = useKawaiiMode()
+  const logoVariant = useLogoVariant()
   const gutters = useGutters(['base', 0, 'base', 'wide'])
   const isSearchScreen = routeName === 'Search'
+  const isMessagesRelatedScreen = routeName.startsWith('Messages')
   const webqueryParams = useWebQueryParams()
   const searchQuery = webqueryParams?.q
-  const showTrending = !isSearchScreen || (isSearchScreen && !!searchQuery)
+  const showExploreScreenDuplicatedContent =
+    !isSearchScreen || (isSearchScreen && !!searchQuery)
   const {rightNavVisible, centerColumnOffset, leftNavMinimal} =
     useLayoutBreakpoints()
 
-  if (!rightNavVisible) {
+  if (!rightNavVisible || isMessagesRelatedScreen) {
     return null
   }
 
@@ -81,21 +84,20 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
            * Compensate for the right padding above (2px) to retain intended width.
            */
           width: width + gutters.paddingLeft + 2,
-          maxHeight: '100%',
-          overflowY: 'auto',
+          maxHeight: '100vh',
         }),
       ]}>
       {!isSearchScreen && <DesktopSearch />}
 
       {hasSession && (
         <>
-          <ProgressGuideList />
           <DesktopFeeds />
-          <Divider />
+          <ProgressGuideList />
         </>
       )}
 
-      {showTrending && <SidebarTrendingTopics />}
+      {showExploreScreenDuplicatedContent && <SidebarLiveEventFeedsBanner />}
+      {showExploreScreenDuplicatedContent && <SidebarTrendingTopics />}
 
       <Text style={[a.leading_snug, t.atoms.text_contrast_low]}>
         {!disableFeedbackForm && hasSession && (
@@ -105,28 +107,36 @@ export function DesktopRightNav({routeName}: {routeName: string}) {
                 email: currentAccount?.email,
                 handle: currentAccount?.handle,
               })}
+              style={[t.atoms.text_contrast_medium]}
               label={_(msg`Feedback`)}>
               {_(msg`Feedback`)}
             </InlineLinkText>
-            {' • '}
+            <Text style={[t.atoms.text_contrast_low]}>{' ∙ '}</Text>
           </>
         )}
         <InlineLinkText
           to="/about/support/privacy-policy"
+          style={[t.atoms.text_contrast_medium]}
           label={_(msg`Privacy`)}>
           {_(msg`Privacy`)}
         </InlineLinkText>
-        {' • '}
-        <InlineLinkText to="/about/support/tos" label={_(msg`Terms`)}>
+        <Text style={[t.atoms.text_contrast_low]}>{' ∙ '}</Text>
+        <InlineLinkText
+          to="/about/support/tos"
+          style={[t.atoms.text_contrast_medium]}
+          label={_(msg`Terms`)}>
           {_(msg`Terms`)}
         </InlineLinkText>
-        {' • '}
-        <InlineLinkText to="/about/support" label={_(msg`Help`)}>
+        <Text style={[t.atoms.text_contrast_low]}>{' ∙ '}</Text>
+        <InlineLinkText
+          label={_(msg`Help`)}
+          to="/about/support"
+          style={[t.atoms.text_contrast_medium]}>
           {_(msg`Help`)}
         </InlineLinkText>
       </Text>
 
-      {kawaii && (
+      {logoVariant === 'kawaii' && (
         <Text style={[t.atoms.text_contrast_medium, {marginTop: 12}]}>
           <Trans>
             Logo by{' '}

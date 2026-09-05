@@ -1,12 +1,12 @@
-import * as React from 'react'
+import {useState} from 'react'
 import {Animated} from 'react-native'
 
 export function useAnimatedValue(initialValue: number) {
-  const lazyRef = React.useRef<Animated.Value>(undefined)
-
-  if (lazyRef.current === undefined) {
-    lazyRef.current = new Animated.Value(initialValue)
-  }
-
-  return lazyRef.current as Animated.Value
+  /*
+   * A lazy `useState` initialiser rather than a lazily-populated ref: both
+   * construct once and keep the same instance, but reading a ref during render
+   * is a Rules of React violation.
+   */
+  const [value] = useState(() => new Animated.Value(initialValue))
+  return value
 }

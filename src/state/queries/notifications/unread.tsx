@@ -2,16 +2,25 @@
  * A kind of companion API to ./feed.ts. See that file for more info.
  */
 
-import React, {useRef} from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import {AppState} from 'react-native'
+import {type ISODatetimeString} from '@atproto/syntax'
 import {useQueryClient} from '@tanstack/react-query'
-import EventEmitter from 'eventemitter3'
+import {EventEmitter} from 'eventemitter3'
 
 import BroadcastChannel from '#/lib/broadcast'
 import {resetBadgeCount} from '#/lib/notifications/notifications'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {truncateAndInvalidate} from '#/state/queries/util'
-import {useAgent, useSession} from '#/state/session'
+import {useAppviewClient, useSession} from '#/state/session'
+import {app} from '#/lexicons'
 import {RQKEY as RQKEY_NOTIFS} from './feed'
 import {type CachedFeedPage, type FeedPage} from './types'
 import {fetchPage} from './util'
@@ -33,10 +42,10 @@ interface ApiContext {
   getCachedUnreadPage: () => FeedPage | undefined
 }
 
-const stateContext = React.createContext<StateContext>('')
+const stateContext = createContext<StateContext>('')
 stateContext.displayName = 'NotificationsUnreadStateContext'
 
-const apiContext = React.createContext<ApiContext>({
+const apiContext = createContext<ApiContext>({
   async markAllRead() {},
   async checkUnread() {},
   getCachedUnreadPage: () => undefined,
@@ -45,21 +54,21 @@ apiContext.displayName = 'NotificationsUnreadApiContext'
 
 export function Provider({children}: React.PropsWithChildren<{}>) {
   const {hasSession} = useSession()
-  const agent = useAgent()
+  const client = useAppviewClient()
   const queryClient = useQueryClient()
   const moderationOpts = useModerationOpts()
 
-  const [numUnread, setNumUnread] = React.useState('')
+  const [numUnread, setNumUnread] = useState('')
 
-  const checkUnreadRef = React.useRef<ApiContext['checkUnread'] | null>(null)
-  const cacheRef = React.useRef<CachedFeedPage>({
+  const checkUnreadRef = useRef<ApiContext['checkUnread'] | null>(null)
+  const cacheRef = useRef<CachedFeedPage>({
     usableInFeed: false,
     syncedAt: new Date(),
     data: undefined,
     unreadCount: 0,
   })
 
-  React.useEffect(() => {
+  useEffect(() => {
     function markAsUnusable() {
       if (cacheRef.current) {
         cacheRef.current.usableInFeed = false
@@ -72,7 +81,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   }, [])
 
   // periodic sync
-  React.useEffect(() => {
+  useEffect(() => {
     if (!hasSession || !checkUnreadRef.current) {
       return
     }
@@ -85,7 +94,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   }, [hasSession])
 
   // listen for broadcasts
-  React.useEffect(() => {
+  useEffect(() => {
     const listener = ({data}: MessageEvent) => {
       cacheRef.current = {
         usableInFeed: false,
@@ -109,13 +118,14 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
   const isFetchingRef = useRef(false)
 
   // create API
-  const api = React.useMemo<ApiContext>(() => {
+  const api = useMemo<ApiContext>(() => {
     return {
       async markAllRead() {
         // update server
-        await agent.updateSeenNotifications(
-          cacheRef.current.syncedAt.toISOString(),
-        )
+        await client.call(app.bsky.notification.updateSeen, {
+          // toISOString always emits the Z-suffixed form the format requires
+          seenAt: cacheRef.current.syncedAt.toISOString() as ISODatetimeString,
+        })
 
         // update & broadcast
         setNumUnread('')
@@ -128,7 +138,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         isPoll,
       }: {invalidate?: boolean; isPoll?: boolean} = {}) {
         try {
-          if (!agent.session) return
+          if (!hasSession) return
           if (AppState.currentState !== 'active') {
             return
           }
@@ -149,7 +159,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 
           // count
           const {page, indexedAt: lastIndexed} = await fetchPage({
-            agent,
+            client,
             cursor: undefined,
             limit: 40,
             queryClient,
@@ -200,7 +210,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         }
       },
     }
-  }, [setNumUnread, queryClient, moderationOpts, agent])
+  }, [setNumUnread, queryClient, moderationOpts, client, hasSession])
   checkUnreadRef.current = api.checkUnread
 
   return (
@@ -211,11 +221,11 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
 }
 
 export function useUnreadNotifications() {
-  return React.useContext(stateContext)
+  return useContext(stateContext)
 }
 
 export function useUnreadNotificationsApi() {
-  return React.useContext(apiContext)
+  return useContext(apiContext)
 }
 
 function countUnread(page: FeedPage) {

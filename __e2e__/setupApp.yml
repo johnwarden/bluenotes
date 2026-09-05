@@ -3,16 +3,22 @@ appId: xyz.blueskyweb.app
 - launchApp:
     appId: "xyz.blueskyweb.app"
     clearState: true
-- waitForAnimationToEnd
-- tapOn: "http://localhost:8081"
-- waitForAnimationToEnd
 - extendedWaitUntil:
-    visible: "Continue"
-- swipe:
-    from: "Bluesky"
-    direction: DOWN
-    duration: 100
-- tapOn:
-    id: e2eProxyHeaderInput
-- inputText: ${output.result}
-- pressKey: Enter
+    visible:
+      id: e2eProxyHeaderInput
+    timeout: 180000
+- extendedWaitUntil:
+    visible: "Sign in"
+    timeout: 180000
+- retry:
+    maxRetries: 3
+    commands:
+      - tapOn:
+          id: e2eProxyHeaderInput
+      - eraseText
+      - inputText: ${output.result}
+      - pressKey: Enter
+      - extendedWaitUntil:
+          visible:
+            id: e2eSignInAlice
+          timeout: 10000

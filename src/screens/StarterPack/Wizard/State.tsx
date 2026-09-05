@@ -1,13 +1,9 @@
-import React from 'react'
-import {
-  type AppBskyFeedDefs,
-  type AppBskyGraphDefs,
-  AppBskyGraphStarterpack,
-} from '@atproto/api'
-import {msg, plural} from '@lingui/macro'
+import {createContext, useContext, useReducer} from 'react'
+import {msg, plural} from '@lingui/core/macro'
 
 import {STARTER_PACK_MAX_SIZE} from '#/lib/constants'
-import * as Toast from '#/view/com/util/Toast'
+import * as Toast from '#/components/Toast'
+import {app} from '#/lexicons'
 import * as bsky from '#/types/bsky'
 
 const steps = ['Details', 'Profiles', 'Feeds'] as const
@@ -21,7 +17,7 @@ type Action =
   | {type: 'SetDescription'; description: string}
   | {type: 'AddProfile'; profile: bsky.profile.AnyProfileView}
   | {type: 'RemoveProfile'; profileDid: string}
-  | {type: 'AddFeed'; feed: AppBskyFeedDefs.GeneratorView}
+  | {type: 'AddFeed'; feed: app.bsky.feed.defs.GeneratorView}
   | {type: 'RemoveFeed'; feedUri: string}
   | {type: 'SetProcessing'; processing: boolean}
   | {type: 'SetError'; error: string}
@@ -32,7 +28,7 @@ interface State {
   name?: string
   description?: string
   profiles: bsky.profile.AnyProfileView[]
-  feeds: AppBskyFeedDefs.GeneratorView[]
+  feeds: app.bsky.feed.defs.GeneratorView[]
   processing: boolean
   error?: string
   transitionDirection: 'Backward' | 'Forward'
@@ -41,12 +37,12 @@ interface State {
 
 type TStateContext = [State, (action: Action) => void]
 
-const StateContext = React.createContext<TStateContext>([
+const StateContext = createContext<TStateContext>([
   {} as State,
   (_: Action) => {},
 ])
 StateContext.displayName = 'StarterPackWizardStateContext'
-export const useWizardState = () => React.useContext(StateContext)
+export const useWizardState = () => useContext(StateContext)
 
 function reducer(state: State, action: Action): State {
   let updatedState = state
@@ -80,7 +76,9 @@ function reducer(state: State, action: Action): State {
           msg`You may only add up to ${plural(STARTER_PACK_MAX_SIZE, {
             other: `${STARTER_PACK_MAX_SIZE} profiles`,
           })}`.message ?? '',
-          'info',
+          {
+            type: 'info',
+          },
         )
       } else {
         updatedState = {...state, profiles: [...state.profiles, action.profile]}
@@ -96,7 +94,9 @@ function reducer(state: State, action: Action): State {
       break
     case 'AddFeed':
       if (state.feeds.length >= 3) {
-        Toast.show(msg`You may only add up to 3 feeds`.message ?? '', 'info')
+        Toast.show(msg`You may only add up to 3 feeds`.message ?? '', {
+          type: 'info',
+        })
       } else {
         updatedState = {...state, feeds: [...state.feeds, action.feed]}
       }
@@ -121,8 +121,8 @@ export function Provider({
   targetProfile,
   children,
 }: {
-  starterPack?: AppBskyGraphDefs.StarterPackView
-  listItems?: AppBskyGraphDefs.ListItemView[]
+  starterPack?: app.bsky.graph.defs.StarterPackView
+  listItems?: app.bsky.graph.defs.ListItemView[]
   targetProfile: bsky.profile.AnyProfileView
   children: React.ReactNode
 }) {
@@ -131,14 +131,15 @@ export function Provider({
 
     if (
       starterPack &&
-      bsky.validate(starterPack.record, AppBskyGraphStarterpack.validateRecord)
+      bsky.matches(app.bsky.graph.starterpack, starterPack.record)
     ) {
       return {
         canNext: true,
         currentStep: 'Details',
         name: starterPack.record.name,
         description: starterPack.record.description,
-        profiles: listItems?.map(i => i.subject) ?? [],
+        profiles:
+          listItems?.filter(i => !i.subjectOptedOut).map(i => i.subject) ?? [],
         feeds: starterPack.feeds ?? [],
         processing: false,
         transitionDirection: 'Forward',
@@ -157,7 +158,7 @@ export function Provider({
     }
   }
 
-  const [state, dispatch] = React.useReducer(reducer, null, createInitialState)
+  const [state, dispatch] = useReducer(reducer, null, createInitialState)
 
   return (
     <StateContext.Provider value={[state, dispatch]}>

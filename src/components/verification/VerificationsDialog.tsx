@@ -1,15 +1,14 @@
 import {View} from 'react-native'
-import {type AppBskyActorDefs} from '@atproto/api'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 
 import {urls} from '#/lib/constants'
 import {getUserDisplayName} from '#/lib/getUserDisplayName'
-import {logger} from '#/logger'
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
 import {useProfileQuery} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
-import {atoms as a, useBreakpoints, useTheme} from '#/alf'
+import {atoms as a, useBreakpoints, useTheme, web} from '#/alf'
 import {Admonition} from '#/components/Admonition'
 import {Button, ButtonIcon, ButtonText} from '#/components/Button'
 import * as Dialog from '#/components/Dialog'
@@ -20,6 +19,8 @@ import * as ProfileCard from '#/components/ProfileCard'
 import {Text} from '#/components/Typography'
 import {type FullVerificationState} from '#/components/verification'
 import {VerificationRemovePrompt} from '#/components/verification/VerificationRemovePrompt'
+import {useAnalytics} from '#/analytics'
+import {type app} from '#/lexicons'
 import type * as bsky from '#/types/bsky'
 
 export {useDialogControl} from '#/components/Dialog'
@@ -34,7 +35,7 @@ export function VerificationsDialog({
   verificationState: FullVerificationState
 }) {
   return (
-    <Dialog.Outer control={control}>
+    <Dialog.Outer control={control} nativeOptions={{preventExpansion: true}}>
       <Dialog.Handle />
       <Inner
         control={control}
@@ -55,6 +56,7 @@ function Inner({
   verificationState: FullVerificationState
 }) {
   const t = useTheme()
+  const ax = useAnalytics()
   const {_} = useLingui()
   const {gtMobile} = useBreakpoints()
 
@@ -76,7 +78,8 @@ function Inner({
     <Dialog.ScrollableInner
       label={label}
       style={[
-        gtMobile ? {width: 'auto', maxWidth: 400, minWidth: 200} : a.w_full,
+        a.w_full,
+        gtMobile && web({width: 'auto', maxWidth: 400, minWidth: 200}),
       ]}>
       <View style={[a.gap_sm, a.pb_lg]}>
         <Text style={[a.text_2xl, a.font_semi_bold, a.pr_4xl, a.leading_tight]}>
@@ -158,13 +161,9 @@ function Inner({
           color="secondary"
           style={[a.justify_center]}
           onPress={() => {
-            logger.metric(
-              'verification:learn-more',
-              {
-                location: 'verificationsDialog',
-              },
-              {statsig: true},
-            )
+            ax.metric('verification:learn-more', {
+              location: 'verificationsDialog',
+            })
           }}>
           <ButtonText>
             <Trans context="english-only-resource">Learn more</Trans>
@@ -182,7 +181,7 @@ function VerifierCard({
   subject,
   outerDialogControl,
 }: {
-  verification: AppBskyActorDefs.VerificationView
+  verification: app.bsky.actor.defs.VerificationView
   subject: bsky.profile.AnyProfileView
   outerDialogControl: Dialog.DialogControlProps
 }) {

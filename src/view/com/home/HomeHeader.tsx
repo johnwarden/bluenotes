@@ -1,7 +1,10 @@
-import React from 'react'
+import {useCallback, useMemo} from 'react'
+import {useLingui} from '@lingui/react/macro'
 import {useNavigation} from '@react-navigation/native'
 
+import {TIMELINE_SAVED_FEED} from '#/lib/constants'
 import {type NavigationProp} from '#/lib/routes/types'
+import {getLocalizedFeedName} from '#/lib/strings/feed-names'
 import {type FeedSourceInfo} from '#/state/queries/feed'
 import {useSession} from '#/state/session'
 import {type RenderTabBarFnProps} from '#/view/com/pager/Pager'
@@ -12,38 +15,39 @@ export function HomeHeader(
   props: RenderTabBarFnProps & {
     testID?: string
     onPressSelected: () => void
-    feeds: FeedSourceInfo[]
+    feeds: Pick<FeedSourceInfo, 'displayName' | 'uri'>[]
   },
 ) {
   const {feeds, onSelect: onSelectProp} = props
   const {hasSession} = useSession()
+  const {t: l, i18n} = useLingui()
   const navigation = useNavigation<NavigationProp>()
 
-  const hasPinnedCustom = React.useMemo<boolean>(() => {
+  const hasPinnedCustom = useMemo<boolean>(() => {
     if (!hasSession) return false
     return feeds.some(tab => {
-      const isFollowing = tab.uri === 'following'
+      const isFollowing = tab.uri === TIMELINE_SAVED_FEED.value
       return !isFollowing
     })
   }, [feeds, hasSession])
 
-  const items = React.useMemo(() => {
-    const pinnedNames = feeds.map(f => f.displayName)
+  const items = useMemo(() => {
+    const pinnedNames = feeds.map(f => getLocalizedFeedName(f, i18n))
     if (!hasSession) {
       // When logged out, add Feeds and Community Notes tabs
-      return pinnedNames.concat(['Feeds ✨', 'Community Notes'])
+      return pinnedNames.concat([l`Feeds ✨`, l`Community Notes`])
     }
     if (!hasPinnedCustom) {
-      return pinnedNames.concat('Feeds ✨')
+      return pinnedNames.concat(l`Feeds ✨`)
     }
     return pinnedNames
-  }, [hasPinnedCustom, feeds, hasSession])
+  }, [i18n, l, hasPinnedCustom, feeds, hasSession])
 
-  const onPressFeedsLink = React.useCallback(() => {
+  const onPressFeedsLink = useCallback(() => {
     navigation.navigate('Feeds')
   }, [navigation])
 
-  const onPressCommunityNotes = React.useCallback(() => {
+  const onPressCommunityNotes = useCallback(() => {
     // Navigate to Community Notes feeds list
     // Note: On desktop web when logged in, CN is in left nav so this isn't called
     // On mobile (native/web) when logged in, CN is in bottom bar so this isn't called
@@ -51,7 +55,7 @@ export function HomeHeader(
     navigation.navigate('CommunityNotes', {tab: 'feeds'})
   }, [navigation])
 
-  const onSelect = React.useCallback(
+  const onSelect = useCallback(
     (index: number) => {
       if (!hasSession) {
         // When logged out: index 0 is Discover feed, 1 is Feeds, 2 is Community Notes
@@ -89,6 +93,7 @@ export function HomeHeader(
         items={items}
         dragProgress={props.dragProgress}
         dragState={props.dragState}
+        transparent
       />
     </HomeHeaderLayout>
   )
