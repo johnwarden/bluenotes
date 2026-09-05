@@ -34,7 +34,11 @@ export async function oauthCreateAgent(
   // Password login sets the AppView proxy *after* PDS getSession. Doing it
   // first sends com.atproto.server.getSession through AppView, which fails
   // and leaves InnerApp anonymous even though the code exchange succeeded.
+  logger.warn(`oauth: getSession before AppView proxy`)
   const account = await oauthAgentToSessionAccountOrThrow(agent, session)
+  logger.warn(`oauth: OauthBskyAppAgent profile loaded`, {
+    did: account.did,
+  })
   agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
   const moderation = configureModerationForAccount(agent, account)

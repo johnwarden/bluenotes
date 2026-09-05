@@ -151,9 +151,11 @@ npx serve -l 19006 -s web-build
 2. Sign in with a real Bluesky handle. Consent on bsky.social (full scopes).
 3. Callback must stay on `http://127.0.0.1:19006` (or `/auth/web/callback`)
    and show **profile/avatar**, not Sign in / Create account.
-4. Console: `oauth: exchanging authorization response via initCallback`
-   (not `session: resumeSession failed` as the only line). A second
-   `initOAuthClient()` caller must reuse the same promise.
+4. Console breadcrumbs (no `code`/`state` values): `oauth: init starting`
+   with `hasCode`/`hasState`, `oauth: init finished` with
+   `hasSession`/`hasStateProperty`, then `oauth: login() established
+   OauthBskyAppAgent`. Token/CORS/DPoP/redirect_uri failures log as
+   `oauth: client initCallback failed` with `name` + `message`.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

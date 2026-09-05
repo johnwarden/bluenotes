@@ -17,6 +17,8 @@ import {
 } from '#/lib/oauth/loopback-callback'
 import {
   createResettableSingleton,
+  describeOauthCallbackParams,
+  describeOauthInitResult,
   exchangeOrRestoreOauthSession,
 } from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
@@ -123,9 +125,24 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
     oauthClient.readCallbackParams() ??
     readOauthCallbackParams(window.location.href)
   const metadata = resolveWebClientMetadata(currentOrigin())
+  const callbackShape = describeOauthCallbackParams(params)
+  // warn on callback loads so a production-filtered info transport still
+  // leaves a console breadcrumb for live loopback smoke.
+  const startMeta = {
+    ...callbackShape,
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    hashPresent: Boolean(window.location.hash),
+    searchPresent: Boolean(window.location.search),
+  }
+  if (callbackShape.present) {
+    logger.warn(`oauth: init starting`, startMeta)
+  } else {
+    logger.info(`oauth: init starting`, startMeta)
+  }
 
   try {
-    return await exchangeOrRestoreOauthSession({
+    const result = await exchangeOrRestoreOauthSession({
       callbackParams: params,
       libraryInit: () => oauthClient.init(),
       libraryInitCallback: (callbackParams, redirectUri) =>
@@ -152,12 +169,25 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
         )
       },
     })
+    const finishMeta = describeOauthInitResult(result)
+    if (callbackShape.present) {
+      logger.warn(`oauth: init finished`, finishMeta)
+    } else {
+      logger.info(`oauth: init finished`, finishMeta)
+    }
+    return result
   } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e))
     logger.error(
       params
         ? `oauth: client initCallback failed`
         : `oauth: client init failed`,
-      {message: e},
+      {
+        message: err.message,
+        name: err.name,
+        // CORS / DPoP / redirect_uri mismatches show up in the message.
+        ...describeOauthCallbackParams(params),
+      },
     )
     throw e
   }

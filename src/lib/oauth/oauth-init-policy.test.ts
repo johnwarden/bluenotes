@@ -2,11 +2,61 @@ import {describe, expect, it, jest} from '@jest/globals'
 
 import {
   createResettableSingleton,
+  describeOauthCallbackParams,
+  describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   wrapBootstrapOauthInit,
 } from './oauth-init-policy'
+
+describe('describeOauthCallbackParams', () => {
+  it('reports code/state presence without exposing values', () => {
+    const params = new URLSearchParams({
+      code: 'SECRET_CODE',
+      state: 'SECRET_STATE',
+      iss: 'https://bsky.social',
+    })
+    const described = describeOauthCallbackParams(params)
+    expect(described).toEqual({
+      present: true,
+      hasCode: true,
+      hasState: true,
+      hasError: false,
+    })
+    expect(JSON.stringify(described)).not.toContain('SECRET')
+  })
+
+  it('includes the OAuth error token when the AS denied consent', () => {
+    expect(
+      describeOauthCallbackParams(
+        new URLSearchParams({state: 's', error: 'access_denied'}),
+      ),
+    ).toEqual({
+      present: true,
+      hasCode: false,
+      hasState: true,
+      hasError: true,
+      error: 'access_denied',
+    })
+  })
+})
+
+describe('describeOauthInitResult', () => {
+  it('distinguishes callback-shaped results from restores', () => {
+    expect(
+      describeOauthInitResult({session: {did: 'did:plc:x'}, state: 'xyz'}),
+    ).toEqual({hasSession: true, hasStateProperty: true})
+    expect(describeOauthInitResult({session: {did: 'did:plc:x'}})).toEqual({
+      hasSession: true,
+      hasStateProperty: false,
+    })
+    expect(describeOauthInitResult(undefined)).toEqual({
+      hasSession: false,
+      hasStateProperty: false,
+    })
+  })
+})
 
 describe('shouldPropagateOauthInitError', () => {
   it('propagates when an authorization response is present', () => {

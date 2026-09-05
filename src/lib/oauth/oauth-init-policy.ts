@@ -27,6 +27,41 @@ export type OauthExchangeResult<TSession> = {
   state?: string
 }
 
+/** Safe to log: never includes `code` or `state` values. */
+export function describeOauthCallbackParams(params: URLSearchParams | null): {
+  present: boolean
+  hasCode: boolean
+  hasState: boolean
+  hasError: boolean
+  error?: string
+} {
+  if (!params) {
+    return {present: false, hasCode: false, hasState: false, hasError: false}
+  }
+  return {
+    present: true,
+    hasCode: params.has('code'),
+    hasState: params.has('state'),
+    hasError: params.has('error'),
+    ...(params.get('error') ? {error: params.get('error') ?? undefined} : {}),
+  }
+}
+
+/** Safe to log: session/state *shape* only, no tokens. */
+export function describeOauthInitResult(
+  result: {session?: unknown; state?: string} | undefined,
+): {
+  hasSession: boolean
+  hasStateProperty: boolean
+} {
+  return {
+    hasSession: Boolean(result?.session),
+    hasStateProperty: Boolean(
+      result && Object.prototype.hasOwnProperty.call(result, 'state'),
+    ),
+  }
+}
+
 export function shouldPropagateOauthInitError(
   hasCallbackParams: boolean,
 ): boolean {

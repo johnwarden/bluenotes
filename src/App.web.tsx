@@ -96,6 +96,7 @@ function InnerApp() {
       if (
         shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
       ) {
+        logger.warn(`oauth: login() starting OauthBskyAppAgent`)
         await login(
           {
             service: '',
@@ -105,6 +106,7 @@ function InnerApp() {
           },
           'LoginForm',
         )
+        logger.warn(`oauth: login() established OauthBskyAppAgent`)
         clearOauthCallbackUrl()
         return true
       }
