@@ -86,6 +86,11 @@ describe('classifyOauthExchangeError', () => {
     expect(
       classifyOauthExchangeError(new Error('invalid_grant')),
     ).toMatchObject({kind: 'token'})
+    expect(
+      classifyOauthExchangeError(
+        new Error('Unknown authorization session "abc"'),
+      ),
+    ).toMatchObject({kind: 'pkce_state'})
   })
 })
 
@@ -289,16 +294,40 @@ describe('exchangeOrRestoreOauthSession', () => {
     ).rejects.toThrow('redirect URI mismatch')
   })
 
-  it('strips the address bar before exchanging so a refresh cannot replay the code', async () => {
+  it('does not strip the address bar until the exchange succeeds', async () => {
     const strip = jest.fn()
+    const order: string[] = []
     await exchangeOrRestoreOauthSession({
       callbackParams: params,
       libraryInit: async () => undefined,
-      libraryInitCallback: async () => ({session, state: 's'}),
+      libraryInitCallback: async () => {
+        order.push('exchange')
+        return {session, state: 's'}
+      },
       resolveRedirectUri: () => 'http://127.0.0.1:19006/',
-      stripCallbackFromAddressBar: strip,
+      stripCallbackFromAddressBar: () => {
+        order.push('strip')
+        strip()
+      },
     })
+    expect(order).toEqual(['exchange', 'strip'])
     expect(strip).toHaveBeenCalledTimes(1)
+  })
+
+  it('leaves #code= in the address bar when the token request fails', async () => {
+    const strip = jest.fn()
+    await expect(
+      exchangeOrRestoreOauthSession({
+        callbackParams: params,
+        libraryInit: async () => undefined,
+        libraryInitCallback: async () => {
+          throw new Error('token exchange failed')
+        },
+        resolveRedirectUri: () => 'http://127.0.0.1:19006/',
+        stripCallbackFromAddressBar: strip,
+      }),
+    ).rejects.toThrow('token exchange failed')
+    expect(strip).not.toHaveBeenCalled()
   })
 
   it('restores via library init() when this load is not a callback', async () => {

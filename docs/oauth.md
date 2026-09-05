@@ -153,11 +153,12 @@ npx serve -l 19006 -s web-build
    and show **profile/avatar**, not Sign in / Create account.
 4. On the callback document **before** any rewrite/strip, DevTools must
    show `oauth: callback document {"hasCode":true,"hasState":true,...}`
-   (also `console.info`, so it survives a production logger). Then
-   `oauth: init finished` (`hasSession`/`hasStateProperty`) and
-   `oauth: login() established OauthBskyAppAgent`. Token failures log
-   `oauth: client initCallback failed` with `kind` = `cors` | `dpop` |
-   `redirect_uri` | `token` plus `name`/`message`.
+   (`console.info` from `index.web.js`'s first import). The hash must
+   **stay** until the token exchange succeeds; a failed exchange leaves
+   `#code=` so it is not a silent anonymous landing. Then
+   `oauth: init finished` and `oauth: login() established
+   OauthBskyAppAgent`. Failures: `kind` = `cors` | `dpop` |
+   `redirect_uri` | `pkce_state` | `token`.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

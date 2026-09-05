@@ -3,6 +3,7 @@ import {
   type OAuthClientMetadataInput,
 } from '@atproto/oauth-client-browser'
 
+import {getSnapshottedOauthCallbackParams} from '#/lib/oauth/callback-snapshot'
 import {
   getOauthHandleResolver,
   getOauthScope,
@@ -119,10 +120,11 @@ function reportCallbackDocument(params: URLSearchParams | null): void {
  * after a localhost → 127.0.0.1 navigation (new document).
  */
 const initialCallbackParams: URLSearchParams | null = (() => {
+  const fromEntry = getSnapshottedOauthCallbackParams()
   if (typeof window === 'undefined') {
-    return null
+    return fromEntry
   }
-  const params = readOauthCallbackParams(window.location.href)
+  const params = fromEntry ?? readOauthCallbackParams(window.location.href)
   reportCallbackDocument(params)
   return rewriteLocalhostOriginIfNeeded() ? null : params
 })()
@@ -175,11 +177,20 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
     const result = await exchangeOrRestoreOauthSession({
       callbackParams: params,
       libraryInit: () => oauthClient.init(),
-      libraryInitCallback: (callbackParams, redirectUri) =>
-        oauthClient.initCallback(
-          callbackParams,
-          redirectUri as LibraryRedirectUri,
-        ),
+      libraryInitCallback: async (callbackParams, redirectUri) => {
+        // Do not use initCallback(): it history.replaceState()s the hash
+        // *before* exchangeCode. Live consent then landed on a clean URL
+        // with no session. callback() uses the snapshotted params.
+        const exchanged = await oauthClient.callback(callbackParams, {
+          redirect_uri: redirectUri as LibraryRedirectUri,
+        })
+        try {
+          await oauthClient.restore(exchanged.session.sub, false)
+        } catch {
+          // Session is already in IndexedDB; restore only pins last-sub.
+        }
+        return exchanged
+      },
       resolveRedirectUri: () =>
         oauthClient.findRedirectUrl() ??
         matchOauthRedirectUri(window.location.href, metadata.redirect_uris),
@@ -195,7 +206,7 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
       },
       onForcedCallback: () => {
         logger.warn(
-          `oauth: exchanging authorization response via initCallback (skipping library init)`,
+          `oauth: exchanging authorization response via callback() (hash still present)`,
         )
       },
     })

@@ -68,6 +68,7 @@ export type OauthExchangeErrorKind =
   | 'cors'
   | 'dpop'
   | 'redirect_uri'
+  | 'pkce_state'
   | 'token'
   | 'other'
 
@@ -90,6 +91,10 @@ export function classifyOauthExchangeError(error: unknown): {
     kind = 'dpop'
   } else if (/redirect[_ ]?uri/.test(text)) {
     kind = 'redirect_uri'
+  } else if (
+    /unknown authorization session|missing "state"|pkce|verifier/.test(text)
+  ) {
+    kind = 'pkce_state'
   } else if (
     /invalid_grant|invalid_client|unauthorized_client|token/.test(text)
   ) {
@@ -202,12 +207,15 @@ export async function exchangeOrRestoreOauthSession<TSession>(opts: {
         'OAuth callback could not be completed: redirect URI mismatch',
       )
     }
-    opts.stripCallbackFromAddressBar?.()
     opts.onForcedCallback?.()
+    // Exchange *before* stripping the address bar. Library initCallback()
+    // and #18 both cleared #code= first; a failed token request then
+    // looked like a clean anonymous landing (live 2026-09-05 STOP).
     const result = await opts.libraryInitCallback(
       opts.callbackParams,
       redirectUri,
     )
+    opts.stripCallbackFromAddressBar?.()
     return {session: result.session, state: result.state ?? ''}
   }
 

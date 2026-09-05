@@ -1,3 +1,4 @@
+import '#/lib/oauth/callback-snapshot'
 import '#/logger/sentry/setup' // must be near top
 import '#/view/icons'
 import './style.css'
