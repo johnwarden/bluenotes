@@ -99,10 +99,17 @@ export async function oauthAgentToSessionAccount(
 export class OauthBskyAppAgent extends Agent {
   session?: AtpSessionData
   readonly service: URL
+  /**
+   * The live `@atproto/oauth-client` session. Community Notes and other
+   * non-PDS fetches must use this (via `fetchWithAgentAuth`) so they send
+   * the DPoP-bound access token instead of the empty persisted `accessJwt`.
+   */
+  readonly oauthSession: OAuthSession
   private unsubscribeSessionEvents?: () => void
 
   constructor(session: OAuthSession) {
     super(session)
+    this.oauthSession = session
     this.service = new URL(session.serverMetadata.issuer)
   }
 
