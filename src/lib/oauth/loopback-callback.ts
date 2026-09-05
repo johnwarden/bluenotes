@@ -64,6 +64,17 @@ export function readOauthCallbackParams(href: string): URLSearchParams | null {
  * with path, query, and fragment preserved. Returns null when no rewrite
  * is needed (already an IP literal, or not loopback).
  */
+/**
+ * Path-only URL after the authorization response has been snapshotted.
+ * Library initCallback() only strips the constructor responseMode
+ * (query *or* fragment), so a loopback client on `query` would otherwise
+ * leave `#code=&state=` in the address bar for a refresh to replay.
+ */
+export function hrefWithoutOauthCallback(href: string): string {
+  const url = new URL(href)
+  return `${url.pathname || '/'}`
+}
+
 export function canonicalizeLoopbackHref(href: string): string | null {
   const url = new URL(href)
   if (url.hostname !== 'localhost') {

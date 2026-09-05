@@ -11,6 +11,7 @@ import {
 } from '#/lib/oauth/config'
 import {
   canonicalizeLoopbackHref,
+  hrefWithoutOauthCallback,
   matchOauthRedirectUri,
   readOauthCallbackParams,
 } from '#/lib/oauth/loopback-callback'
@@ -158,6 +159,14 @@ export function initOAuthClient(): Promise<OauthInitResult | undefined> {
           }
           logger.warn(
             `oauth: library init missed callback params; retrying initCallback`,
+          )
+          // Snapshot already holds code/state. Strip *both* query and
+          // fragment so a query-mode client still consumes a fragment
+          // response on this load and a refresh cannot replay the code.
+          window.history.replaceState(
+            null,
+            '',
+            hrefWithoutOauthCallback(window.location.href),
           )
           try {
             result = await oauthClient.initCallback(

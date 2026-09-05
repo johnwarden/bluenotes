@@ -2,6 +2,7 @@ import {describe, expect, it} from '@jest/globals'
 
 import {
   canonicalizeLoopbackHref,
+  hrefWithoutOauthCallback,
   matchOauthRedirectUri,
   readOauthCallbackParams,
   shouldEstablishAppSessionFromOauthInit,
@@ -50,6 +51,19 @@ describe('readOauthCallbackParams', () => {
       'http://127.0.0.1:19006/#state=abc&error=access_denied',
     )
     expect(params?.get('error')).toBe('access_denied')
+  })
+
+  it('strips both fragment and query after params are snapshotted', () => {
+    expect(
+      hrefWithoutOauthCallback(
+        'http://127.0.0.1:19006/#iss=https://bsky.social&state=abc&code=def',
+      ),
+    ).toBe('/')
+    expect(
+      hrefWithoutOauthCallback(
+        'http://127.0.0.1:19006/auth/web/callback?state=abc&code=def#iss=x',
+      ),
+    ).toBe('/auth/web/callback')
   })
 
   it('returns null when the URL is not an OAuth callback', () => {

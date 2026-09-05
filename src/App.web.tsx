@@ -198,6 +198,9 @@ function App() {
     Promise.all([
       initPersistedState(),
       ensureGeolocationConfigIsResolved(),
+      // Consume ?code= / #code= before SessionProvider children can paint
+      // signed-out chrome. login() still runs in InnerApp (needs the store).
+      initOAuthClient().catch(() => undefined),
     ]).then(() => setReady(true))
   }, [])
 
