@@ -120,11 +120,12 @@ from those query params; if `scope` is omitted they grant identity only,
 and AppView / chat RPCs fail with `Missing required scope` (for example
 `rpc:app.bsky.feed.getFeedGenerator` or `rpc:chat.bsky.convo.listConvos`).
 
-Loopback web uses `response_mode=query` (hosted production stays
-`fragment`). After Bluesky consent the app must consume `code` + `state`
-from the query **or** the hash, canonicalize `localhost` → `127.0.0.1`
-*without* dropping those params, and call `login()` so the session store
-is not left anonymous. See `src/lib/oauth/loopback-callback.ts`.
+Loopback and hosted web both request `response_mode=fragment` so
+`BrowserOAuthClient.init()` consumes `#code=` / `#state=` on that load.
+The app also reads query params if an AS returns `?code=`, canonicalizes
+`localhost` → `127.0.0.1` *without* dropping those params, and calls
+`login()` before signed-out chrome can paint. See
+`src/lib/oauth/loopback-callback.ts`.
 
 After changing loopback scopes or the callback handler, **re-authorize**:
 rebuild the static web bundle if you are serving `web-build`, clear site

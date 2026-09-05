@@ -123,11 +123,20 @@ describe('oauth config', () => {
     )
   })
 
-  it('uses query response_mode on loopback and fragment on hosted origins', () => {
-    expect(getWebOauthResponseMode('http://127.0.0.1:19006')).toBe('query')
-    expect(getWebOauthResponseMode('http://localhost:19006')).toBe('query')
+  it('uses fragment response_mode so init consumes #code= on that load', () => {
+    expect(getWebOauthResponseMode('http://127.0.0.1:19006')).toBe('fragment')
+    expect(getWebOauthResponseMode('http://localhost:19006')).toBe('fragment')
     expect(getWebOauthResponseMode('https://bluenotes.social')).toBe('fragment')
     expect(getWebOauthResponseMode(undefined)).toBe('fragment')
+  })
+
+  it('encodes redirect_uri hosts as 127.0.0.1, never localhost', () => {
+    const clientId = new URL(buildLoopbackClientId('http://localhost:19006'))
+    expect(clientId.origin).toBe('http://localhost')
+    for (const uri of clientId.searchParams.getAll('redirect_uri')) {
+      expect(uri).toMatch(/^http:\/\/127\.0\.0\.1:19006\//)
+      expect(uri).not.toContain('localhost')
+    }
   })
 
   it('resolveWebClientMetadata uses loopback metadata on local origins', () => {

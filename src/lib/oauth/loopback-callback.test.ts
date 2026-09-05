@@ -53,6 +53,24 @@ describe('readOauthCallbackParams', () => {
     expect(params?.get('error')).toBe('access_denied')
   })
 
+  it('consumes fragment responseMode code/state on the same load', () => {
+    const href =
+      'http://127.0.0.1:19006/#iss=https://bsky.social&state=abc&code=def'
+    const params = readOauthCallbackParams(href)
+    expect(params?.get('state')).toBe('abc')
+    expect(params?.get('code')).toBe('def')
+    expect(matchOauthRedirectUri(href, ALLOWED)).toBe('http://127.0.0.1:19006/')
+    // After snapshot, the address bar is path-only so a refresh cannot
+    // replay the authorization code (library initCallback only strips
+    // one mode; we strip both).
+    expect(hrefWithoutOauthCallback(href)).toBe('/')
+    expect(
+      readOauthCallbackParams(
+        `http://127.0.0.1:19006${hrefWithoutOauthCallback(href)}`,
+      ),
+    ).toBeNull()
+  })
+
   it('strips both fragment and query after params are snapshotted', () => {
     expect(
       hrefWithoutOauthCallback(
