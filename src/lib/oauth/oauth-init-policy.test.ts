@@ -348,6 +348,16 @@ describe('isSilentAnonymousOauthFailure', () => {
         exchangeAttempt: 'never_ran',
       }),
     ).toBe(false)
+    // 9a58ce838: login() returned (established) after token 200; Sign in
+    // still painted. Silent-anonymous must not require !established.
+    expect(
+      isSilentAnonymousOauthFailure({
+        leftoverGrantKeys: [],
+        hashEmpty: true,
+        snapshotHadCallbackParams: true,
+        exchangeAttempt: 'ran_and_succeeded',
+      }),
+    ).toBe(true)
   })
 
   it('describes 9a58ce838: empty hash, no leftover grant, exchange ran', () => {

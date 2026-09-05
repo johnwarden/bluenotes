@@ -13,6 +13,7 @@ import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callb
 import {
   decideOauthLoginEstablishedAfterPeek,
   describeOauthInitResult,
+  leftoverGrantBlocksSoftGatePass,
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
   shouldPaintAppAfterOauthLaunch,
@@ -137,8 +138,10 @@ function InnerApp() {
         if (afterLogin.clearCallbackUrl) {
           clearOauthCallbackUrl()
         }
-        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
-        logger.warn(OAUTH_BREADCRUMB.loginEstablished)
+        // Do not emit loginEstablished here. 9a58ce838 login() returned
+        // after token 200 / getSession 401 but currentAccount never
+        // stuck — claiming PASS over Sign in. Emit established only
+        // when currentAccount is set (effect below).
         return true
       }
       if (hasPendingOauthCallback()) {
@@ -194,6 +197,34 @@ function InnerApp() {
     const account = readLastActiveAccount()
     onLaunch(account)
   }, [login, resumeSession])
+
+  // Paint-time diagnosis: silent-anonymous is empty hash + no leftover
+  // grant + Sign in. Must not require `!established` — login() can
+  // return true and still leave currentAccount unset.
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+    if (currentAccount) {
+      const leftover = peekLeftoverOauthGrantKeys()
+      if (leftoverGrantBlocksSoftGatePass(leftover)) {
+        reportOauthFailureDiagnosis(peekLastOauthInitError())
+        return
+      }
+      if (hasPendingOauthCallback() || shouldReportSilentAnonymousPaint()) {
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
+        logger.warn(OAUTH_BREADCRUMB.loginEstablished)
+      }
+      return
+    }
+    if (
+      hasPendingOauthCallback() ||
+      hasLeftoverOauthGrantInUrl() ||
+      shouldReportSilentAnonymousPaint()
+    ) {
+      reportOauthFailureDiagnosis(peekLastOauthInitError())
+    }
+  }, [isReady, currentAccount])
 
   useEffect(() => {
     return listenSessionDropped(() => {

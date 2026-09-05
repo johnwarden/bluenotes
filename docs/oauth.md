@@ -165,8 +165,10 @@ npx serve -l 19006 -s web-build
    means this document never ran bootstrap, the wrong document loaded
    (`/` with `present:false`), or the console filter hides Warnings.
    Breadcrumbs use `globalThis.console.warn` (not `console.info`, not
-   the Sentry-only logger). After a successful strip that still paints
-   Sign in, expect `oauth: silent anonymous` (not `oauth: leftover grant`).
+   the Sentry-only logger).    After a successful strip that still paints
+   Sign in, expect `oauth: silent anonymous` (not `oauth: leftover grant`)
+   even if `login()` returned — emit at paint when `currentAccount` is
+   missing. `yarn build-web` keeps `console.warn` / `console.error`.
    Do **not** call PDS `getSession` on the OAuth path: a 401 with
    `DPoP error="invalid_token"` makes `@atproto/oauth-client` refresh
    then `delStored` the session that `callback()` just wrote (9a58ce838:
