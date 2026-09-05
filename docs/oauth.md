@@ -172,7 +172,10 @@ npx serve -l 19006 -s web-build
    `never_ran` (plus `exchangeNeverRanReason`) **or** `ran_and_failed`
    (plus classify kind / token HTTP class). Do not infer that
    distinction from error kind alone (`redirect_uri` never entered
-   the token request).
+   the token request). On **hosted** origins, after those breadcrumbs,
+   `clearOauthCallbackUrl()` runs before anonymous chrome paints so
+   `#code=`/`#state=` do not linger in browser history. **Loopback**
+   leaves the grant on the URL for diagnosis.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

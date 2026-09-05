@@ -15,6 +15,7 @@ import {
   oauthErrorHttpStatus,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
+  shouldStripOauthCallbackAfterDiagnosis,
   wrapBootstrapOauthInit,
 } from './oauth-init-policy'
 
@@ -277,6 +278,13 @@ describe('leftoverGrantBlocksSoftGatePass', () => {
     expect(leftoverGrantBlocksSoftGatePass(['state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass(['code', 'state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass([])).toBe(false)
+  })
+})
+
+describe('shouldStripOauthCallbackAfterDiagnosis', () => {
+  it('strips leftover grant on hosted after diagnosis; loopback leaves it', () => {
+    expect(shouldStripOauthCallbackAfterDiagnosis(false)).toBe(true)
+    expect(shouldStripOauthCallbackAfterDiagnosis(true)).toBe(false)
   })
 })
 

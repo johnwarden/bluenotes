@@ -164,13 +164,13 @@ function InnerApp() {
             retriesExhausted: true,
           })
         ) {
-          setIsReady(true)
           if (
             !established &&
             (hasPendingOauthCallback() || hasLeftoverOauthGrantInUrl())
           ) {
             reportOauthFailureDiagnosis(peekLastOauthInitError())
           }
+          setIsReady(true)
         }
       }
     }

@@ -130,9 +130,21 @@ export function classifyOauthExchangeError(error: unknown): {
 export type OauthTokenFailureClass = 'http' | 'network' | 'none'
 
 /**
+ * Hosted: strip `#code=` / `#state=` after diagnosis and before anonymous
+ * paint so the grant does not linger in browser history. Loopback leaves
+ * the hash for live diagnosis.
+ */
+export function shouldStripOauthCallbackAfterDiagnosis(
+  isLoopbackOrigin: boolean,
+): boolean {
+  return !isLoopbackOrigin
+}
+
+/**
  * Leftover `#code=` / `#state=` (or query equivalents) after a failed or
  * skipped exchange. Expected on failed exchange for loopback diagnosis;
- * forbidden after a successful login.
+ * hosted strips after the diagnosis breadcrumb. Forbidden after a
+ * successful login.
  */
 export function leftoverOauthGrantKeysFromHref(
   href: string,

@@ -12,6 +12,7 @@ import {
   getOauthHandleResolver,
   getOauthScope,
   getWebOauthResponseMode,
+  isLoopbackOrigin,
   resolveWebClientMetadata,
 } from '#/lib/oauth/config'
 import {
@@ -33,6 +34,7 @@ import {
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
   type OauthExchangeAttemptRecord,
+  shouldStripOauthCallbackAfterDiagnosis,
 } from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
 
@@ -190,6 +192,16 @@ export function reportOauthFailureDiagnosis(error?: unknown): void {
       snapshotRanBeforeStrip: diagnosis.snapshotRanBeforeStrip,
       snapshotHadCallbackParams: diagnosis.snapshotHadCallbackParams,
     })
+    // After the leftover / classify-kind breadcrumbs: hosted strips so
+    // #code=/#state= do not linger in history. Loopback keeps them.
+    if (
+      typeof window !== 'undefined' &&
+      shouldStripOauthCallbackAfterDiagnosis(
+        isLoopbackOrigin(window.location.origin),
+      )
+    ) {
+      clearOauthCallbackUrl()
+    }
   }
 }
 
