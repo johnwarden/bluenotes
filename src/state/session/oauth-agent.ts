@@ -31,10 +31,12 @@ export async function oauthCreateAgent(
   onSessionChange: OnAgentSessionChange,
 ) {
   const agent = new OauthBskyAppAgent(session)
-  // getSession is optional for OAuth: Bluesky PDS returns 401 for DPoP
-  // tokens (live loopback 2026-09-05). Token claims + getProfile are enough
-  // to build SessionAccount. Do not let a 401 paint Sign in after a
-  // successful code exchange.
+  // Do not call PDS getSession for OAuth. Bluesky PDS returns 401 for
+  // DPoP tokens. `OAuthSession.fetchHandler` treats
+  // `WWW-Authenticate: DPoP error="invalid_token"` as a dead token:
+  // refresh, retry, then `delStored` — wiping the IndexedDB session
+  // that `callback()` just wrote (live 9a58ce838: token 200, then
+  // getSession 401, then Sign in). Token claims + getProfile are enough.
   const account = await oauthAgentToSessionAccountOrThrow(agent, session)
   agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   logger.warn(`oauth: OauthBskyAppAgent profile loaded`, {
@@ -73,41 +75,6 @@ export async function oauthAgentToSessionAccountOrThrow(
   return oauthAgentToSessionAccount(agent, session)
 }
 
-type OauthSessionProfile = {
-  handle?: string
-  email?: string
-  emailConfirmed?: boolean
-  emailAuthFactor?: boolean
-  active?: boolean
-  status?: SessionAccount['status']
-}
-
-async function tryOauthGetSession(
-  agent: Agent,
-): Promise<OauthSessionProfile | undefined> {
-  try {
-    const {data} = await agent.com.atproto.server.getSession()
-    return {
-      handle: data.handle,
-      email: data.email,
-      emailConfirmed: data.emailConfirmed,
-      emailAuthFactor: data.emailAuthFactor,
-      active: data.active,
-      status: data.status,
-    }
-  } catch (e) {
-    const err = e instanceof Error ? e : new Error(String(e))
-    logger.warn(
-      `oauth: getSession unavailable for OAuth token (using profile)`,
-      {
-        message: err.message,
-        name: err.name,
-      },
-    )
-    return undefined
-  }
-}
-
 async function resolveOauthHandle(agent: Agent, did: string): Promise<string> {
   try {
     const {data} = await agent.app.bsky.actor.getProfile({actor: did})
@@ -131,22 +98,20 @@ export async function oauthAgentToSessionAccount(
   if (!did) {
     throw new Error('OAuth session has no DID')
   }
-  const fromSession = await tryOauthGetSession(agent)
-  // getProfile is an AppView call; proxy after the optional PDS getSession.
-  if (!fromSession?.handle) {
-    agent.configureProxy(BLUESKY_PROXY_HEADER.get())
-  }
-  const handle = fromSession?.handle || (await resolveOauthHandle(agent, did))
+  // Never PDS getSession here — see oauthCreateAgent. AppView getProfile
+  // is proxied and accepts the DPoP access token.
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  const handle = await resolveOauthHandle(agent, did)
   const service = session.serverMetadata.issuer || BSKY_SERVICE
   return {
     service,
     did,
     handle,
-    email: fromSession?.email,
-    emailConfirmed: fromSession?.emailConfirmed,
-    emailAuthFactor: fromSession?.emailAuthFactor,
-    active: fromSession?.active ?? true,
-    status: fromSession?.status,
+    email: undefined,
+    emailConfirmed: undefined,
+    emailAuthFactor: undefined,
+    active: true,
+    status: undefined,
     pdsUrl: tokenInfo.aud,
     isSelfHosted: !service.startsWith(BSKY_SERVICE),
     isOauthSession: true,

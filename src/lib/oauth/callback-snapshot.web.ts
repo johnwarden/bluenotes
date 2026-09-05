@@ -8,6 +8,7 @@
 import {
   describeOauthCallbackParams,
   formatOauthCallbackDocumentBreadcrumb,
+  oauthConsoleBreadcrumb,
 } from '#/lib/oauth/oauth-init-policy'
 import {
   canonicalizeLoopbackHref,
@@ -30,8 +31,9 @@ function capture(): URLSearchParams | null {
     ),
   }
   if (report.present || report.willRewriteLocalhost) {
-    // console.info survives production logger (Sentry-only transport).
-    console.info(formatOauthCallbackDocumentBreadcrumb(report))
+    // Must use oauthConsoleBreadcrumb: Identifier `console.info` is
+    // stripped by production transform-remove-console (9a58ce838 smoke).
+    oauthConsoleBreadcrumb(formatOauthCallbackDocumentBreadcrumb(report))
   }
   return params
 }

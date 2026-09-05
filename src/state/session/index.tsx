@@ -1,6 +1,7 @@
 import React from 'react'
 import {type AtpSessionEvent, type BskyAgent} from '@atproto/api'
 
+import {shouldDiscardSessionLogin} from '#/lib/oauth/oauth-init-policy'
 import {isWeb} from '#/platform/detection'
 import * as persisted from '#/state/persisted'
 import {useCloseAllActiveElements} from '#/state/util'
@@ -147,7 +148,12 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         ? await oauthCreateAgent(params.oauthSession, onAgentSessionChange)
         : await createAgentAndLogin(params, onAgentSessionChange)
 
-      if (signal.aborted) {
+      if (
+        shouldDiscardSessionLogin({
+          aborted: signal.aborted,
+          isOauthSession: Boolean(params.oauthSession),
+        })
+      ) {
         return
       }
       store.dispatch({

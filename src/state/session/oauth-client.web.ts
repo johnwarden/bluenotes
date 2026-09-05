@@ -123,7 +123,7 @@ function reportCallbackDocument(params: URLSearchParams | null): void {
     return
   }
   logger.warn(`oauth: callback document`, report)
-  console.info(formatOauthCallbackDocumentBreadcrumb(report))
+  oauthConsoleBreadcrumb(formatOauthCallbackDocumentBreadcrumb(report))
 }
 
 /**

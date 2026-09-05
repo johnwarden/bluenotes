@@ -107,15 +107,21 @@ function InnerApp() {
       ) {
         oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginStarting)
         logger.warn(OAUTH_BREADCRUMB.loginStarting)
-        await login(
-          {
-            service: '',
-            identifier: '',
-            password: '',
-            oauthSession: oauthResult.session,
-          },
-          'LoginForm',
-        )
+        try {
+          await login(
+            {
+              service: '',
+              identifier: '',
+              password: '',
+              oauthSession: oauthResult.session,
+            },
+            'LoginForm',
+          )
+        } catch (e) {
+          oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginFailed)
+          reportOauthFailureDiagnosis(e)
+          throw e
+        }
         // Peek leftover `#code=`/`#state=` *before* any clear.
         // fd83c6624 called clearOauthCallbackUrl() first; replaceState
         // wiped the hash so loginEstablished could fire over leftover

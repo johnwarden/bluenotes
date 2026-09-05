@@ -72,20 +72,58 @@ export const OAUTH_BREADCRUMB = {
   loginEstablished: 'oauth: login() established OauthBskyAppAgent',
   failureDiagnosis: 'oauth: failure diagnosis',
   leftoverGrant: 'oauth: leftover grant',
+  loginFailed: 'oauth: login() failed to establish OauthBskyAppAgent',
 } as const
+
+/**
+ * Production `yarn build-web` runs `babel-plugin-transform-remove-console`,
+ * which deletes Identifier `console.info` / `console.warn` / `console.log`.
+ * Live 9a58ce838 smoke had token 200 + getSession 401 and **zero** oauth
+ * breadcrumbs because of that. Reach the console via `globalThis` so the
+ * plugin cannot strip these calls.
+ */
+function oauthDevtoolsConsole(): {
+  warn: (message: string, ...rest: unknown[]) => void
+} | null {
+  const g = globalThis as {
+    console?: {warn?: (message: string, ...rest: unknown[]) => void}
+  }
+  const warn = g.console?.warn
+  if (typeof warn !== 'function') {
+    return null
+  }
+  return {warn}
+}
 
 export function oauthConsoleBreadcrumb(
   message: string,
   meta?: Record<string, unknown>,
 ): void {
-  if (typeof console === 'undefined' || typeof console.info !== 'function') {
+  const devtools = oauthDevtoolsConsole()
+  if (!devtools) {
     return
   }
   if (meta && Object.keys(meta).length > 0) {
-    console.info(message, meta)
+    devtools.warn(message, meta)
   } else {
-    console.info(message)
+    devtools.warn(message)
   }
+}
+
+/**
+ * Password login may be discarded when a later task aborted it.
+ * OAuth callback login must still dispatch: aborting after
+ * `oauthCreateAgent` (React Strict / resumeSession) left Sign in
+ * visible after a successful token exchange (9a58ce838).
+ */
+export function shouldDiscardSessionLogin(args: {
+  aborted: boolean
+  isOauthSession: boolean
+}): boolean {
+  if (!args.aborted) {
+    return false
+  }
+  return !args.isOauthSession
 }
 
 export type OauthExchangeErrorKind =

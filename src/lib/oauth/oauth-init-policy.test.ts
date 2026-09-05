@@ -13,7 +13,9 @@ import {
   leftoverGrantBlocksSoftGatePass,
   leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
+  oauthConsoleBreadcrumb,
   oauthErrorHttpStatus,
+  shouldDiscardSessionLogin,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   shouldStripOauthCallbackAfterDiagnosis,
@@ -52,6 +54,26 @@ describe('describeOauthCallbackParams', () => {
   })
 })
 
+describe('shouldDiscardSessionLogin', () => {
+  it('never discards a completed OAuth login when a later task aborted it', () => {
+    expect(
+      shouldDiscardSessionLogin({aborted: true, isOauthSession: true}),
+    ).toBe(false)
+    expect(
+      shouldDiscardSessionLogin({aborted: false, isOauthSession: true}),
+    ).toBe(false)
+  })
+
+  it('still discards an aborted password login', () => {
+    expect(
+      shouldDiscardSessionLogin({aborted: true, isOauthSession: false}),
+    ).toBe(true)
+    expect(
+      shouldDiscardSessionLogin({aborted: false, isOauthSession: false}),
+    ).toBe(false)
+  })
+})
+
 describe('OAUTH_BREADCRUMB', () => {
   it('uses the exact loopback smoke-gate strings', () => {
     expect(OAUTH_BREADCRUMB.initStarting).toBe('oauth: init starting')
@@ -64,6 +86,20 @@ describe('OAUTH_BREADCRUMB', () => {
     )
     expect(OAUTH_BREADCRUMB.failureDiagnosis).toBe('oauth: failure diagnosis')
     expect(OAUTH_BREADCRUMB.leftoverGrant).toBe('oauth: leftover grant')
+    expect(OAUTH_BREADCRUMB.loginFailed).toBe(
+      'oauth: login() failed to establish OauthBskyAppAgent',
+    )
+  })
+
+  it('writes breadcrumbs through globalThis.console.warn (survives remove-console)', () => {
+    const warn = jest
+      .spyOn(globalThis.console, 'warn')
+      .mockImplementation(() => {})
+    oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.initStarting, {hasCode: true})
+    expect(warn).toHaveBeenCalledWith(OAUTH_BREADCRUMB.initStarting, {
+      hasCode: true,
+    })
+    warn.mockRestore()
   })
 })
 

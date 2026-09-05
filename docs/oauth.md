@@ -158,8 +158,13 @@ npx serve -l 19006 -s web-build
    `#code=` so it is not a silent anonymous landing. Then
    `oauth: init finished` and `oauth: login() established
    OauthBskyAppAgent` (`console.info`, not only the collapsed logger).
-   A PDS `getSession` 401 must not block login — handle comes from
-   `getProfile` / token `sub`. Failures: `kind` = `cors` | `dpop` |
+   Do **not** call PDS `getSession` on the OAuth path: a 401 with
+   `DPoP error="invalid_token"` makes `@atproto/oauth-client` refresh
+   then `delStored` the session that `callback()` just wrote (9a58ce838:
+   token 200, getSession 401, Sign in). Handle comes from `getProfile`
+   / token `sub`. Production `yarn build-web` strips Identifier
+   `console.info`; breadcrumbs go through `globalThis.console.warn`.
+   Failures: `kind` = `cors` | `dpop` |
    `redirect_uri` | `pkce_state` | `token`. When exchange fails or the
    session stays anonymous, DevTools must also show
    `oauth: failure diagnosis` with leftover `#code=`/`#state=`
