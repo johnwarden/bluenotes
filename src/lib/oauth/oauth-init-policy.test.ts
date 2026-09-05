@@ -1,10 +1,12 @@
 import {describe, expect, it, jest} from '@jest/globals'
 
 import {
+  classifyOauthExchangeError,
   createResettableSingleton,
   describeOauthCallbackParams,
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
+  formatOauthCallbackDocumentBreadcrumb,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   wrapBootstrapOauthInit,
@@ -39,6 +41,51 @@ describe('describeOauthCallbackParams', () => {
       hasError: true,
       error: 'access_denied',
     })
+  })
+})
+
+describe('formatOauthCallbackDocumentBreadcrumb', () => {
+  it('is a single console line with shape only (no code/state values)', () => {
+    const line = formatOauthCallbackDocumentBreadcrumb({
+      present: true,
+      hasCode: true,
+      hasState: true,
+      hasError: false,
+      origin: 'http://127.0.0.1:19006',
+      pathname: '/',
+      hashPresent: true,
+      searchPresent: false,
+      willRewriteLocalhost: false,
+    })
+    expect(line.startsWith('oauth: callback document ')).toBe(true)
+    expect(line).toContain('"hasCode":true')
+    expect(line).toContain('"hasState":true')
+    expect(line).not.toContain('code=')
+  })
+})
+
+describe('classifyOauthExchangeError', () => {
+  it('tags CORS / DPoP / redirect_uri / token failures', () => {
+    expect(
+      classifyOauthExchangeError(new TypeError('Failed to fetch')),
+    ).toEqual({
+      kind: 'cors',
+      name: 'TypeError',
+      message: 'Failed to fetch',
+    })
+    expect(
+      classifyOauthExchangeError(new Error('invalid_dpop_proof')),
+    ).toMatchObject({kind: 'dpop'})
+    expect(
+      classifyOauthExchangeError(
+        new Error(
+          'OAuth callback could not be completed: redirect URI mismatch',
+        ),
+      ),
+    ).toMatchObject({kind: 'redirect_uri'})
+    expect(
+      classifyOauthExchangeError(new Error('invalid_grant')),
+    ).toMatchObject({kind: 'token'})
   })
 })
 

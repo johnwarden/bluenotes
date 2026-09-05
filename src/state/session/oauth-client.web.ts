@@ -16,10 +16,12 @@ import {
   readOauthCallbackParams,
 } from '#/lib/oauth/loopback-callback'
 import {
+  classifyOauthExchangeError,
   createResettableSingleton,
   describeOauthCallbackParams,
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
+  formatOauthCallbackDocumentBreadcrumb,
 } from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
 
@@ -86,16 +88,44 @@ function rewriteLocalhostOriginIfNeeded(): boolean {
 }
 
 /**
+ * Log the callback document *before* localhost rewrite or hash strip so a
+ * live smoke can see hasCode/hasState even when the app logger has no
+ * console transport (production EXPO_PUBLIC_ENV).
+ */
+function reportCallbackDocument(params: URLSearchParams | null): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+  const report = {
+    ...describeOauthCallbackParams(params),
+    origin: window.location.origin,
+    pathname: window.location.pathname,
+    hashPresent: Boolean(window.location.hash),
+    searchPresent: Boolean(window.location.search),
+    willRewriteLocalhost: Boolean(
+      canonicalizeLoopbackHref(window.location.href),
+    ),
+  }
+  if (!report.present && !report.willRewriteLocalhost) {
+    return
+  }
+  logger.warn(`oauth: callback document`, report)
+  console.info(formatOauthCallbackDocumentBreadcrumb(report))
+}
+
+/**
  * Snapshot callback params at first web-module evaluation, before any
  * later history.replaceState / hash-router can strip them. Recreated
  * after a localhost → 127.0.0.1 navigation (new document).
  */
-const initialCallbackParams: URLSearchParams | null =
-  typeof window === 'undefined'
-    ? null
-    : rewriteLocalhostOriginIfNeeded()
-      ? null
-      : readOauthCallbackParams(window.location.href)
+const initialCallbackParams: URLSearchParams | null = (() => {
+  if (typeof window === 'undefined') {
+    return null
+  }
+  const params = readOauthCallbackParams(window.location.href)
+  reportCallbackDocument(params)
+  return rewriteLocalhostOriginIfNeeded() ? null : params
+})()
 
 type LibraryRedirectUri = Parameters<BrowserOAuthClient['initCallback']>[1]
 
@@ -177,15 +207,13 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
     }
     return result
   } catch (e) {
-    const err = e instanceof Error ? e : new Error(String(e))
+    const classified = classifyOauthExchangeError(e)
     logger.error(
       params
         ? `oauth: client initCallback failed`
         : `oauth: client init failed`,
       {
-        message: err.message,
-        name: err.name,
-        // CORS / DPoP / redirect_uri mismatches show up in the message.
+        ...classified,
         ...describeOauthCallbackParams(params),
       },
     )

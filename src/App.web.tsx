@@ -10,6 +10,7 @@ import * as Sentry from '@sentry/react-native'
 
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
 import {
+  describeOauthInitResult,
   shouldPaintAppAfterOauthLaunch,
   wrapBootstrapOauthInit,
 } from '#/lib/oauth/oauth-init-policy'
@@ -109,6 +110,12 @@ function InnerApp() {
         logger.warn(`oauth: login() established OauthBskyAppAgent`)
         clearOauthCallbackUrl()
         return true
+      }
+      if (hasPendingOauthCallback()) {
+        logger.warn(`oauth: login() skipped on callback load`, {
+          ...describeOauthInitResult(oauthResult),
+          hasPersistedAccount: Boolean(account),
+        })
       }
       return false
     }

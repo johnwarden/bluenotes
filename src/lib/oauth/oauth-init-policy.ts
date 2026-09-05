@@ -47,6 +47,57 @@ export function describeOauthCallbackParams(params: URLSearchParams | null): {
   }
 }
 
+export type OauthCallbackDocumentReport = ReturnType<
+  typeof describeOauthCallbackParams
+> & {
+  origin: string
+  pathname: string
+  hashPresent: boolean
+  searchPresent: boolean
+  willRewriteLocalhost: boolean
+}
+
+/** One-line breadcrumb for DevTools when the app logger has no console transport. */
+export function formatOauthCallbackDocumentBreadcrumb(
+  report: OauthCallbackDocumentReport,
+): string {
+  return `oauth: callback document ${JSON.stringify(report)}`
+}
+
+export type OauthExchangeErrorKind =
+  | 'cors'
+  | 'dpop'
+  | 'redirect_uri'
+  | 'token'
+  | 'other'
+
+/** Classify token-exchange failures without logging secrets. */
+export function classifyOauthExchangeError(error: unknown): {
+  kind: OauthExchangeErrorKind
+  name: string
+  message: string
+} {
+  const err = error instanceof Error ? error : new Error(String(error))
+  const text = `${err.name} ${err.message}`.toLowerCase()
+  let kind: OauthExchangeErrorKind = 'other'
+  if (
+    /cors|failed to fetch|networkerror|access-control-allow-origin|load failed/.test(
+      text,
+    )
+  ) {
+    kind = 'cors'
+  } else if (/dpop|use_dpop_nonce|invalid_dpop/.test(text)) {
+    kind = 'dpop'
+  } else if (/redirect[_ ]?uri/.test(text)) {
+    kind = 'redirect_uri'
+  } else if (
+    /invalid_grant|invalid_client|unauthorized_client|token/.test(text)
+  ) {
+    kind = 'token'
+  }
+  return {kind, name: err.name, message: err.message}
+}
+
 /** Safe to log: session/state *shape* only, no tokens. */
 export function describeOauthInitResult(
   result: {session?: unknown; state?: string} | undefined,
