@@ -257,6 +257,20 @@ export function hasLeftoverOauthGrantInUrl(): boolean {
 }
 
 /**
+ * IndexedDB still has this DID's OAuth session (no refresh). Used so
+ * `loginEstablished` cannot fire after `delStored` (c8e3a12de: established
+ * then silent-anonymous / Sign in).
+ */
+export async function peekOauthSessionAlive(did: string): Promise<boolean> {
+  try {
+    const session = await getOAuthClient().restore(did, false)
+    return session != null
+  } catch {
+    return false
+  }
+}
+
+/**
  * True when this document loaded with an authorization response (or we
  * snapshotted one before a router / replaceState stripped the URL). Used by
  * App bootstrap so callback errors are not swallowed.

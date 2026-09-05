@@ -18,6 +18,7 @@ import {
   oauthConsoleBreadcrumb,
   oauthErrorHttpStatus,
   shouldDiscardSessionLogin,
+  shouldEmitOauthLoginEstablishedBreadcrumb,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   shouldStripOauthCallbackAfterDiagnosis,
@@ -414,6 +415,39 @@ describe('decideOauthLoginEstablishedAfterPeek', () => {
       clearCallbackUrl: true,
       emitLeftoverGrant: false,
     })
+  })
+})
+
+describe('shouldEmitOauthLoginEstablishedBreadcrumb', () => {
+  it('requires currentAccount and a still-alive OAuth session (c8e3a12de)', () => {
+    expect(
+      shouldEmitOauthLoginEstablishedBreadcrumb({
+        hasCurrentAccount: true,
+        leftoverGrantInUrl: false,
+        oauthSessionAlive: true,
+      }),
+    ).toBe(true)
+    expect(
+      shouldEmitOauthLoginEstablishedBreadcrumb({
+        hasCurrentAccount: true,
+        leftoverGrantInUrl: false,
+        oauthSessionAlive: false,
+      }),
+    ).toBe(false)
+    expect(
+      shouldEmitOauthLoginEstablishedBreadcrumb({
+        hasCurrentAccount: false,
+        leftoverGrantInUrl: false,
+        oauthSessionAlive: true,
+      }),
+    ).toBe(false)
+    expect(
+      shouldEmitOauthLoginEstablishedBreadcrumb({
+        hasCurrentAccount: true,
+        leftoverGrantInUrl: true,
+        oauthSessionAlive: true,
+      }),
+    ).toBe(false)
   })
 })
 

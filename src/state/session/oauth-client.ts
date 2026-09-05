@@ -67,3 +67,7 @@ export function hasLeftoverOauthGrantInUrl(): boolean {
 export function shouldReportSilentAnonymousPaint(): boolean {
   return false
 }
+
+export async function peekOauthSessionAlive(_did: string): Promise<boolean> {
+  return false
+}

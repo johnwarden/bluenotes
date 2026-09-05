@@ -16,6 +16,7 @@ import {
   leftoverGrantBlocksSoftGatePass,
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
+  shouldEmitOauthLoginEstablishedBreadcrumb,
   shouldPaintAppAfterOauthLaunch,
   wrapBootstrapOauthInit,
 } from '#/lib/oauth/oauth-init-policy'
@@ -58,6 +59,7 @@ import {
   initOAuthClient,
   peekLastOauthInitError,
   peekLeftoverOauthGrantKeys,
+  peekOauthSessionAlive,
   reportOauthFailureDiagnosis,
   shouldReportSilentAnonymousPaint,
 } from '#/state/session/oauth-client'
@@ -138,10 +140,10 @@ function InnerApp() {
         if (afterLogin.clearCallbackUrl) {
           clearOauthCallbackUrl()
         }
-        // Do not emit loginEstablished here. 9a58ce838 login() returned
-        // after token 200 / getSession 401 but currentAccount never
-        // stuck — claiming PASS over Sign in. Emit established only
-        // when currentAccount is set (effect below).
+        // Do not emit loginEstablished here. 9a58ce838 / c8e3a12de
+        // login() returned after token 200 but currentAccount did not
+        // stay (DPoP 401 delStored). Emit established only when
+        // currentAccount is set *and* IndexedDB session is still alive.
         return true
       }
       if (hasPendingOauthCallback()) {
@@ -198,31 +200,62 @@ function InnerApp() {
     onLaunch(account)
   }, [login, resumeSession])
 
-  // Paint-time diagnosis: silent-anonymous is empty hash + no leftover
-  // grant + Sign in. Must not require `!established` — login() can
-  // return true and still leave currentAccount unset.
+  // Paint-time diagnosis. c8e3a12de emitted loginEstablished on first
+  // currentAccount paint, then DPoP getProfile 401 delStored the
+  // session and silent-anonymous fired at Sign in. Wait a tick so
+  // onDelete can clear the account, then require IndexedDB still
+  // alive. Never emit established without both.
   useEffect(() => {
     if (!isReady) {
       return
     }
-    if (currentAccount) {
-      const leftover = peekLeftoverOauthGrantKeys()
-      if (leftoverGrantBlocksSoftGatePass(leftover)) {
-        reportOauthFailureDiagnosis(peekLastOauthInitError())
-        return
-      }
-      if (hasPendingOauthCallback() || shouldReportSilentAnonymousPaint()) {
-        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
-        logger.warn(OAUTH_BREADCRUMB.loginEstablished)
-      }
-      return
-    }
-    if (
-      hasPendingOauthCallback() ||
-      hasLeftoverOauthGrantInUrl() ||
-      shouldReportSilentAnonymousPaint()
-    ) {
-      reportOauthFailureDiagnosis(peekLastOauthInitError())
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        if (cancelled) {
+          return
+        }
+        const leftover = peekLeftoverOauthGrantKeys()
+        const leftoverGrantInUrl = leftoverGrantBlocksSoftGatePass(leftover)
+        if (currentAccount) {
+          if (leftoverGrantInUrl) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+            return
+          }
+          const oauthSessionAlive = await peekOauthSessionAlive(
+            currentAccount.did,
+          )
+          if (cancelled) {
+            return
+          }
+          if (
+            shouldEmitOauthLoginEstablishedBreadcrumb({
+              hasCurrentAccount: true,
+              leftoverGrantInUrl: false,
+              oauthSessionAlive,
+            })
+          ) {
+            oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
+            logger.warn(OAUTH_BREADCRUMB.loginEstablished)
+            return
+          }
+          if (hasPendingOauthCallback() || shouldReportSilentAnonymousPaint()) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+          }
+          return
+        }
+        if (
+          hasPendingOauthCallback() ||
+          leftoverGrantInUrl ||
+          shouldReportSilentAnonymousPaint()
+        ) {
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+        }
+      })()
+    }, 0)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
     }
   }, [isReady, currentAccount])
 

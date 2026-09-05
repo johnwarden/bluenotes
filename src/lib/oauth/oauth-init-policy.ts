@@ -382,9 +382,30 @@ export function describeSilentAnonymousDiagnosis(input: {
 }
 
 /**
+ * Soft-gate PASS claim. c8e3a12de logged `login() established` when
+ * `currentAccount` was briefly set, then DPoP getProfile 401 `delStored`
+ * the session and `silent anonymous` fired at Sign-in paint. Require a
+ * durable account *and* a still-present IndexedDB OAuth session. Never
+ * over leftover `#code=`/`#state=`.
+ */
+export function shouldEmitOauthLoginEstablishedBreadcrumb(args: {
+  hasCurrentAccount: boolean
+  leftoverGrantInUrl: boolean
+  oauthSessionAlive: boolean
+}): boolean {
+  return (
+    args.hasCurrentAccount && !args.leftoverGrantInUrl && args.oauthSessionAlive
+  )
+}
+
+/**
  * Peek leftover grant keys, then decide whether `login() established`
  * may fire. Must run *before* `clearOauthCallbackUrl()` — that replaceState
  * always wipes hash/search, which made the leftover gate dead (fd83c6624).
+ *
+ * `emitLoginEstablished` here is only the leftover-URL half. App.web still
+ * requires {@link shouldEmitOauthLoginEstablishedBreadcrumb} (account +
+ * alive IndexedDB session) before the breadcrumb.
  */
 export function decideOauthLoginEstablishedAfterPeek(
   leftoverGrantKeys: Array<'code' | 'state'>,

@@ -6,7 +6,11 @@ import {
 } from '@atproto/api'
 import {type OAuthSession} from '@atproto/oauth-client-browser'
 
-import {BLUESKY_PROXY_HEADER, BSKY_SERVICE} from '#/lib/constants'
+import {
+  BLUESKY_PROXY_HEADER,
+  BSKY_SERVICE,
+  PUBLIC_BSKY_SERVICE,
+} from '#/lib/constants'
 import {tryFetchGates} from '#/lib/statsig/statsig'
 import {logger} from '#/logger'
 import {sessionAccountToSession} from './agent'
@@ -31,12 +35,13 @@ export async function oauthCreateAgent(
   onSessionChange: OnAgentSessionChange,
 ) {
   const agent = new OauthBskyAppAgent(session)
-  // Do not call PDS getSession for OAuth. Bluesky PDS returns 401 for
-  // DPoP tokens. `OAuthSession.fetchHandler` treats
+  // Do not call PDS getSession *or* DPoP getProfile for OAuth. Bluesky
+  // PDS returns 401 for DPoP tokens. `OAuthSession.fetchHandler` treats
   // `WWW-Authenticate: DPoP error="invalid_token"` as a dead token:
   // refresh, retry, then `delStored` — wiping the IndexedDB session
-  // that `callback()` just wrote (live 9a58ce838: token 200, then
-  // getSession 401, then Sign in). Token claims + getProfile are enough.
+  // that `callback()` just wrote (live 9a58ce838 getSession; live
+  // c8e3a12de getProfile 401 then loginEstablished + silent-anonymous).
+  // Token claims + public AppView getProfile are enough.
   const account = await oauthAgentToSessionAccountOrThrow(agent, session)
   agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   logger.warn(`oauth: OauthBskyAppAgent profile loaded`, {
@@ -75,17 +80,75 @@ export async function oauthAgentToSessionAccountOrThrow(
   return oauthAgentToSessionAccount(agent, session)
 }
 
-async function resolveOauthHandle(agent: Agent, did: string): Promise<string> {
+/** True for `getProfile`, not `getProfiles`. */
+export function isOauthAppViewGetProfilePath(pathname: string): boolean {
+  return /app\.bsky\.actor\.getProfile(?:\?|$|\/|&)/.test(pathname)
+}
+
+export function publicAppViewGetProfileUrl(did: string): string {
+  return `${PUBLIC_BSKY_SERVICE}/xrpc/app.bsky.actor.getProfile?actor=${encodeURIComponent(did)}`
+}
+
+export function toPublicAppViewProfileUrl(pathname: string): string {
   try {
-    const {data} = await agent.app.bsky.actor.getProfile({actor: did})
-    if (data.handle) {
-      return data.handle
+    if (/^https?:\/\//i.test(pathname)) {
+      const u = new URL(pathname)
+      return `${PUBLIC_BSKY_SERVICE}${u.pathname}${u.search}`
     }
-  } catch (e) {
-    logger.warn(`oauth: getProfile failed; using DID as handle`, {
-      message: e instanceof Error ? e.message : e,
-    })
+  } catch {
+    // fall through
   }
+  const path = pathname.startsWith('/') ? pathname : `/${pathname}`
+  const withXrpc = path.includes('/xrpc/') ? path : `/xrpc${path}`
+  return `${PUBLIC_BSKY_SERVICE}${withXrpc}`
+}
+
+/**
+ * AppView `getProfile` via the OAuth/DPoP agent hits the PDS (`token.aud`)
+ * and a 401 `invalid_token` deletes the just-exchanged session. Route
+ * those reads through public AppView (no DPoP).
+ */
+export function protectOauthSessionFromAppViewGetProfile(session: {
+  fetchHandler: (pathname: string, init?: RequestInit) => Promise<Response>
+}): void {
+  const inner = session.fetchHandler.bind(session)
+  session.fetchHandler = async (pathname, init) => {
+    if (isOauthAppViewGetProfilePath(pathname)) {
+      return globalThis.fetch(toPublicAppViewProfileUrl(pathname), {
+        method: init?.method ?? 'GET',
+        headers: {accept: 'application/json'},
+      })
+    }
+    return inner(pathname, init)
+  }
+}
+
+export async function resolveHandleViaPublicAppView(
+  did: string,
+): Promise<string | undefined> {
+  try {
+    const res = await globalThis.fetch(publicAppViewGetProfileUrl(did), {
+      method: 'GET',
+      headers: {accept: 'application/json'},
+    })
+    if (!res.ok) {
+      return undefined
+    }
+    const json = (await res.json()) as {handle?: unknown}
+    return typeof json.handle === 'string' && json.handle.length > 0
+      ? json.handle
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function resolveOauthHandle(did: string): Promise<string> {
+  const handle = await resolveHandleViaPublicAppView(did)
+  if (handle) {
+    return handle
+  }
+  logger.warn(`oauth: public getProfile failed; using DID as handle`)
   return did
 }
 
@@ -98,10 +161,9 @@ export async function oauthAgentToSessionAccount(
   if (!did) {
     throw new Error('OAuth session has no DID')
   }
-  // Never PDS getSession here — see oauthCreateAgent. AppView getProfile
-  // is proxied and accepts the DPoP access token.
+  // Never PDS getSession or DPoP getProfile here — see oauthCreateAgent.
   agent.configureProxy(BLUESKY_PROXY_HEADER.get())
-  const handle = await resolveOauthHandle(agent, did)
+  const handle = await resolveOauthHandle(did)
   const service = session.serverMetadata.issuer || BSKY_SERVICE
   return {
     service,
@@ -130,6 +192,7 @@ export class OauthBskyAppAgent extends Agent {
   private unsubscribeSessionEvents?: () => void
 
   constructor(session: OAuthSession) {
+    protectOauthSessionFromAppViewGetProfile(session)
     super(session)
     this.oauthSession = session
     this.service = new URL(session.serverMetadata.issuer)

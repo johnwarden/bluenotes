@@ -166,12 +166,17 @@ npx serve -l 19006 -s web-build
    - Failed exchange (loopback): leftover `#code=`/`#state=` stay;
      `oauth: leftover grant` with `exchangeAttempt` `never_ran` vs
      `ran_and_failed` (plus classify kind / token HTTP class). Not PASS.
-   - Silent anonymous (9a58ce838): token 200, hash empty, Sign in —
-     `oauth: silent anonymous`, **not** leftover-grant. Not PASS.
+   - Silent anonymous (9a58ce838 / c8e3a12de): token 200, hash empty,
+     Sign in — `oauth: silent anonymous`, **not** leftover-grant. Not
+     PASS. `login() established` plus `silent anonymous` is FAIL even
+     if login() returned: established must not fire unless
+     `currentAccount` is set **and** the IndexedDB OAuth session is
+     still alive.
    Hosted strips the grant after those Warnings and before anonymous
    paint. Loopback leaves it for diagnosis. Do not call PDS
-   `getSession` on the OAuth path (DPoP 401 can `delStored` the
-   session). Handle comes from `getProfile` / token `sub`.
+   `getSession` **or** DPoP `getProfile` on the OAuth agent (both 401s
+   can `delStored` the just-exchanged session). Handle comes from
+   **public** AppView `getProfile` / token `sub`.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.
