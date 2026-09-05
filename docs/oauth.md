@@ -151,50 +151,27 @@ npx serve -l 19006 -s web-build
 2. Sign in with a real Bluesky handle. Consent on bsky.social (full scopes).
 3. Callback must stay on `http://127.0.0.1:19006` (or `/auth/web/callback`)
    and show **profile/avatar**, not Sign in / Create account.
-4. On the callback document **before** any rewrite/strip, DevTools must
-   show `oauth: callback document {"hasCode":true,"hasState":true,...}`
-   (`console.info` from `index.web.js`'s first import). The hash must
-   **stay** until the token exchange succeeds; a failed exchange leaves
-   `#code=` so it is not a silent anonymous landing. Then
-   `oauth: init finished` and `oauth: login() established
-   OauthBskyAppAgent` (`console.info`, not only the collapsed logger).
-   Empty hash + no leftover `#state=` + no oauth lines is a **different**
-   failure than leftover-grant (9a58ce838 silent-anonymous). At
-   module-eval (before React) DevTools must show `oauth: snapshot eval`
-   (`present:true` if `#code=`/`#state=` were on the document). Silence
-   means this document never ran bootstrap, the wrong document loaded
-   (`/` with `present:false`), or the console filter hides Warnings.
-   Breadcrumbs use `globalThis.console.warn` (not `console.info`, not
-   the Sentry-only logger).    After a successful strip that still paints
-   Sign in, expect `oauth: silent anonymous` (not `oauth: leftover grant`)
-   even if `login()` returned — emit at paint when `currentAccount` is
-   missing. `yarn build-web` keeps `console.warn` / `console.error`.
-   Do **not** call PDS `getSession` on the OAuth path: a 401 with
-   `DPoP error="invalid_token"` makes `@atproto/oauth-client` refresh
-   then `delStored` the session that `callback()` just wrote (9a58ce838:
-   token 200, getSession 401, Sign in). Handle comes from `getProfile`
-   / token `sub`. Production `yarn build-web` strips Identifier
-   `console.info`; breadcrumbs go through `globalThis.console.warn`.
-   Failures: `kind` = `cors` | `dpop` |
-   `redirect_uri` | `pkce_state` | `token`. When exchange fails or the
-   session stays anonymous, DevTools must also show
-   `oauth: failure diagnosis` with leftover `#code=`/`#state=`
-   (`leftoverGrantInUrl`), `exchangeErrorKind`, token-endpoint
-   `tokenEndpointHttpStatus` / `tokenEndpointFailureClass` (no secrets),
-   and `snapshotRanBeforeStrip` / `snapshotHadCallbackParams` (did the
-   module-eval snapshot run before hash rewrite/strip). Leftover
-   `#state=` is **not** a soft-gate PASS. DevTools must show
-   `oauth: leftover grant` with `exchangeAttempt` =
-   `never_ran` (plus `exchangeNeverRanReason`) **or** `ran_and_failed`
-   (plus classify kind / token HTTP class). Do not infer that
-   distinction from error kind alone (`redirect_uri` never entered
-   the token request). On **hosted** origins, after those breadcrumbs,
-   `clearOauthCallbackUrl()` runs before anonymous chrome paints so
-   `#code=`/`#state=` do not linger in browser history. **Loopback**
-   leaves the grant on the URL for diagnosis. After `login()`, peek
-   leftover `#code=`/`#state=` **before** any `clearOauthCallbackUrl()`;
-   emit `login() established` only when none remain. Clearing first
-   (fd83c6624) made the leftover gate dead.
+4. Console: enable **Warnings** (Default levels or All). Do **not**
+   hunt `console.info` — since 58f3d10 / follow-ons, `oauth:`
+   breadcrumbs are `globalThis.console.warn` (production
+   `transform-remove-console` strips Identifier `console.info`; the
+   collapsed app logger is not enough). Filter the console for `oauth:`.
+   - Module-eval (before React): `oauth: snapshot eval` with
+     `present:true` if `#code=`/`#state=` were on this document.
+     Silence = bootstrap never ran, wrong document (`/` with
+     `present:false`), or Warnings filtered off.
+   - PASS: `oauth: init starting` → `oauth: init finished` →
+     `oauth: login() established OauthBskyAppAgent`, signed-in
+     profile/avatar, **no** leftover hash.
+   - Failed exchange (loopback): leftover `#code=`/`#state=` stay;
+     `oauth: leftover grant` with `exchangeAttempt` `never_ran` vs
+     `ran_and_failed` (plus classify kind / token HTTP class). Not PASS.
+   - Silent anonymous (9a58ce838): token 200, hash empty, Sign in —
+     `oauth: silent anonymous`, **not** leftover-grant. Not PASS.
+   Hosted strips the grant after those Warnings and before anonymous
+   paint. Loopback leaves it for diagnosis. Do not call PDS
+   `getSession` on the OAuth path (DPoP 401 can `delStored` the
+   session). Handle comes from `getProfile` / token `sub`.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.
