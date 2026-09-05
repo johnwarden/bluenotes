@@ -170,8 +170,13 @@ describe('protectOauthSessionFromAppViewGetProfile', () => {
   })
 
   it('routes getProfile through public AppView so DPoP 401 cannot delStored', async () => {
-    const inner = jest.fn(async () => new Response('nope', {status: 401}))
-    const session = {fetchHandler: inner}
+    const inner = jest.fn(
+      async (_pathname: string, _init?: RequestInit) =>
+        new Response('nope', {status: 401}),
+    )
+    const session: {
+      fetchHandler: (pathname: string, init?: RequestInit) => Promise<Response>
+    } = {fetchHandler: inner}
     protectOauthSessionFromAppViewGetProfile(session)
     const fetchMock = jest
       .spyOn(globalThis, 'fetch')
