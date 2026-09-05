@@ -3,6 +3,7 @@ import {describe, expect, it, jest} from '@jest/globals'
 import {
   classifyOauthExchangeError,
   createResettableSingleton,
+  decideOauthLoginEstablishedAfterPeek,
   describeOauthCallbackParams,
   describeOauthFailureDiagnosis,
   describeOauthInitResult,
@@ -278,6 +279,42 @@ describe('leftoverGrantBlocksSoftGatePass', () => {
     expect(leftoverGrantBlocksSoftGatePass(['state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass(['code', 'state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass([])).toBe(false)
+  })
+})
+
+describe('decideOauthLoginEstablishedAfterPeek', () => {
+  it('peeks leftover #state= before any clear (fd83c6624 regression)', () => {
+    const beforeClear = leftoverOauthGrantKeysFromHref(
+      'http://127.0.0.1:19006/#state=SECRET_STATE&iss=https://bsky.social',
+    )
+    expect(beforeClear).toEqual(['state'])
+    expect(decideOauthLoginEstablishedAfterPeek(beforeClear)).toEqual({
+      leftoverGrantKeys: ['state'],
+      emitLoginEstablished: false,
+      clearCallbackUrl: false,
+      emitLeftoverGrant: true,
+    })
+
+    // The fd83c6624 bug: clear first, then peek — leftover looks gone
+    // and loginEstablished would fire. The gate must use beforeClear.
+    const afterClear = leftoverOauthGrantKeysFromHref('http://127.0.0.1:19006/')
+    expect(afterClear).toEqual([])
+    expect(
+      decideOauthLoginEstablishedAfterPeek(afterClear).emitLoginEstablished,
+    ).toBe(true)
+    expect(
+      decideOauthLoginEstablishedAfterPeek(beforeClear).emitLoginEstablished,
+    ).toBe(false)
+    expect(JSON.stringify(beforeClear)).not.toContain('SECRET')
+  })
+
+  it('clears and emits loginEstablished only when no leftover grant remains', () => {
+    expect(decideOauthLoginEstablishedAfterPeek([])).toEqual({
+      leftoverGrantKeys: [],
+      emitLoginEstablished: true,
+      clearCallbackUrl: true,
+      emitLeftoverGrant: false,
+    })
   })
 })
 

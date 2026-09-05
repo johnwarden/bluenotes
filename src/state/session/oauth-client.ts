@@ -56,6 +56,10 @@ export function peekLastOauthExchangeAttempt(): OauthExchangeAttemptRecord {
 
 export function reportOauthFailureDiagnosis(_error?: unknown): void {}
 
+export function peekLeftoverOauthGrantKeys(): Array<'code' | 'state'> {
+  return []
+}
+
 export function hasLeftoverOauthGrantInUrl(): boolean {
   return false
 }

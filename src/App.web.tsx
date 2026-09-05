@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/react-native'
 
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
 import {
+  decideOauthLoginEstablishedAfterPeek,
   describeOauthInitResult,
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
@@ -55,6 +56,7 @@ import {
   hasPendingOauthCallback,
   initOAuthClient,
   peekLastOauthInitError,
+  peekLeftoverOauthGrantKeys,
   reportOauthFailureDiagnosis,
 } from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
@@ -114,13 +116,19 @@ function InnerApp() {
           },
           'LoginForm',
         )
-        clearOauthCallbackUrl()
-        if (hasLeftoverOauthGrantInUrl()) {
-          // Leftover `#state=` is never a soft-gate PASS. Emit the
-          // never_ran vs ran_and_failed leftover breadcrumb instead of
-          // `login() established`.
+        // Peek leftover `#code=`/`#state=` *before* any clear.
+        // fd83c6624 called clearOauthCallbackUrl() first; replaceState
+        // wiped the hash so loginEstablished could fire over leftover
+        // `#state=` (soft-gate gate was dead).
+        const afterLogin = decideOauthLoginEstablishedAfterPeek(
+          peekLeftoverOauthGrantKeys(),
+        )
+        if (afterLogin.emitLeftoverGrant) {
           reportOauthFailureDiagnosis(peekLastOauthInitError())
           return true
+        }
+        if (afterLogin.clearCallbackUrl) {
+          clearOauthCallbackUrl()
         }
         oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
         logger.warn(OAUTH_BREADCRUMB.loginEstablished)

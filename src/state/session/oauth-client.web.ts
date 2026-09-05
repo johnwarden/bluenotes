@@ -205,12 +205,17 @@ export function reportOauthFailureDiagnosis(error?: unknown): void {
   }
 }
 
+/** Peek leftover `#code=` / `#state=` *before* any replaceState strip. */
+export function peekLeftoverOauthGrantKeys(): Array<'code' | 'state'> {
+  if (typeof window === 'undefined') {
+    return []
+  }
+  return leftoverOauthGrantKeysFromHref(window.location.href)
+}
+
 /** True when `#code=` / `#state=` (or query) are still on the address bar. */
 export function hasLeftoverOauthGrantInUrl(): boolean {
-  if (typeof window === 'undefined') {
-    return false
-  }
-  return leftoverOauthGrantKeysFromHref(window.location.href).length > 0
+  return peekLeftoverOauthGrantKeys().length > 0
 }
 
 /**

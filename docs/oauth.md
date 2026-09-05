@@ -175,7 +175,10 @@ npx serve -l 19006 -s web-build
    the token request). On **hosted** origins, after those breadcrumbs,
    `clearOauthCallbackUrl()` runs before anonymous chrome paints so
    `#code=`/`#state=` do not linger in browser history. **Loopback**
-   leaves the grant on the URL for diagnosis.
+   leaves the grant on the URL for diagnosis. After `login()`, peek
+   leftover `#code=`/`#state=` **before** any `clearOauthCallbackUrl()`;
+   emit `login() established` only when none remain. Clearing first
+   (fd83c6624) made the leftover gate dead.
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

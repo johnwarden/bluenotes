@@ -283,6 +283,35 @@ export function leftoverGrantBlocksSoftGatePass(
 }
 
 /**
+ * Peek leftover grant keys, then decide whether `login() established`
+ * may fire. Must run *before* `clearOauthCallbackUrl()` — that replaceState
+ * always wipes hash/search, which made the leftover gate dead (fd83c6624).
+ */
+export function decideOauthLoginEstablishedAfterPeek(
+  leftoverGrantKeys: Array<'code' | 'state'>,
+): {
+  leftoverGrantKeys: Array<'code' | 'state'>
+  emitLoginEstablished: boolean
+  clearCallbackUrl: boolean
+  emitLeftoverGrant: boolean
+} {
+  if (leftoverGrantBlocksSoftGatePass(leftoverGrantKeys)) {
+    return {
+      leftoverGrantKeys,
+      emitLoginEstablished: false,
+      clearCallbackUrl: false,
+      emitLeftoverGrant: true,
+    }
+  }
+  return {
+    leftoverGrantKeys,
+    emitLoginEstablished: true,
+    clearCallbackUrl: true,
+    emitLeftoverGrant: false,
+  }
+}
+
+/**
  * Non-secret diagnosis for a failed token exchange or anonymous-after-callback.
  * Never includes `code`, `state`, tokens, or response bodies.
  */
