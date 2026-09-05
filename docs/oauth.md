@@ -59,7 +59,11 @@ yarn web
 ```
 
 or `just web`. Expo web listens on `http://127.0.0.1:19006` and uses the
-ATProto **loopback** OAuth client automatically.
+ATProto **loopback** OAuth client automatically. That client_id encodes
+the same full scope string as production (`getOauthScope()` /
+`atproto transition:generic transition:email transition:chat.bsky`).
+The library default is identity-only `atproto`, which is not enough for
+home, Community Notes feeds, or chat.
 
 If `yarn web` / webpack-dev-server on `:19006` hangs (common on low-RAM
 shared boxes), build a static bundle and serve it instead:
@@ -108,8 +112,20 @@ public clients use `token_endpoint_auth_method: none` (no client secret).
 | `EXPO_PUBLIC_OAUTH_NATIVE_REDIRECT_URI` | Native only | `bluenotes://oauth/callback` | Native app scheme callback. |
 
 Local web (`http://127.0.0.1:19006`) uses the ATProto **loopback client**
-automatically: no hosted metadata, short-lived refresh tokens, and the library
-rewrites `localhost` to `127.0.0.1`. Loopback is for development only.
+automatically: no hosted metadata document, short-lived refresh tokens, and
+`localhost` is rewritten to `127.0.0.1` for redirect URIs. The loopback
+`client_id` query string **must** include the full `DEFAULT_OAUTH_SCOPE`
+(not just `atproto`). Authorization servers synthesize loopback metadata
+from those query params; if `scope` is omitted they grant identity only,
+and AppView / chat RPCs fail with `Missing required scope` (for example
+`rpc:app.bsky.feed.getFeedGenerator` or `rpc:chat.bsky.convo.listConvos`).
+
+After changing loopback scopes, **re-authorize**: sign out, clear the
+loopback origin's site data (IndexedDB OAuth session), rebuild the web
+bundle if you are statically serving, then sign in again and re-consent.
+An old token issued with `atproto` only will keep failing until replaced.
+
+Loopback is for development only.
 
 For a tunneled staging host (ngrok, Cloudflare Tunnel, etc.), set
 `EXPO_PUBLIC_OAUTH_CLIENT_ID` to the public metadata URL and serve metadata
