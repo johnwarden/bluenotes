@@ -120,9 +120,24 @@ from those query params; if `scope` is omitted they grant identity only,
 and AppView / chat RPCs fail with `Missing required scope` (for example
 `rpc:app.bsky.feed.getFeedGenerator` or `rpc:chat.bsky.convo.listConvos`).
 
-After changing loopback scopes, **re-authorize**: sign out, clear the
-loopback origin's site data (IndexedDB OAuth session), rebuild the web
-bundle if you are statically serving, then sign in again and re-consent.
+Loopback and hosted web both request `response_mode=fragment` so
+`BrowserOAuthClient.init()` consumes `#code=` / `#state=` on that load.
+The app also reads query params if an AS returns `?code=`, canonicalizes
+`localhost` → `127.0.0.1` *without* dropping those params, and calls
+`login()` before signed-out chrome can paint. See
+`src/lib/oauth/loopback-callback.ts`.
+
+After changing loopback scopes or the callback handler, **re-authorize**:
+rebuild the static web bundle if you are serving `web-build`, clear site
+data **once** on `http://127.0.0.1:19006` (not mid-flow), sign in, consent
+**once**, then confirm signed-in chrome (profile/avatar). Then open chats
+and a Community Notes thread.
+
+```
+EXPO_PUBLIC_OAUTH=1 yarn build-web
+npx serve -l 19006 -s web-build
+```
+
 An old token issued with `atproto` only will keep failing until replaced.
 
 Loopback is for development only.

@@ -239,3 +239,16 @@ export function resolveWebClientMetadata(origin?: string): OauthClientMetadata {
   }
   return buildWebClientMetadata(origin)
 }
+
+/**
+ * Always `fragment` so BrowserOAuthClient.init() reads `#code=` / `#state=`
+ * on the callback load (PE: fragment responseMode consume-on-that-load).
+ * `readOauthCallbackParams` still accepts query if an AS ignores
+ * `response_mode` and returns `?code=`. Hosted production keeps fragment
+ * so the code is not sent to the static-file / bskyweb access log.
+ */
+export function getWebOauthResponseMode(
+  _origin?: string,
+): 'query' | 'fragment' {
+  return 'fragment'
+}

@@ -8,6 +8,7 @@ import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import * as Sentry from '@sentry/react-native'
 
+import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
 import {QueryProvider} from '#/lib/react-query'
 import {Provider as StatsigProvider} from '#/lib/statsig/statsig'
 import {ThemeProvider} from '#/lib/ThemeContext'
@@ -86,7 +87,9 @@ function InnerApp() {
     async function onLaunch(account?: SessionAccount) {
       try {
         const oauthResult = await initOAuthClient()
-        if (oauthResult?.session && 'state' in oauthResult) {
+        if (
+          shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
+        ) {
           await login(
             {
               service: '',
@@ -195,6 +198,9 @@ function App() {
     Promise.all([
       initPersistedState(),
       ensureGeolocationConfigIsResolved(),
+      // Consume ?code= / #code= before SessionProvider children can paint
+      // signed-out chrome. login() still runs in InnerApp (needs the store).
+      initOAuthClient().catch(() => undefined),
     ]).then(() => setReady(true))
   }, [])
 
