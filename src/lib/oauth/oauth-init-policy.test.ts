@@ -4,10 +4,13 @@ import {
   classifyOauthExchangeError,
   createResettableSingleton,
   describeOauthCallbackParams,
+  describeOauthFailureDiagnosis,
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
+  oauthErrorHttpStatus,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   wrapBootstrapOauthInit,
@@ -55,6 +58,7 @@ describe('OAUTH_BREADCRUMB', () => {
     expect(OAUTH_BREADCRUMB.loginEstablished).toBe(
       'oauth: login() established OauthBskyAppAgent',
     )
+    expect(OAUTH_BREADCRUMB.failureDiagnosis).toBe('oauth: failure diagnosis')
   })
 })
 
@@ -105,6 +109,107 @@ describe('classifyOauthExchangeError', () => {
         new Error('Unknown authorization session "abc"'),
       ),
     ).toMatchObject({kind: 'pkce_state'})
+  })
+})
+
+describe('leftoverOauthGrantKeysFromHref', () => {
+  it('reports leftover #code= / #state= without exposing values', () => {
+    const href =
+      'http://127.0.0.1:19006/#state=SECRET_STATE&iss=https://bsky.social&code=SECRET_CODE'
+    expect(leftoverOauthGrantKeysFromHref(href)).toEqual(['code', 'state'])
+  })
+
+  it('reads hash-router #/state= forms and query leftovers', () => {
+    expect(
+      leftoverOauthGrantKeysFromHref(
+        'http://127.0.0.1:19006/#/state=SECRET_STATE&code=SECRET_CODE',
+      ),
+    ).toEqual(['code', 'state'])
+    expect(
+      leftoverOauthGrantKeysFromHref(
+        'http://127.0.0.1:19006/?code=SECRET_CODE&state=SECRET_STATE',
+      ),
+    ).toEqual(['code', 'state'])
+  })
+
+  it('is empty after a successful strip', () => {
+    expect(leftoverOauthGrantKeysFromHref('http://127.0.0.1:19006/')).toEqual(
+      [],
+    )
+  })
+})
+
+describe('oauthErrorHttpStatus', () => {
+  it('reads OAuthResponseError.status and response.status', () => {
+    expect(
+      oauthErrorHttpStatus({
+        status: 400,
+        response: {status: 400},
+      }),
+    ).toBe(400)
+    expect(
+      oauthErrorHttpStatus({
+        cause: {response: {status: 401}},
+      }),
+    ).toBe(401)
+    expect(oauthErrorHttpStatus(new TypeError('Failed to fetch'))).toBeNull()
+  })
+})
+
+describe('describeOauthFailureDiagnosis', () => {
+  const callbackHref =
+    'http://127.0.0.1:19006/#state=SECRET_STATE&code=SECRET_CODE'
+
+  it('captures leftover grant, classify kind, token HTTP class, snapshot flags', () => {
+    const diagnosis = describeOauthFailureDiagnosis({
+      href: callbackHref,
+      error: Object.assign(new Error('invalid_grant'), {
+        status: 400,
+        response: {status: 400},
+      }),
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+    })
+    expect(diagnosis).toEqual({
+      leftoverGrantInUrl: true,
+      leftoverGrantKeys: ['code', 'state'],
+      exchangeErrorKind: 'token',
+      tokenEndpointHttpStatus: 400,
+      tokenEndpointFailureClass: 'http',
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+    })
+    expect(JSON.stringify(diagnosis)).not.toContain('SECRET')
+  })
+
+  it('classifies CORS / failed fetch as a network token-endpoint failure', () => {
+    const diagnosis = describeOauthFailureDiagnosis({
+      href: callbackHref,
+      error: new TypeError('Failed to fetch'),
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+    })
+    expect(diagnosis.exchangeErrorKind).toBe('cors')
+    expect(diagnosis.tokenEndpointHttpStatus).toBeNull()
+    expect(diagnosis.tokenEndpointFailureClass).toBe('network')
+    expect(diagnosis.leftoverGrantInUrl).toBe(true)
+  })
+
+  it('marks anonymous-after-callback with no exchange error and no leftover', () => {
+    const diagnosis = describeOauthFailureDiagnosis({
+      href: 'http://127.0.0.1:19006/',
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+    })
+    expect(diagnosis).toEqual({
+      leftoverGrantInUrl: false,
+      leftoverGrantKeys: [],
+      exchangeErrorKind: 'none',
+      tokenEndpointHttpStatus: null,
+      tokenEndpointFailureClass: 'none',
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+    })
   })
 })
 

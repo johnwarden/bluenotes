@@ -4,3 +4,11 @@
 export function getSnapshottedOauthCallbackParams(): URLSearchParams | null {
   return null
 }
+
+export function oauthCallbackSnapshotRanBeforeStrip(): boolean {
+  return false
+}
+
+export function oauthCallbackSnapshotHadParams(): boolean {
+  return false
+}

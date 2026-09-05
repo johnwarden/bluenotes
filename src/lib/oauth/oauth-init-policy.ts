@@ -70,6 +70,7 @@ export const OAUTH_BREADCRUMB = {
   initFinished: 'oauth: init finished',
   loginStarting: 'oauth: login() starting OauthBskyAppAgent',
   loginEstablished: 'oauth: login() established OauthBskyAppAgent',
+  failureDiagnosis: 'oauth: failure diagnosis',
 } as const
 
 export function oauthConsoleBreadcrumb(
@@ -123,6 +124,109 @@ export function classifyOauthExchangeError(error: unknown): {
     kind = 'token'
   }
   return {kind, name: err.name, message: err.message}
+}
+
+export type OauthTokenFailureClass = 'http' | 'network' | 'none'
+
+/**
+ * Leftover `#code=` / `#state=` (or query equivalents) after a failed or
+ * skipped exchange. Expected on failed exchange for loopback diagnosis;
+ * forbidden after a successful login.
+ */
+export function leftoverOauthGrantKeysFromHref(
+  href: string,
+): Array<'code' | 'state'> {
+  let parsed: URL
+  try {
+    parsed = new URL(href)
+  } catch {
+    return []
+  }
+  const rawHash = parsed.hash.startsWith('#')
+    ? parsed.hash.slice(1)
+    : parsed.hash
+  const fromHash = new URLSearchParams(
+    rawHash.startsWith('/') ? rawHash.slice(1) : rawHash,
+  )
+  const fromQuery = parsed.searchParams
+  const keys: Array<'code' | 'state'> = []
+  if (fromQuery.has('code') || fromHash.has('code')) {
+    keys.push('code')
+  }
+  if (fromQuery.has('state') || fromHash.has('state')) {
+    keys.push('state')
+  }
+  return keys
+}
+
+/**
+ * HTTP status on `OAuthResponseError` (`@atproto/oauth-client` `exchangeCode`).
+ * Walks `.cause` once or twice. Does not read tokens, codes, or bodies.
+ */
+export function oauthErrorHttpStatus(error: unknown): number | null {
+  let current: unknown = error
+  for (let depth = 0; depth < 4 && current; depth++) {
+    if (!current || typeof current !== 'object') {
+      break
+    }
+    const rec = current as Record<string, unknown>
+    if (typeof rec.status === 'number' && Number.isFinite(rec.status)) {
+      return rec.status
+    }
+    const response = rec.response
+    if (response && typeof response === 'object') {
+      const status = (response as {status?: unknown}).status
+      if (typeof status === 'number' && Number.isFinite(status)) {
+        return status
+      }
+    }
+    current = rec.cause
+  }
+  return null
+}
+
+export type OauthFailureDiagnosis = {
+  leftoverGrantInUrl: boolean
+  leftoverGrantKeys: Array<'code' | 'state'>
+  exchangeErrorKind: OauthExchangeErrorKind | 'none'
+  tokenEndpointHttpStatus: number | null
+  tokenEndpointFailureClass: OauthTokenFailureClass
+  snapshotRanBeforeStrip: boolean
+  snapshotHadCallbackParams: boolean
+}
+
+/**
+ * Non-secret diagnosis for a failed token exchange or anonymous-after-callback.
+ * Never includes `code`, `state`, tokens, or response bodies.
+ */
+export function describeOauthFailureDiagnosis(input: {
+  href: string
+  error?: unknown
+  snapshotRanBeforeStrip: boolean
+  snapshotHadCallbackParams: boolean
+}): OauthFailureDiagnosis {
+  const leftoverGrantKeys = leftoverOauthGrantKeysFromHref(input.href)
+  const tokenEndpointHttpStatus = oauthErrorHttpStatus(input.error)
+  let tokenEndpointFailureClass: OauthTokenFailureClass = 'none'
+  if (tokenEndpointHttpStatus != null) {
+    tokenEndpointFailureClass = 'http'
+  } else if (input.error) {
+    tokenEndpointFailureClass =
+      classifyOauthExchangeError(input.error).kind === 'cors'
+        ? 'network'
+        : 'none'
+  }
+  return {
+    leftoverGrantInUrl: leftoverGrantKeys.length > 0,
+    leftoverGrantKeys,
+    exchangeErrorKind: input.error
+      ? classifyOauthExchangeError(input.error).kind
+      : 'none',
+    tokenEndpointHttpStatus,
+    tokenEndpointFailureClass,
+    snapshotRanBeforeStrip: input.snapshotRanBeforeStrip,
+    snapshotHadCallbackParams: input.snapshotHadCallbackParams,
+  }
 }
 
 /** Safe to log: session/state *shape* only, no tokens. */

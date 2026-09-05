@@ -51,8 +51,11 @@ import {
 } from '#/state/session'
 import {
   clearOauthCallbackUrl,
+  hasLeftoverOauthGrantInUrl,
   hasPendingOauthCallback,
   initOAuthClient,
+  peekLastOauthInitError,
+  reportOauthFailureDiagnosis,
 } from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
@@ -143,6 +146,7 @@ function InnerApp() {
             logger.error(`oauth: callback session retry failed`, {
               message: retryErr,
             })
+            reportOauthFailureDiagnosis(retryErr)
           }
         }
       } finally {
@@ -154,6 +158,12 @@ function InnerApp() {
           })
         ) {
           setIsReady(true)
+          if (
+            !established &&
+            (hasPendingOauthCallback() || hasLeftoverOauthGrantInUrl())
+          ) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+          }
         }
       }
     }
@@ -261,6 +271,7 @@ function App() {
         logger.error(`oauth: bootstrap failed with callback params`, {
           message: error,
         })
+        reportOauthFailureDiagnosis(error)
         // Persist must finish so InnerApp can retry (singleton resets on
         // reject). InnerApp stays null until login() succeeds or retries end.
         Promise.all([

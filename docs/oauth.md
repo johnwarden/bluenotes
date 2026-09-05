@@ -160,7 +160,13 @@ npx serve -l 19006 -s web-build
    OauthBskyAppAgent` (`console.info`, not only the collapsed logger).
    A PDS `getSession` 401 must not block login — handle comes from
    `getProfile` / token `sub`. Failures: `kind` = `cors` | `dpop` |
-   `redirect_uri` | `pkce_state` | `token`.
+   `redirect_uri` | `pkce_state` | `token`. When exchange fails or the
+   session stays anonymous, DevTools must also show
+   `oauth: failure diagnosis` with leftover `#code=`/`#state=`
+   (`leftoverGrantInUrl`), `exchangeErrorKind`, token-endpoint
+   `tokenEndpointHttpStatus` / `tokenEndpointFailureClass` (no secrets),
+   and `snapshotRanBeforeStrip` / `snapshotHadCallbackParams` (did the
+   module-eval snapshot run before hash rewrite/strip).
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

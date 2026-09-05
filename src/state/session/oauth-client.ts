@@ -43,3 +43,13 @@ export function subscribeOAuthSessionDeleted(
 }
 
 export function clearOauthCallbackUrl() {}
+
+export function peekLastOauthInitError(): unknown {
+  return undefined
+}
+
+export function reportOauthFailureDiagnosis(_error?: unknown): void {}
+
+export function hasLeftoverOauthGrantInUrl(): boolean {
+  return false
+}

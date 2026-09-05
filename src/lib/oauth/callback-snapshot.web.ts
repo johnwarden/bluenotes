@@ -15,7 +15,7 @@ import {
 } from './loopback-callback'
 
 function capture(): URLSearchParams | null {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || !window.location?.href) {
     return null
   }
   const params = readOauthCallbackParams(window.location.href)
@@ -37,7 +37,22 @@ function capture(): URLSearchParams | null {
 }
 
 const snapshottedOauthCallbackParams = capture()
+/** True after this module evaluated and read the callback document. */
+const snapshotEvaluatedAtModuleLoad = true
 
 export function getSnapshottedOauthCallbackParams(): URLSearchParams | null {
   return snapshottedOauthCallbackParams
+}
+
+/**
+ * Did the module-eval snapshot run before any hash rewrite/strip in this
+ * bundle? True once this file has executed (`index.web.js` first import).
+ */
+export function oauthCallbackSnapshotRanBeforeStrip(): boolean {
+  return snapshotEvaluatedAtModuleLoad
+}
+
+/** Did the pre-strip snapshot contain `#code=` / `#state=` (or query)? */
+export function oauthCallbackSnapshotHadParams(): boolean {
+  return snapshottedOauthCallbackParams !== null
 }

@@ -3,7 +3,11 @@ import {
   type OAuthClientMetadataInput,
 } from '@atproto/oauth-client-browser'
 
-import {getSnapshottedOauthCallbackParams} from '#/lib/oauth/callback-snapshot'
+import {
+  getSnapshottedOauthCallbackParams,
+  oauthCallbackSnapshotHadParams,
+  oauthCallbackSnapshotRanBeforeStrip,
+} from '#/lib/oauth/callback-snapshot'
 import {
   getOauthHandleResolver,
   getOauthScope,
@@ -20,9 +24,11 @@ import {
   classifyOauthExchangeError,
   createResettableSingleton,
   describeOauthCallbackParams,
+  describeOauthFailureDiagnosis,
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
 } from '#/lib/oauth/oauth-init-policy'
@@ -133,6 +139,39 @@ const initialCallbackParams: URLSearchParams | null = (() => {
 
 type LibraryRedirectUri = Parameters<BrowserOAuthClient['initCallback']>[1]
 
+let lastOauthInitError: unknown
+
+export function peekLastOauthInitError(): unknown {
+  return lastOauthInitError
+}
+
+/**
+ * Console diagnosis when exchange fails or the session stays anonymous.
+ * Shape only: leftover grant keys, classify kind, token HTTP class, snapshot.
+ */
+export function reportOauthFailureDiagnosis(error?: unknown): void {
+  if (arguments.length > 0) {
+    lastOauthInitError = error
+  }
+  const href = typeof window === 'undefined' ? '' : window.location.href
+  const diagnosis = describeOauthFailureDiagnosis({
+    href,
+    error: error ?? lastOauthInitError,
+    snapshotRanBeforeStrip: oauthCallbackSnapshotRanBeforeStrip(),
+    snapshotHadCallbackParams: oauthCallbackSnapshotHadParams(),
+  })
+  oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.failureDiagnosis, diagnosis)
+  logger.warn(OAUTH_BREADCRUMB.failureDiagnosis, diagnosis)
+}
+
+/** True when `#code=` / `#state=` (or query) are still on the address bar. */
+export function hasLeftoverOauthGrantInUrl(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return leftoverOauthGrantKeysFromHref(window.location.href).length > 0
+}
+
 /**
  * True when this document loaded with an authorization response (or we
  * snapshotted one before a router / replaceState stripped the URL). Used by
@@ -220,6 +259,7 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
     } else {
       logger.info(OAUTH_BREADCRUMB.initFinished, finishMeta)
     }
+    lastOauthInitError = undefined
     return result
   } catch (e) {
     const classified = classifyOauthExchangeError(e)
@@ -232,6 +272,7 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
         ...describeOauthCallbackParams(params),
       },
     )
+    reportOauthFailureDiagnosis(e)
     throw e
   }
 }
