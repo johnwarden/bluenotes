@@ -8,6 +8,7 @@
 import {
   describeOauthCallbackParams,
   formatOauthCallbackDocumentBreadcrumb,
+  OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
 } from '#/lib/oauth/oauth-init-policy'
 import {
@@ -17,6 +18,17 @@ import {
 
 function capture(): URLSearchParams | null {
   if (typeof window === 'undefined' || !window.location?.href) {
+    oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.snapshotEval, {
+      present: false,
+      hasCode: false,
+      hasState: false,
+      hasError: false,
+      origin: '',
+      pathname: '',
+      hashPresent: false,
+      searchPresent: false,
+      willRewriteLocalhost: false,
+    })
     return null
   }
   const params = readOauthCallbackParams(window.location.href)
@@ -30,9 +42,13 @@ function capture(): URLSearchParams | null {
       canonicalizeLoopbackHref(window.location.href),
     ),
   }
+  // Always log at module-eval, before React. Silence here means this
+  // document never ran bootstrap (wrong bundle / console filter) or
+  // the snapshot module did not evaluate. present:true = grant was on
+  // the URL before any strip. present:false + empty hash = this
+  // document is not the callback document (9a58ce838 silent path).
+  oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.snapshotEval, report)
   if (report.present || report.willRewriteLocalhost) {
-    // Must use oauthConsoleBreadcrumb: Identifier `console.info` is
-    // stripped by production transform-remove-console (9a58ce838 smoke).
     oauthConsoleBreadcrumb(formatOauthCallbackDocumentBreadcrumb(report))
   }
   return params

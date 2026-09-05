@@ -7,9 +7,11 @@ import {
   describeOauthCallbackParams,
   describeOauthFailureDiagnosis,
   describeOauthInitResult,
+  describeSilentAnonymousDiagnosis,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
   inferOauthExchangeNeverRanReason,
+  isSilentAnonymousOauthFailure,
   leftoverGrantBlocksSoftGatePass,
   leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
@@ -89,6 +91,8 @@ describe('OAUTH_BREADCRUMB', () => {
     expect(OAUTH_BREADCRUMB.loginFailed).toBe(
       'oauth: login() failed to establish OauthBskyAppAgent',
     )
+    expect(OAUTH_BREADCRUMB.snapshotEval).toBe('oauth: snapshot eval')
+    expect(OAUTH_BREADCRUMB.silentAnonymous).toBe('oauth: silent anonymous')
   })
 
   it('writes breadcrumbs through globalThis.console.warn (survives remove-console)', () => {
@@ -315,6 +319,55 @@ describe('leftoverGrantBlocksSoftGatePass', () => {
     expect(leftoverGrantBlocksSoftGatePass(['state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass(['code', 'state'])).toBe(true)
     expect(leftoverGrantBlocksSoftGatePass([])).toBe(false)
+  })
+})
+
+describe('isSilentAnonymousOauthFailure', () => {
+  it('is a different mode than leftover #state=', () => {
+    expect(
+      isSilentAnonymousOauthFailure({
+        leftoverGrantKeys: ['state'],
+        hashEmpty: false,
+        snapshotHadCallbackParams: true,
+        exchangeAttempt: 'never_ran',
+      }),
+    ).toBe(false)
+    expect(
+      isSilentAnonymousOauthFailure({
+        leftoverGrantKeys: [],
+        hashEmpty: true,
+        snapshotHadCallbackParams: true,
+        exchangeAttempt: 'ran_and_succeeded',
+      }),
+    ).toBe(true)
+    expect(
+      isSilentAnonymousOauthFailure({
+        leftoverGrantKeys: [],
+        hashEmpty: true,
+        snapshotHadCallbackParams: false,
+        exchangeAttempt: 'never_ran',
+      }),
+    ).toBe(false)
+  })
+
+  it('describes 9a58ce838: empty hash, no leftover grant, exchange ran', () => {
+    const silent = describeSilentAnonymousDiagnosis({
+      pathname: '/',
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+      exchangeAttempt: 'ran_and_succeeded',
+    })
+    expect(silent).toEqual({
+      leftoverGrantInUrl: false,
+      leftoverGrantKeys: [],
+      hashEmpty: true,
+      pathname: '/',
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+      exchangeAttempt: 'ran_and_succeeded',
+      exchangeErrorKind: 'none',
+    })
+    expect(JSON.stringify(silent)).not.toContain('code=')
   })
 })
 

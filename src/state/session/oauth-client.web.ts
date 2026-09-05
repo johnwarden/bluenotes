@@ -27,8 +27,10 @@ import {
   describeOauthCallbackParams,
   describeOauthFailureDiagnosis,
   describeOauthInitResult,
+  describeSilentAnonymousDiagnosis,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  isSilentAnonymousOauthFailure,
   leftoverGrantBlocksSoftGatePass,
   leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
@@ -202,7 +204,43 @@ export function reportOauthFailureDiagnosis(error?: unknown): void {
     ) {
       clearOauthCallbackUrl()
     }
+  } else if (
+    isSilentAnonymousOauthFailure({
+      leftoverGrantKeys: diagnosis.leftoverGrantKeys,
+      hashEmpty:
+        typeof window === 'undefined'
+          ? true
+          : !window.location.hash || window.location.hash === '#',
+      snapshotHadCallbackParams: diagnosis.snapshotHadCallbackParams,
+      exchangeAttempt: diagnosis.exchangeAttempt,
+    })
+  ) {
+    oauthConsoleBreadcrumb(
+      OAUTH_BREADCRUMB.silentAnonymous,
+      describeSilentAnonymousDiagnosis({
+        pathname:
+          typeof window === 'undefined' ? '/' : window.location.pathname,
+        snapshotRanBeforeStrip: diagnosis.snapshotRanBeforeStrip,
+        snapshotHadCallbackParams: diagnosis.snapshotHadCallbackParams,
+        exchangeAttempt: diagnosis.exchangeAttempt,
+        exchangeNeverRanReason: diagnosis.exchangeNeverRanReason,
+        exchangeErrorKind: diagnosis.exchangeErrorKind,
+      }),
+    )
   }
+}
+
+/** Empty hash + no leftover grant after we saw/exchanged a callback. */
+export function shouldReportSilentAnonymousPaint(): boolean {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return isSilentAnonymousOauthFailure({
+    leftoverGrantKeys: leftoverOauthGrantKeysFromHref(window.location.href),
+    hashEmpty: !window.location.hash || window.location.hash === '#',
+    snapshotHadCallbackParams: oauthCallbackSnapshotHadParams(),
+    exchangeAttempt: lastExchangeAttempt.outcome,
+  })
 }
 
 /** Peek leftover `#code=` / `#state=` *before* any replaceState strip. */

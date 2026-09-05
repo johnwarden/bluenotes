@@ -63,3 +63,7 @@ export function peekLeftoverOauthGrantKeys(): Array<'code' | 'state'> {
 export function hasLeftoverOauthGrantInUrl(): boolean {
   return false
 }
+
+export function shouldReportSilentAnonymousPaint(): boolean {
+  return false
+}

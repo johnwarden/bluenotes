@@ -10,6 +10,7 @@ import {
   peekLeftoverOauthGrantKeys,
   reportOauthFailureDiagnosis,
   revokeOAuthSession,
+  shouldReportSilentAnonymousPaint,
   subscribeOAuthSessionDeleted,
 } from '../oauth-client'
 
@@ -18,6 +19,7 @@ describe('native oauth-client stubs', () => {
     await expect(initOAuthClient()).resolves.toBeUndefined()
     expect(hasPendingOauthCallback()).toBe(false)
     expect(hasLeftoverOauthGrantInUrl()).toBe(false)
+    expect(shouldReportSilentAnonymousPaint()).toBe(false)
     expect(peekLeftoverOauthGrantKeys()).toEqual([])
     expect(peekLastOauthInitError()).toBeUndefined()
     expect(peekLastOauthExchangeAttempt()).toEqual({

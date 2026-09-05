@@ -73,6 +73,8 @@ export const OAUTH_BREADCRUMB = {
   failureDiagnosis: 'oauth: failure diagnosis',
   leftoverGrant: 'oauth: leftover grant',
   loginFailed: 'oauth: login() failed to establish OauthBskyAppAgent',
+  snapshotEval: 'oauth: snapshot eval',
+  silentAnonymous: 'oauth: silent anonymous',
 } as const
 
 /**
@@ -318,6 +320,65 @@ export function leftoverGrantBlocksSoftGatePass(
   return (
     leftoverGrantKeys.includes('state') || leftoverGrantKeys.includes('code')
   )
+}
+
+/**
+ * Empty hash + no leftover `#state=` after consent is a different
+ * failure than leftover-grant. 9a58ce838: token 200, hash gone, Sign in,
+ * no leftover-grant line. That path must still be diagnosable.
+ */
+export function isSilentAnonymousOauthFailure(input: {
+  leftoverGrantKeys: Array<'code' | 'state'>
+  hashEmpty: boolean
+  snapshotHadCallbackParams: boolean
+  exchangeAttempt: OauthExchangeAttempt
+}): boolean {
+  if (leftoverGrantBlocksSoftGatePass(input.leftoverGrantKeys)) {
+    return false
+  }
+  if (!input.hashEmpty) {
+    return false
+  }
+  return (
+    input.snapshotHadCallbackParams ||
+    input.exchangeAttempt === 'ran_and_succeeded' ||
+    input.exchangeAttempt === 'ran_and_failed'
+  )
+}
+
+export type OauthSilentAnonymousDiagnosis = {
+  leftoverGrantInUrl: false
+  leftoverGrantKeys: []
+  hashEmpty: true
+  pathname: string
+  snapshotRanBeforeStrip: boolean
+  snapshotHadCallbackParams: boolean
+  exchangeAttempt: OauthExchangeAttempt
+  exchangeNeverRanReason?: OauthExchangeNeverRanReason
+  exchangeErrorKind: OauthExchangeErrorKind | 'none'
+}
+
+export function describeSilentAnonymousDiagnosis(input: {
+  pathname: string
+  snapshotRanBeforeStrip: boolean
+  snapshotHadCallbackParams: boolean
+  exchangeAttempt: OauthExchangeAttempt
+  exchangeNeverRanReason?: OauthExchangeNeverRanReason
+  exchangeErrorKind?: OauthExchangeErrorKind | 'none'
+}): OauthSilentAnonymousDiagnosis {
+  return {
+    leftoverGrantInUrl: false,
+    leftoverGrantKeys: [],
+    hashEmpty: true,
+    pathname: input.pathname,
+    snapshotRanBeforeStrip: input.snapshotRanBeforeStrip,
+    snapshotHadCallbackParams: input.snapshotHadCallbackParams,
+    exchangeAttempt: input.exchangeAttempt,
+    ...(input.exchangeAttempt === 'never_ran' && input.exchangeNeverRanReason
+      ? {exchangeNeverRanReason: input.exchangeNeverRanReason}
+      : {}),
+    exchangeErrorKind: input.exchangeErrorKind ?? 'none',
+  }
 }
 
 /**

@@ -58,6 +58,7 @@ import {
   peekLastOauthInitError,
   peekLeftoverOauthGrantKeys,
   reportOauthFailureDiagnosis,
+  shouldReportSilentAnonymousPaint,
 } from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
@@ -180,7 +181,9 @@ function InnerApp() {
         ) {
           if (
             !established &&
-            (hasPendingOauthCallback() || hasLeftoverOauthGrantInUrl())
+            (hasPendingOauthCallback() ||
+              hasLeftoverOauthGrantInUrl() ||
+              shouldReportSilentAnonymousPaint())
           ) {
             reportOauthFailureDiagnosis(peekLastOauthInitError())
           }

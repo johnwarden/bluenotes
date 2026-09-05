@@ -158,6 +158,15 @@ npx serve -l 19006 -s web-build
    `#code=` so it is not a silent anonymous landing. Then
    `oauth: init finished` and `oauth: login() established
    OauthBskyAppAgent` (`console.info`, not only the collapsed logger).
+   Empty hash + no leftover `#state=` + no oauth lines is a **different**
+   failure than leftover-grant (9a58ce838 silent-anonymous). At
+   module-eval (before React) DevTools must show `oauth: snapshot eval`
+   (`present:true` if `#code=`/`#state=` were on the document). Silence
+   means this document never ran bootstrap, the wrong document loaded
+   (`/` with `present:false`), or the console filter hides Warnings.
+   Breadcrumbs use `globalThis.console.warn` (not `console.info`, not
+   the Sentry-only logger). After a successful strip that still paints
+   Sign in, expect `oauth: silent anonymous` (not `oauth: leftover grant`).
    Do **not** call PDS `getSession` on the OAuth path: a 401 with
    `DPoP error="invalid_token"` makes `@atproto/oauth-client` refresh
    then `delStored` the session that `callback()` just wrote (9a58ce838:
