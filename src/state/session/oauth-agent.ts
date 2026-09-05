@@ -31,15 +31,16 @@ export async function oauthCreateAgent(
   onSessionChange: OnAgentSessionChange,
 ) {
   const agent = new OauthBskyAppAgent(session)
-  // Password login sets the AppView proxy *after* PDS getSession. Doing it
-  // first sends com.atproto.server.getSession through AppView, which fails
-  // and leaves InnerApp anonymous even though the code exchange succeeded.
-  logger.warn(`oauth: getSession before AppView proxy`)
+  // getSession is optional for OAuth: Bluesky PDS returns 401 for DPoP
+  // tokens (live loopback 2026-09-05). Token claims + getProfile are enough
+  // to build SessionAccount. Do not let a 401 paint Sign in after a
+  // successful code exchange.
   const account = await oauthAgentToSessionAccountOrThrow(agent, session)
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   logger.warn(`oauth: OauthBskyAppAgent profile loaded`, {
     did: account.did,
+    handle: account.handle,
   })
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
   const moderation = configureModerationForAccount(agent, account)
   return agent.prepare(account, gates, moderation, onSessionChange)
@@ -72,30 +73,83 @@ export async function oauthAgentToSessionAccountOrThrow(
   return oauthAgentToSessionAccount(agent, session)
 }
 
-export async function oauthAgentToSessionAccount(
+type OauthSessionProfile = {
+  handle?: string
+  email?: string
+  emailConfirmed?: boolean
+  emailAuthFactor?: boolean
+  active?: boolean
+  status?: SessionAccount['status']
+}
+
+async function tryOauthGetSession(
   agent: Agent,
-  session: OAuthSession,
-): Promise<SessionAccount> {
+): Promise<OauthSessionProfile | undefined> {
   try {
     const {data} = await agent.com.atproto.server.getSession()
-    const tokenInfo = await session.getTokenInfo(false)
-    const service = session.serverMetadata.issuer || BSKY_SERVICE
     return {
-      service,
-      did: session.did || data.did,
       handle: data.handle,
       email: data.email,
       emailConfirmed: data.emailConfirmed,
       emailAuthFactor: data.emailAuthFactor,
       active: data.active,
       status: data.status,
-      pdsUrl: tokenInfo.aud,
-      isSelfHosted: !service.startsWith(BSKY_SERVICE),
-      isOauthSession: true,
     }
   } catch (e) {
-    logger.error(`oauth: failed to load session profile`, {message: e})
-    throw e
+    const err = e instanceof Error ? e : new Error(String(e))
+    logger.warn(
+      `oauth: getSession unavailable for OAuth token (using profile)`,
+      {
+        message: err.message,
+        name: err.name,
+      },
+    )
+    return undefined
+  }
+}
+
+async function resolveOauthHandle(agent: Agent, did: string): Promise<string> {
+  try {
+    const {data} = await agent.app.bsky.actor.getProfile({actor: did})
+    if (data.handle) {
+      return data.handle
+    }
+  } catch (e) {
+    logger.warn(`oauth: getProfile failed; using DID as handle`, {
+      message: e instanceof Error ? e.message : e,
+    })
+  }
+  return did
+}
+
+export async function oauthAgentToSessionAccount(
+  agent: Agent,
+  session: OAuthSession,
+): Promise<SessionAccount> {
+  const tokenInfo = await session.getTokenInfo(false)
+  const did = session.did || tokenInfo.sub
+  if (!did) {
+    throw new Error('OAuth session has no DID')
+  }
+  const fromSession = await tryOauthGetSession(agent)
+  // getProfile is an AppView call; proxy after the optional PDS getSession.
+  if (!fromSession?.handle) {
+    agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  }
+  const handle = fromSession?.handle || (await resolveOauthHandle(agent, did))
+  const service = session.serverMetadata.issuer || BSKY_SERVICE
+  return {
+    service,
+    did,
+    handle,
+    email: fromSession?.email,
+    emailConfirmed: fromSession?.emailConfirmed,
+    emailAuthFactor: fromSession?.emailAuthFactor,
+    active: fromSession?.active ?? true,
+    status: fromSession?.status,
+    pdsUrl: tokenInfo.aud,
+    isSelfHosted: !service.startsWith(BSKY_SERVICE),
+    isOauthSession: true,
   }
 }
 

@@ -12,6 +12,8 @@ import * as Sentry from '@sentry/react-native'
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
 import {
   describeOauthInitResult,
+  OAUTH_BREADCRUMB,
+  oauthConsoleBreadcrumb,
   shouldPaintAppAfterOauthLaunch,
   wrapBootstrapOauthInit,
 } from '#/lib/oauth/oauth-init-policy'
@@ -98,7 +100,8 @@ function InnerApp() {
       if (
         shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
       ) {
-        logger.warn(`oauth: login() starting OauthBskyAppAgent`)
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginStarting)
+        logger.warn(OAUTH_BREADCRUMB.loginStarting)
         await login(
           {
             service: '',
@@ -108,7 +111,8 @@ function InnerApp() {
           },
           'LoginForm',
         )
-        logger.warn(`oauth: login() established OauthBskyAppAgent`)
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
+        logger.warn(OAUTH_BREADCRUMB.loginEstablished)
         clearOauthCallbackUrl()
         return true
       }

@@ -23,6 +23,8 @@ import {
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  OAUTH_BREADCRUMB,
+  oauthConsoleBreadcrumb,
 } from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
 
@@ -167,10 +169,11 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
     hashPresent: Boolean(window.location.hash),
     searchPresent: Boolean(window.location.search),
   }
+  oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.initStarting, startMeta)
   if (callbackShape.present) {
-    logger.warn(`oauth: init starting`, startMeta)
+    logger.warn(OAUTH_BREADCRUMB.initStarting, startMeta)
   } else {
-    logger.info(`oauth: init starting`, startMeta)
+    logger.info(OAUTH_BREADCRUMB.initStarting, startMeta)
   }
 
   try {
@@ -211,10 +214,11 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
       },
     })
     const finishMeta = describeOauthInitResult(result)
+    oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.initFinished, finishMeta)
     if (callbackShape.present) {
-      logger.warn(`oauth: init finished`, finishMeta)
+      logger.warn(OAUTH_BREADCRUMB.initFinished, finishMeta)
     } else {
-      logger.info(`oauth: init finished`, finishMeta)
+      logger.info(OAUTH_BREADCRUMB.initFinished, finishMeta)
     }
     return result
   } catch (e) {

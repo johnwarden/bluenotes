@@ -157,7 +157,9 @@ npx serve -l 19006 -s web-build
    **stay** until the token exchange succeeds; a failed exchange leaves
    `#code=` so it is not a silent anonymous landing. Then
    `oauth: init finished` and `oauth: login() established
-   OauthBskyAppAgent`. Failures: `kind` = `cors` | `dpop` |
+   OauthBskyAppAgent` (`console.info`, not only the collapsed logger).
+   A PDS `getSession` 401 must not block login — handle comes from
+   `getProfile` / token `sub`. Failures: `kind` = `cors` | `dpop` |
    `redirect_uri` | `pkce_state` | `token`.
 5. Then chats + a Community Notes thread.
 

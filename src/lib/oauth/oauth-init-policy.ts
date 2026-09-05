@@ -64,6 +64,28 @@ export function formatOauthCallbackDocumentBreadcrumb(
   return `oauth: callback document ${JSON.stringify(report)}`
 }
 
+/** Exact strings the loopback smoke gate greps for. */
+export const OAUTH_BREADCRUMB = {
+  initStarting: 'oauth: init starting',
+  initFinished: 'oauth: init finished',
+  loginStarting: 'oauth: login() starting OauthBskyAppAgent',
+  loginEstablished: 'oauth: login() established OauthBskyAppAgent',
+} as const
+
+export function oauthConsoleBreadcrumb(
+  message: string,
+  meta?: Record<string, unknown>,
+): void {
+  if (typeof console === 'undefined' || typeof console.info !== 'function') {
+    return
+  }
+  if (meta && Object.keys(meta).length > 0) {
+    console.info(message, meta)
+  } else {
+    console.info(message)
+  }
+}
+
 export type OauthExchangeErrorKind =
   | 'cors'
   | 'dpop'

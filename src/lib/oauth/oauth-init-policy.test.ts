@@ -7,6 +7,7 @@ import {
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  OAUTH_BREADCRUMB,
   shouldPaintAppAfterOauthLaunch,
   shouldPropagateOauthInitError,
   wrapBootstrapOauthInit,
@@ -41,6 +42,19 @@ describe('describeOauthCallbackParams', () => {
       hasError: true,
       error: 'access_denied',
     })
+  })
+})
+
+describe('OAUTH_BREADCRUMB', () => {
+  it('uses the exact loopback smoke-gate strings', () => {
+    expect(OAUTH_BREADCRUMB.initStarting).toBe('oauth: init starting')
+    expect(OAUTH_BREADCRUMB.initFinished).toBe('oauth: init finished')
+    expect(OAUTH_BREADCRUMB.loginStarting).toBe(
+      'oauth: login() starting OauthBskyAppAgent',
+    )
+    expect(OAUTH_BREADCRUMB.loginEstablished).toBe(
+      'oauth: login() established OauthBskyAppAgent',
+    )
   })
 })
 

@@ -18,29 +18,138 @@ const storedAccount: SessionAccount = {
   isOauthSession: true,
 }
 
+function oauthSession(overrides?: {
+  getTokenInfo?: () => Promise<{
+    aud: string
+    sub: string
+    scope: string
+    iss: string
+  }>
+}) {
+  return {
+    did: 'did:plc:alice',
+    serverMetadata: {issuer: 'https://bsky.social'},
+    getTokenInfo:
+      overrides?.getTokenInfo ??
+      (async () => ({
+        aud: 'https://truffle.us-east.host.bsky.network',
+        sub: 'did:plc:alice',
+        scope: 'atproto transition:generic',
+        iss: 'https://bsky.social',
+      })),
+  }
+}
+
 describe('oauthAgentToSessionAccount', () => {
-  it('rethrows getSession failures instead of returning undefined', async () => {
+  it('still establishes an account when PDS getSession returns 401', async () => {
     const agent = {
+      configureProxy: jest.fn(),
       com: {
         atproto: {
           server: {
             getSession: jest.fn(async () => {
-              throw new Error('AppView rejected getSession')
+              const err = new Error('Unauthorized')
+              ;(err as Error & {status: number}).status = 401
+              throw err
+            }),
+          },
+        },
+      },
+      app: {
+        bsky: {
+          actor: {
+            getProfile: jest.fn(async () => ({
+              data: {did: 'did:plc:alice', handle: 'jonathanwarden.com'},
+            })),
+          },
+        },
+      },
+    }
+
+    const account = await oauthAgentToSessionAccount(
+      agent as never,
+      oauthSession() as never,
+    )
+
+    expect(account).toMatchObject({
+      did: 'did:plc:alice',
+      handle: 'jonathanwarden.com',
+      isOauthSession: true,
+      pdsUrl: 'https://truffle.us-east.host.bsky.network',
+    })
+    expect(agent.app.bsky.actor.getProfile).toHaveBeenCalled()
+    expect(agent.configureProxy).toHaveBeenCalled()
+  })
+
+  it('uses getSession handle/email when the PDS allows it', async () => {
+    const agent = {
+      configureProxy: jest.fn(),
+      com: {
+        atproto: {
+          server: {
+            getSession: jest.fn(async () => ({
+              data: {
+                did: 'did:plc:alice',
+                handle: 'alice.test',
+                email: 'alice@example.com',
+                emailConfirmed: true,
+                active: true,
+              },
+            })),
+          },
+        },
+      },
+      app: {
+        bsky: {
+          actor: {
+            getProfile: jest.fn(),
+          },
+        },
+      },
+    }
+
+    const account = await oauthAgentToSessionAccount(
+      agent as never,
+      oauthSession() as never,
+    )
+
+    expect(account.handle).toBe('alice.test')
+    expect(account.email).toBe('alice@example.com')
+    expect(agent.app.bsky.actor.getProfile).not.toHaveBeenCalled()
+    expect(agent.configureProxy).not.toHaveBeenCalled()
+  })
+
+  it('falls back to the DID when getSession and getProfile both fail', async () => {
+    const agent = {
+      configureProxy: jest.fn(),
+      com: {
+        atproto: {
+          server: {
+            getSession: jest.fn(async () => {
+              throw new Error('Unauthorized')
+            }),
+          },
+        },
+      },
+      app: {
+        bsky: {
+          actor: {
+            getProfile: jest.fn(async () => {
+              throw new Error('Unavailable')
             }),
           },
         },
       },
     }
-    const session = {
-      did: 'did:plc:alice',
-      serverMetadata: {issuer: 'https://bsky.social'},
-      getTokenInfo: jest.fn(),
-    }
 
-    await expect(
-      oauthAgentToSessionAccount(agent as never, session as never),
-    ).rejects.toThrow('AppView rejected getSession')
-    expect(session.getTokenInfo).not.toHaveBeenCalled()
+    const account = await oauthAgentToSessionAccount(
+      agent as never,
+      oauthSession() as never,
+    )
+
+    expect(account.did).toBe('did:plc:alice')
+    expect(account.handle).toBe('did:plc:alice')
+    expect(account.isOauthSession).toBe(true)
   })
 })
 
