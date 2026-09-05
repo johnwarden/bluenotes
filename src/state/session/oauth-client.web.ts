@@ -4,9 +4,9 @@ import {
 } from '@atproto/oauth-client-browser'
 
 import {
-  buildWebClientMetadata,
   getOauthHandleResolver,
-  shouldUseLoopbackClient,
+  getOauthScope,
+  resolveWebClientMetadata,
 } from '#/lib/oauth/config'
 import {logger} from '#/logger'
 
@@ -36,16 +36,14 @@ function currentOrigin(): string | undefined {
 
 export function createWebOAuthClient(): BrowserOAuthClient {
   const origin = currentOrigin()
-  const useLoopback = shouldUseLoopbackClient(origin)
   return new BrowserOAuthClient({
     handleResolver: getOauthHandleResolver(),
-    // Loopback clients are hardcoded by ATProto auth servers. Hosted metadata
-    // must match the JSON served at client_id exactly.
-    clientMetadata: useLoopback
-      ? undefined
-      : (buildWebClientMetadata(
-          origin || undefined,
-        ) as OAuthClientMetadataInput),
+    // Loopback: encode getOauthScope() in client_id (library default is
+    // identity-only `atproto`). Hosted metadata must match the JSON served
+    // at client_id exactly.
+    clientMetadata: resolveWebClientMetadata(
+      origin,
+    ) as OAuthClientMetadataInput,
     responseMode: 'fragment',
     // @atproto/oauth-client 0.6.x: SessionHooks (not EventTarget).
     onDelete: (sub, cause) => {
@@ -88,7 +86,9 @@ export function initOAuthClient(): Promise<OauthInitResult | undefined> {
 
 export async function signInWithOAuth(identifier: string): Promise<void> {
   const oauthClient = getOAuthClient()
-  await oauthClient.signIn(identifier)
+  // AS still validates this against scopes encoded in loopback client_id /
+  // hosted metadata. Passing it here matches authorize's options.scope path.
+  await oauthClient.signIn(identifier, {scope: getOauthScope()})
 }
 
 export async function restoreOAuthSession(did: string) {
