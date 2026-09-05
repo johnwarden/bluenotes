@@ -189,3 +189,25 @@ the raw `hailey/oauth*` branches:
 Password sessions and Community Notes behavior are unchanged when OAuth is
 off. Do not land this by rewriting `AGENTS.md` / shipping-install docs
 (draft PR #6).
+
+## Community Notes / auth coordination
+
+Community Notes XRPC (`getProposals`, `propose`, `vote`) talks to a
+**separate notes service** (`https://api.bluenotes.social`, or
+`localhost:2595` against a local PDS), not the user's PDS. Those calls
+cannot go through `Agent`'s built-in XRPC client. They use
+`fetchWithAgentAuth` in `src/lib/api/community-notes-auth.ts`.
+
+| Session | What is sent |
+| --- | --- |
+| No real access token (`accessJwt` missing or `''`) | **Omit** `Authorization`. An empty `Bearer` is a hard 401; a missing header is soft-anonymous `getProposals`. |
+| Password / app-password | `Authorization: Bearer <accessJwt>` when the JWT is non-empty. |
+| OAuth (`OauthBskyAppAgent`) | `OAuthSession.fetchHandler` from `@atproto/oauth-client`. |
+
+OAuth access tokens are DPoP-bound and live in the browser OAuth client
+store, not in persisted `session.accessJwt` (that field is empty on
+purpose). `fetchHandler` loads the real token via `getTokenSet`, sets
+`Authorization: DPoP <access_token>` (`token_type` is `DPoP`), and the
+library `dpopFetchWrapper` adds the `DPoP` proof (method + `htu` + `ath`)
+and handles nonce retry / refresh. Do not hand-roll DPoP or send
+`session.accessJwt` for OAuth sessions.
