@@ -1,3 +1,4 @@
+import '#/lib/oauth/callback-snapshot'
 import '#/platform/markBundleStartTime'
 import '#/platform/polyfills'
 

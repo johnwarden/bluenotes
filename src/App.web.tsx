@@ -1,3 +1,4 @@
+import '#/lib/oauth/callback-snapshot'
 import '#/logger/sentry/setup' // must be near top
 import '#/view/icons'
 import './style.css'
@@ -9,6 +10,16 @@ import {useLingui} from '@lingui/react'
 import * as Sentry from '@sentry/react-native'
 
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
+import {
+  decideOauthLoginEstablishedAfterPeek,
+  describeOauthInitResult,
+  leftoverGrantBlocksSoftGatePass,
+  OAUTH_BREADCRUMB,
+  oauthConsoleBreadcrumb,
+  shouldEmitOauthLoginEstablishedBreadcrumb,
+  shouldPaintAppAfterOauthLaunch,
+  wrapBootstrapOauthInit,
+} from '#/lib/oauth/oauth-init-policy'
 import {QueryProvider} from '#/lib/react-query'
 import {Provider as StatsigProvider} from '#/lib/statsig/statsig'
 import {ThemeProvider} from '#/lib/ThemeContext'
@@ -43,7 +54,14 @@ import {
 } from '#/state/session'
 import {
   clearOauthCallbackUrl,
+  hasLeftoverOauthGrantInUrl,
+  hasPendingOauthCallback,
   initOAuthClient,
+  peekLastOauthInitError,
+  peekLeftoverOauthGrantKeys,
+  peekOauthSessionAlive,
+  reportOauthFailureDiagnosis,
+  shouldReportSilentAnonymousPaint,
 } from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
@@ -84,12 +102,16 @@ function InnerApp() {
 
   // init
   useEffect(() => {
-    async function onLaunch(account?: SessionAccount) {
-      try {
-        const oauthResult = await initOAuthClient()
-        if (
-          shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
-        ) {
+    async function establishOauthAppSession(
+      account?: SessionAccount,
+    ): Promise<boolean> {
+      const oauthResult = await initOAuthClient()
+      if (
+        shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
+      ) {
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginStarting)
+        logger.warn(OAUTH_BREADCRUMB.loginStarting)
+        try {
           await login(
             {
               service: '',
@@ -99,21 +121,143 @@ function InnerApp() {
             },
             'LoginForm',
           )
-          clearOauthCallbackUrl()
-          return
+        } catch (e) {
+          oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginFailed)
+          reportOauthFailureDiagnosis(e)
+          throw e
         }
-        if (account) {
+        // Peek leftover `#code=`/`#state=` *before* any clear.
+        // fd83c6624 called clearOauthCallbackUrl() first; replaceState
+        // wiped the hash so loginEstablished could fire over leftover
+        // `#state=` (soft-gate gate was dead).
+        const afterLogin = decideOauthLoginEstablishedAfterPeek(
+          peekLeftoverOauthGrantKeys(),
+        )
+        if (afterLogin.emitLeftoverGrant) {
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+          return true
+        }
+        if (afterLogin.clearCallbackUrl) {
+          clearOauthCallbackUrl()
+        }
+        // Do not emit loginEstablished here. 9a58ce838 / c8e3a12de
+        // login() returned after token 200 but currentAccount did not
+        // stay (DPoP 401 delStored). Emit established only when
+        // currentAccount is set *and* IndexedDB session is still alive.
+        return true
+      }
+      if (hasPendingOauthCallback()) {
+        logger.warn(`oauth: login() skipped on callback load`, {
+          ...describeOauthInitResult(oauthResult),
+          hasPersistedAccount: Boolean(account),
+        })
+      }
+      return false
+    }
+
+    async function onLaunch(account?: SessionAccount) {
+      let established = false
+      try {
+        established = await establishOauthAppSession(account)
+        if (!established && account) {
           await resumeSession(account)
+          established = true
         }
       } catch (e) {
         logger.error(`session: resumeSession failed`, {message: e})
+        if (hasPendingOauthCallback()) {
+          try {
+            logger.warn(`oauth: retrying callback session establishment`)
+            established = await establishOauthAppSession(account)
+          } catch (retryErr) {
+            logger.error(`oauth: callback session retry failed`, {
+              message: retryErr,
+            })
+            reportOauthFailureDiagnosis(retryErr)
+          }
+        }
       } finally {
-        setIsReady(true)
+        if (
+          shouldPaintAppAfterOauthLaunch({
+            establishedAppSession: established,
+            hasCallbackParams: hasPendingOauthCallback(),
+            retriesExhausted: true,
+          })
+        ) {
+          if (
+            !established &&
+            (hasPendingOauthCallback() ||
+              hasLeftoverOauthGrantInUrl() ||
+              shouldReportSilentAnonymousPaint())
+          ) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+          }
+          setIsReady(true)
+        }
       }
     }
     const account = readLastActiveAccount()
     onLaunch(account)
   }, [login, resumeSession])
+
+  // Paint-time diagnosis. c8e3a12de emitted loginEstablished on first
+  // currentAccount paint, then DPoP getProfile 401 delStored the
+  // session and silent-anonymous fired at Sign in. Wait a tick so
+  // onDelete can clear the account, then require IndexedDB still
+  // alive. Never emit established without both.
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      void (async () => {
+        if (cancelled) {
+          return
+        }
+        const leftover = peekLeftoverOauthGrantKeys()
+        const leftoverGrantInUrl = leftoverGrantBlocksSoftGatePass(leftover)
+        if (currentAccount) {
+          if (leftoverGrantInUrl) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+            return
+          }
+          const oauthSessionAlive = await peekOauthSessionAlive(
+            currentAccount.did,
+          )
+          if (cancelled) {
+            return
+          }
+          if (
+            shouldEmitOauthLoginEstablishedBreadcrumb({
+              hasCurrentAccount: true,
+              leftoverGrantInUrl: false,
+              oauthSessionAlive,
+            })
+          ) {
+            oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
+            logger.warn(OAUTH_BREADCRUMB.loginEstablished)
+            return
+          }
+          if (hasPendingOauthCallback() || shouldReportSilentAnonymousPaint()) {
+            reportOauthFailureDiagnosis(peekLastOauthInitError())
+          }
+          return
+        }
+        if (
+          hasPendingOauthCallback() ||
+          leftoverGrantInUrl ||
+          shouldReportSilentAnonymousPaint()
+        ) {
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+        }
+      })()
+    }, 0)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [isReady, currentAccount])
 
   useEffect(() => {
     return listenSessionDropped(() => {
@@ -195,13 +339,34 @@ function App() {
   const [isReady, setReady] = useState(false)
 
   React.useEffect(() => {
+    const oauthBoot = wrapBootstrapOauthInit(
+      initOAuthClient(),
+      hasPendingOauthCallback(),
+      error => {
+        logger.error(`oauth: bootstrap init failed`, {message: error})
+      },
+    )
     Promise.all([
       initPersistedState(),
       ensureGeolocationConfigIsResolved(),
-      // Consume ?code= / #code= before SessionProvider children can paint
-      // signed-out chrome. login() still runs in InnerApp (needs the store).
-      initOAuthClient().catch(() => undefined),
-    ]).then(() => setReady(true))
+      // Start the exchange in parallel with persist. Errors with callback
+      // params propagate — do not `.catch(() => undefined)` (paints Sign in
+      // while InnerApp is stuck on the rejected singleton).
+      oauthBoot,
+    ])
+      .then(() => setReady(true))
+      .catch(error => {
+        logger.error(`oauth: bootstrap failed with callback params`, {
+          message: error,
+        })
+        reportOauthFailureDiagnosis(error)
+        // Persist must finish so InnerApp can retry (singleton resets on
+        // reject). InnerApp stays null until login() succeeds or retries end.
+        Promise.all([
+          initPersistedState(),
+          ensureGeolocationConfigIsResolved(),
+        ]).then(() => setReady(true))
+      })
   }, [])
 
   if (!isReady) {

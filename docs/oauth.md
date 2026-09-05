@@ -124,8 +124,14 @@ Loopback and hosted web both request `response_mode=fragment` so
 `BrowserOAuthClient.init()` consumes `#code=` / `#state=` on that load.
 The app also reads query params if an AS returns `?code=`, canonicalizes
 `localhost` → `127.0.0.1` *without* dropping those params, and calls
-`login()` before signed-out chrome can paint. See
-`src/lib/oauth/loopback-callback.ts`.
+`login()` before signed-out chrome can paint.
+
+If this document loaded with callback params, **do not** call library
+`init()` first: it can throw (`initRestore` leftover sub, or
+`initCallback` after stripping the hash) and skip the #18 retry. The
+app force-calls `initCallback` with the snapshot, does not swallow
+bootstrap errors, and retries `login()` once if `getSession` throws.
+See `src/lib/oauth/oauth-init-policy.ts`.
 
 After changing loopback scopes or the callback handler, **re-authorize**:
 rebuild the static web bundle if you are serving `web-build`, clear site
@@ -133,10 +139,47 @@ data **once** on `http://127.0.0.1:19006` (not mid-flow), sign in, consent
 **once**, then confirm signed-in chrome (profile/avatar). Then open chats
 and a Community Notes thread.
 
+### Re-test on a box that already has a bsky.app session
+
 ```
 EXPO_PUBLIC_OAUTH=1 yarn build-web
 npx serve -l 19006 -s web-build
 ```
+
+1. Chrome → `http://127.0.0.1:19006` → DevTools → Application → clear
+   **only** this origin (not mid-flow; wiping after PAR starts drops PKCE).
+2. Sign in with a real Bluesky handle. Consent on bsky.social (full scopes).
+3. Callback must stay on `http://127.0.0.1:19006` (or `/auth/web/callback`)
+   and show **profile/avatar**, not Sign in / Create account.
+4. Console: enable **Warnings** (Default levels or All). Do **not**
+   hunt `console.info` — since 58f3d10 / follow-ons, `oauth:`
+   breadcrumbs are `globalThis.console.warn` (production
+   `transform-remove-console` strips Identifier `console.info`; the
+   collapsed app logger is not enough). Filter the console for `oauth:`.
+   - Module-eval (before React): `oauth: snapshot eval` with
+     `present:true` if `#code=`/`#state=` were on this document.
+     Silence = bootstrap never ran, wrong document (`/` with
+     `present:false`), or Warnings filtered off.
+   - PASS: `oauth: init starting` → `oauth: init finished` →
+     `oauth: login() established OauthBskyAppAgent`, signed-in
+     profile/avatar, **no** leftover hash.
+   - Failed exchange (loopback): leftover `#code=`/`#state=` stay;
+     `oauth: leftover grant` with `exchangeAttempt` `never_ran` vs
+     `ran_and_failed` (plus classify kind / token HTTP class). Not PASS.
+   - Silent anonymous (9a58ce838 / c8e3a12de): token 200, hash empty,
+     Sign in — `oauth: silent anonymous`, **not** leftover-grant. Not
+     PASS. `login() established` plus `silent anonymous` is FAIL even
+     if login() returned: established must not fire unless
+     `currentAccount` is set **and** the IndexedDB OAuth session is
+     still alive.
+   Hosted strips the grant after those Warnings and before anonymous
+   paint. Loopback leaves it for diagnosis. Do not call PDS
+   `getSession` **or** DPoP `getProfile` on the OAuth agent (both 401s
+   can `delStored` the just-exchanged session). Handle comes from
+   **public** AppView `getProfile` / token `sub`.
+5. Then chats + a Community Notes thread.
+
+Do **not** assemble `release` / Fly / force-push.
 
 An old token issued with `atproto` only will keep failing until replaced.
 

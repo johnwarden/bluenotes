@@ -3,6 +3,8 @@
  * See docs/oauth.md for the remaining Expo / client-metadata work.
  */
 
+import {type OauthExchangeAttemptRecord} from '#/lib/oauth/oauth-init-policy'
+
 export type OauthInitResult = {
   session: never
   state?: string
@@ -14,6 +16,10 @@ export function getOAuthClient(): never {
 
 export async function initOAuthClient(): Promise<OauthInitResult | undefined> {
   return undefined
+}
+
+export function hasPendingOauthCallback(): boolean {
+  return false
 }
 
 export async function signInWithOAuth(_identifier: string): Promise<void> {
@@ -39,3 +45,29 @@ export function subscribeOAuthSessionDeleted(
 }
 
 export function clearOauthCallbackUrl() {}
+
+export function peekLastOauthInitError(): unknown {
+  return undefined
+}
+
+export function peekLastOauthExchangeAttempt(): OauthExchangeAttemptRecord {
+  return {outcome: 'never_ran', neverRanReason: 'unknown'}
+}
+
+export function reportOauthFailureDiagnosis(_error?: unknown): void {}
+
+export function peekLeftoverOauthGrantKeys(): Array<'code' | 'state'> {
+  return []
+}
+
+export function hasLeftoverOauthGrantInUrl(): boolean {
+  return false
+}
+
+export function shouldReportSilentAnonymousPaint(): boolean {
+  return false
+}
+
+export async function peekOauthSessionAlive(_did: string): Promise<boolean> {
+  return false
+}

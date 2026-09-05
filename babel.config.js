@@ -45,7 +45,11 @@ module.exports = function (api) {
     ],
     env: {
       production: {
-        plugins: ['transform-remove-console'],
+        // Keep warn/error so loopback OAuth breadcrumbs
+        // (`oauth: snapshot eval`, `oauth: silent anonymous`) survive
+        // `yarn build-web`. 9a58ce838 stripped Identifier console.info
+        // and the smoke saw zero oauth: lines.
+        plugins: [['transform-remove-console', {exclude: ['error', 'warn']}]],
       },
     },
   }
