@@ -9,6 +9,10 @@ import {useLingui} from '@lingui/react'
 import * as Sentry from '@sentry/react-native'
 
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
+import {
+  shouldPaintAppAfterOauthLaunch,
+  wrapBootstrapOauthInit,
+} from '#/lib/oauth/oauth-init-policy'
 import {QueryProvider} from '#/lib/react-query'
 import {Provider as StatsigProvider} from '#/lib/statsig/statsig'
 import {ThemeProvider} from '#/lib/ThemeContext'
@@ -43,6 +47,7 @@ import {
 } from '#/state/session'
 import {
   clearOauthCallbackUrl,
+  hasPendingOauthCallback,
   initOAuthClient,
 } from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
@@ -84,31 +89,58 @@ function InnerApp() {
 
   // init
   useEffect(() => {
+    async function establishOauthAppSession(
+      account?: SessionAccount,
+    ): Promise<boolean> {
+      const oauthResult = await initOAuthClient()
+      if (
+        shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
+      ) {
+        await login(
+          {
+            service: '',
+            identifier: '',
+            password: '',
+            oauthSession: oauthResult.session,
+          },
+          'LoginForm',
+        )
+        clearOauthCallbackUrl()
+        return true
+      }
+      return false
+    }
+
     async function onLaunch(account?: SessionAccount) {
+      let established = false
       try {
-        const oauthResult = await initOAuthClient()
-        if (
-          shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
-        ) {
-          await login(
-            {
-              service: '',
-              identifier: '',
-              password: '',
-              oauthSession: oauthResult.session,
-            },
-            'LoginForm',
-          )
-          clearOauthCallbackUrl()
-          return
-        }
-        if (account) {
+        established = await establishOauthAppSession(account)
+        if (!established && account) {
           await resumeSession(account)
+          established = true
         }
       } catch (e) {
         logger.error(`session: resumeSession failed`, {message: e})
+        if (hasPendingOauthCallback()) {
+          try {
+            logger.warn(`oauth: retrying callback session establishment`)
+            established = await establishOauthAppSession(account)
+          } catch (retryErr) {
+            logger.error(`oauth: callback session retry failed`, {
+              message: retryErr,
+            })
+          }
+        }
       } finally {
-        setIsReady(true)
+        if (
+          shouldPaintAppAfterOauthLaunch({
+            establishedAppSession: established,
+            hasCallbackParams: hasPendingOauthCallback(),
+            retriesExhausted: true,
+          })
+        ) {
+          setIsReady(true)
+        }
       }
     }
     const account = readLastActiveAccount()
@@ -195,13 +227,33 @@ function App() {
   const [isReady, setReady] = useState(false)
 
   React.useEffect(() => {
+    const oauthBoot = wrapBootstrapOauthInit(
+      initOAuthClient(),
+      hasPendingOauthCallback(),
+      error => {
+        logger.error(`oauth: bootstrap init failed`, {message: error})
+      },
+    )
     Promise.all([
       initPersistedState(),
       ensureGeolocationConfigIsResolved(),
-      // Consume ?code= / #code= before SessionProvider children can paint
-      // signed-out chrome. login() still runs in InnerApp (needs the store).
-      initOAuthClient().catch(() => undefined),
-    ]).then(() => setReady(true))
+      // Start the exchange in parallel with persist. Errors with callback
+      // params propagate — do not `.catch(() => undefined)` (paints Sign in
+      // while InnerApp is stuck on the rejected singleton).
+      oauthBoot,
+    ])
+      .then(() => setReady(true))
+      .catch(error => {
+        logger.error(`oauth: bootstrap failed with callback params`, {
+          message: error,
+        })
+        // Persist must finish so InnerApp can retry (singleton resets on
+        // reject). InnerApp stays null until login() succeeds or retries end.
+        Promise.all([
+          initPersistedState(),
+          ensureGeolocationConfigIsResolved(),
+        ]).then(() => setReady(true))
+      })
   }, [])
 
   if (!isReady) {

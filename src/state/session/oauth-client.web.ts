@@ -15,10 +15,13 @@ import {
   matchOauthRedirectUri,
   readOauthCallbackParams,
 } from '#/lib/oauth/loopback-callback'
+import {
+  createResettableSingleton,
+  exchangeOrRestoreOauthSession,
+} from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
 
 let client: BrowserOAuthClient | undefined
-let initPromise: Promise<OauthInitResult | undefined> | undefined
 
 type OauthDeletedDetail = {sub: string; cause: unknown}
 const deletedListeners = new Set<(detail: OauthDeletedDetail) => void>()
@@ -94,96 +97,83 @@ const initialCallbackParams: URLSearchParams | null =
 
 type LibraryRedirectUri = Parameters<BrowserOAuthClient['initCallback']>[1]
 
-function hasCallbackState(
-  result: {session: unknown; state?: string | null} | undefined,
-): result is {session: NonNullable<unknown>; state: string | null} {
-  return Boolean(result && 'state' in result)
+/**
+ * True when this document loaded with an authorization response (or we
+ * snapshotted one before a router / replaceState stripped the URL). Used by
+ * App bootstrap so callback errors are not swallowed.
+ */
+export function hasPendingOauthCallback(): boolean {
+  if (initialCallbackParams) {
+    return true
+  }
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return readOauthCallbackParams(window.location.href) !== null
 }
 
-function wrapInitResult(
-  result: Awaited<ReturnType<BrowserOAuthClient['init']>>,
-): OauthInitResult | undefined {
-  if (!result) {
+async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
+  if (rewriteLocalhostOriginIfNeeded()) {
+    // Navigating off localhost; do not open IndexedDB on the wrong origin.
     return undefined
   }
-  if ('state' in result) {
-    return {session: result.session, state: result.state ?? ''}
+  const oauthClient = getOAuthClient()
+  const params =
+    initialCallbackParams ??
+    oauthClient.readCallbackParams() ??
+    readOauthCallbackParams(window.location.href)
+  const metadata = resolveWebClientMetadata(currentOrigin())
+
+  try {
+    return await exchangeOrRestoreOauthSession({
+      callbackParams: params,
+      libraryInit: () => oauthClient.init(),
+      libraryInitCallback: (callbackParams, redirectUri) =>
+        oauthClient.initCallback(
+          callbackParams,
+          redirectUri as LibraryRedirectUri,
+        ),
+      resolveRedirectUri: () =>
+        oauthClient.findRedirectUrl() ??
+        matchOauthRedirectUri(window.location.href, metadata.redirect_uris),
+      stripCallbackFromAddressBar: () => {
+        // Snapshot already holds code/state. Strip *both* query and
+        // fragment so a query-mode client still consumes a fragment
+        // response on this load and a refresh cannot replay the code.
+        window.history.replaceState(
+          null,
+          '',
+          hrefWithoutOauthCallback(window.location.href),
+        )
+      },
+      onForcedCallback: () => {
+        logger.warn(
+          `oauth: exchanging authorization response via initCallback (skipping library init)`,
+        )
+      },
+    })
+  } catch (e) {
+    logger.error(
+      params
+        ? `oauth: client initCallback failed`
+        : `oauth: client init failed`,
+      {message: e},
+    )
+    throw e
   }
-  return {session: result.session}
 }
+
+const oauthInitSingleton = createResettableSingleton(runOauthClientInit)
 
 /**
  * Must run once per page load. Handles the authorization redirect (if present)
  * and restores the last OAuth session from IndexedDB.
+ *
+ * Concurrent callers share one promise. A rejection resets the singleton so
+ * InnerApp can retry after a swallowed bootstrap error.
  */
 export function initOAuthClient(): Promise<OauthInitResult | undefined> {
-  if (!initPromise) {
-    initPromise = (async () => {
-      if (rewriteLocalhostOriginIfNeeded()) {
-        // Navigating off localhost; do not open IndexedDB on the wrong origin.
-        return undefined
-      }
-      const oauthClient = getOAuthClient()
-      let result: Awaited<ReturnType<BrowserOAuthClient['init']>>
-      try {
-        result = await oauthClient.init()
-      } catch (e) {
-        logger.error(`oauth: client init failed`, {message: e})
-        if (
-          initialCallbackParams ||
-          readOauthCallbackParams(window.location.href)
-        ) {
-          throw e
-        }
-        return undefined
-      }
-
-      if (!hasCallbackState(result)) {
-        const params =
-          initialCallbackParams ??
-          oauthClient.readCallbackParams() ??
-          readOauthCallbackParams(window.location.href)
-        if (params) {
-          const metadata = resolveWebClientMetadata(currentOrigin())
-          const redirectUri =
-            oauthClient.findRedirectUrl() ??
-            matchOauthRedirectUri(window.location.href, metadata.redirect_uris)
-          if (!redirectUri) {
-            logger.error(`oauth: callback params present but no redirect_uri`, {
-              origin: window.location.origin,
-              pathname: window.location.pathname,
-            })
-            throw new Error(
-              'OAuth callback could not be completed: redirect URI mismatch',
-            )
-          }
-          logger.warn(
-            `oauth: library init missed callback params; retrying initCallback`,
-          )
-          // Snapshot already holds code/state. Strip *both* query and
-          // fragment so a query-mode client still consumes a fragment
-          // response on this load and a refresh cannot replay the code.
-          window.history.replaceState(
-            null,
-            '',
-            hrefWithoutOauthCallback(window.location.href),
-          )
-          try {
-            result = await oauthClient.initCallback(
-              params,
-              redirectUri as LibraryRedirectUri,
-            )
-          } catch (e) {
-            logger.error(`oauth: client initCallback failed`, {message: e})
-            throw e
-          }
-        }
-      }
-
-      return wrapInitResult(result)
-    })()
-  }
-  return initPromise
+  return oauthInitSingleton.run()
 }
 
 export async function signInWithOAuth(identifier: string): Promise<void> {

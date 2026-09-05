@@ -14,7 +14,12 @@
  *      destroying the authorization response
  *
  * That combination is the anonymous-after-consent bug on local
- * `127.0.0.1:19006` / `localhost` static serves:
+ * `127.0.0.1:19006` / `localhost` static serves. #18 retried `initCallback`
+ * only after `init()` *resolved* without `state`. If `init()` threw, the
+ * retry never ran and App swallowed the error — still anonymous. See
+ * `oauth-init-policy.ts`.
+ *
+ * Remaining failure modes on those origins:
  *
  *   - AS returns `response_mode=query` while the client only reads fragment
  *     (or a hash router / `history.replaceState` stripped the fragment)

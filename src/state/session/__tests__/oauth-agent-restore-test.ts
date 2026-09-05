@@ -1,6 +1,6 @@
 import {describe, expect, it, jest} from '@jest/globals'
 
-import {oauthResumeSession} from '../oauth-agent'
+import {oauthAgentToSessionAccount, oauthResumeSession} from '../oauth-agent'
 import {restoreOAuthSession} from '../oauth-client'
 import {type SessionAccount} from '../types'
 
@@ -17,6 +17,32 @@ const storedAccount: SessionAccount = {
   handle: 'alice.test',
   isOauthSession: true,
 }
+
+describe('oauthAgentToSessionAccount', () => {
+  it('rethrows getSession failures instead of returning undefined', async () => {
+    const agent = {
+      com: {
+        atproto: {
+          server: {
+            getSession: jest.fn(async () => {
+              throw new Error('AppView rejected getSession')
+            }),
+          },
+        },
+      },
+    }
+    const session = {
+      did: 'did:plc:alice',
+      serverMetadata: {issuer: 'https://bsky.social'},
+      getTokenInfo: jest.fn(),
+    }
+
+    await expect(
+      oauthAgentToSessionAccount(agent as never, session as never),
+    ).rejects.toThrow('AppView rejected getSession')
+    expect(session.getTokenInfo).not.toHaveBeenCalled()
+  })
+})
 
 describe('oauthResumeSession', () => {
   it('dispatches create-failed when OAuth restore throws', async () => {

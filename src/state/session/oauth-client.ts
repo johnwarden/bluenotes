@@ -16,6 +16,10 @@ export async function initOAuthClient(): Promise<OauthInitResult | undefined> {
   return undefined
 }
 
+export function hasPendingOauthCallback(): boolean {
+  return false
+}
+
 export async function signInWithOAuth(_identifier: string): Promise<void> {
   throw new Error('AT Protocol OAuth is not available in this native build')
 }

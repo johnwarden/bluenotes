@@ -31,8 +31,11 @@ export async function oauthCreateAgent(
   onSessionChange: OnAgentSessionChange,
 ) {
   const agent = new OauthBskyAppAgent(session)
-  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
+  // Password login sets the AppView proxy *after* PDS getSession. Doing it
+  // first sends com.atproto.server.getSession through AppView, which fails
+  // and leaves InnerApp anonymous even though the code exchange succeeded.
   const account = await oauthAgentToSessionAccountOrThrow(agent, session)
+  agent.configureProxy(BLUESKY_PROXY_HEADER.get())
   const gates = tryFetchGates(account.did, 'prefer-fresh-gates')
   const moderation = configureModerationForAccount(agent, account)
   return agent.prepare(account, gates, moderation, onSessionChange)
@@ -62,17 +65,13 @@ export async function oauthAgentToSessionAccountOrThrow(
   agent: Agent,
   session: OAuthSession,
 ): Promise<SessionAccount> {
-  const account = await oauthAgentToSessionAccount(agent, session)
-  if (!account) {
-    throw Error('Expected an active OAuth session')
-  }
-  return account
+  return oauthAgentToSessionAccount(agent, session)
 }
 
 export async function oauthAgentToSessionAccount(
   agent: Agent,
   session: OAuthSession,
-): Promise<SessionAccount | undefined> {
+): Promise<SessionAccount> {
   try {
     const {data} = await agent.com.atproto.server.getSession()
     const tokenInfo = await session.getTokenInfo(false)
@@ -92,7 +91,7 @@ export async function oauthAgentToSessionAccount(
     }
   } catch (e) {
     logger.error(`oauth: failed to load session profile`, {message: e})
-    return undefined
+    throw e
   }
 }
 
