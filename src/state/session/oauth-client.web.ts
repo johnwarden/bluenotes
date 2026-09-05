@@ -25,6 +25,7 @@ import {
   classifyOauthExchangeError,
   createResettableSingleton,
   describeOauthCallbackParams,
+  describeOauthDeletedCause,
   describeOauthFailureDiagnosis,
   describeOauthInitResult,
   describeSilentAnonymousDiagnosis,
@@ -76,6 +77,13 @@ export function createWebOAuthClient(): BrowserOAuthClient {
     responseMode: getWebOauthResponseMode(origin),
     // @atproto/oauth-client 0.6.x: SessionHooks (not EventTarget).
     onDelete: (sub, cause) => {
+      // c8e3a12de: delStored after token 200 (DPoP getProfile 401) dropped
+      // the session while login() still returned. Breadcrumb distinguishes
+      // that from resumeSession abort / password overwrite.
+      oauthConsoleBreadcrumb(
+        OAUTH_BREADCRUMB.sessionDeleted,
+        describeOauthDeletedCause(cause),
+      )
       emitOAuthSessionDeleted(sub, cause)
     },
   })
@@ -263,7 +271,16 @@ export function hasLeftoverOauthGrantInUrl(): boolean {
  */
 export async function peekOauthSessionAlive(did: string): Promise<boolean> {
   try {
-    const session = await getOAuthClient().restore(did, false)
+    const client = getOAuthClient() as BrowserOAuthClient & {
+      sessionGetter?: {getStored?: (sub: string) => Promise<unknown>}
+    }
+    // Prefer a store read. restore() can delStored on
+    // AuthMethodUnsatisfiableError, which would recreate the c8e3a12de wipe.
+    if (typeof client.sessionGetter?.getStored === 'function') {
+      const stored = await client.sessionGetter.getStored(did)
+      return stored != null
+    }
+    const session = await client.restore(did, false)
     return session != null
   } catch {
     return false

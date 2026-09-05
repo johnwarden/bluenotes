@@ -5,6 +5,7 @@ import {
   createResettableSingleton,
   decideOauthLoginEstablishedAfterPeek,
   describeOauthCallbackParams,
+  describeOauthDeletedCause,
   describeOauthFailureDiagnosis,
   describeOauthInitResult,
   describeSilentAnonymousDiagnosis,
@@ -94,6 +95,7 @@ describe('OAUTH_BREADCRUMB', () => {
     )
     expect(OAUTH_BREADCRUMB.snapshotEval).toBe('oauth: snapshot eval')
     expect(OAUTH_BREADCRUMB.silentAnonymous).toBe('oauth: silent anonymous')
+    expect(OAUTH_BREADCRUMB.sessionDeleted).toBe('oauth: session deleted')
   })
 
   it('writes breadcrumbs through globalThis.console.warn (survives remove-console)', () => {
@@ -105,6 +107,22 @@ describe('OAUTH_BREADCRUMB', () => {
       hasCode: true,
     })
     warn.mockRestore()
+  })
+})
+
+describe('describeOauthDeletedCause', () => {
+  it('logs only the error class name', () => {
+    const err = new Error('token=SECRET')
+    err.name = 'TokenInvalidError'
+    expect(describeOauthDeletedCause(err)).toEqual({
+      causeName: 'TokenInvalidError',
+    })
+    expect(JSON.stringify(describeOauthDeletedCause(err))).not.toContain(
+      'SECRET',
+    )
+    expect(describeOauthDeletedCause(undefined)).toEqual({
+      causeName: 'unknown',
+    })
   })
 })
 

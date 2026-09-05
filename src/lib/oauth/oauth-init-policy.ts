@@ -75,6 +75,7 @@ export const OAUTH_BREADCRUMB = {
   loginFailed: 'oauth: login() failed to establish OauthBskyAppAgent',
   snapshotEval: 'oauth: snapshot eval',
   silentAnonymous: 'oauth: silent anonymous',
+  sessionDeleted: 'oauth: session deleted',
 } as const
 
 /**
@@ -118,6 +119,19 @@ export function oauthConsoleBreadcrumb(
  * `oauthCreateAgent` (React Strict / resumeSession) left Sign in
  * visible after a successful token exchange (9a58ce838).
  */
+/** Safe to log: error class name only, never tokens or URLs. */
+export function describeOauthDeletedCause(cause: unknown): {
+  causeName: string
+} {
+  if (cause && typeof cause === 'object' && 'name' in cause) {
+    const name = (cause as {name: unknown}).name
+    if (typeof name === 'string' && name.length > 0 && name.length < 80) {
+      return {causeName: name}
+    }
+  }
+  return {causeName: 'unknown'}
+}
+
 export function shouldDiscardSessionLogin(args: {
   aborted: boolean
   isOauthSession: boolean
