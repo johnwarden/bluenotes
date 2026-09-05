@@ -9,6 +9,7 @@ import {
   DEFAULT_OAUTH_SCOPE,
   getLoopbackRedirectUris,
   getOauthScope,
+  getWebOauthResponseMode,
   isLoopbackOrigin,
   OAUTH_CALLBACK_PATH,
   resolveWebClientMetadata,
@@ -120,6 +121,13 @@ describe('oauth config', () => {
         `http://127.0.0.1:19006${OAUTH_CALLBACK_PATH}`,
       ]),
     )
+  })
+
+  it('uses query response_mode on loopback and fragment on hosted origins', () => {
+    expect(getWebOauthResponseMode('http://127.0.0.1:19006')).toBe('query')
+    expect(getWebOauthResponseMode('http://localhost:19006')).toBe('query')
+    expect(getWebOauthResponseMode('https://bluenotes.social')).toBe('fragment')
+    expect(getWebOauthResponseMode(undefined)).toBe('fragment')
   })
 
   it('resolveWebClientMetadata uses loopback metadata on local origins', () => {

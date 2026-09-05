@@ -239,3 +239,16 @@ export function resolveWebClientMetadata(origin?: string): OauthClientMetadata {
   }
   return buildWebClientMetadata(origin)
 }
+
+/**
+ * Loopback uses `query` so the authorization response survives hash
+ * routers, `location.hash = ''`, and `fixLocation` navigations that
+ * drop the fragment. Hosted production keeps `fragment` so the code is
+ * not sent to the static-file / bskyweb access log.
+ */
+export function getWebOauthResponseMode(origin?: string): 'query' | 'fragment' {
+  if (origin && shouldUseLoopbackClient(origin)) {
+    return 'query'
+  }
+  return 'fragment'
+}
