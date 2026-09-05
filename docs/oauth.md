@@ -166,7 +166,13 @@ npx serve -l 19006 -s web-build
    (`leftoverGrantInUrl`), `exchangeErrorKind`, token-endpoint
    `tokenEndpointHttpStatus` / `tokenEndpointFailureClass` (no secrets),
    and `snapshotRanBeforeStrip` / `snapshotHadCallbackParams` (did the
-   module-eval snapshot run before hash rewrite/strip).
+   module-eval snapshot run before hash rewrite/strip). Leftover
+   `#state=` is **not** a soft-gate PASS. DevTools must show
+   `oauth: leftover grant` with `exchangeAttempt` =
+   `never_ran` (plus `exchangeNeverRanReason`) **or** `ran_and_failed`
+   (plus classify kind / token HTTP class). Do not infer that
+   distinction from error kind alone (`redirect_uri` never entered
+   the token request).
 5. Then chats + a Community Notes thread.
 
 Do **not** assemble `release` / Fly / force-push.

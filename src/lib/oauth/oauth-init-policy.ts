@@ -71,6 +71,7 @@ export const OAUTH_BREADCRUMB = {
   loginStarting: 'oauth: login() starting OauthBskyAppAgent',
   loginEstablished: 'oauth: login() established OauthBskyAppAgent',
   failureDiagnosis: 'oauth: failure diagnosis',
+  leftoverGrant: 'oauth: leftover grant',
 } as const
 
 export function oauthConsoleBreadcrumb(
@@ -185,14 +186,88 @@ export function oauthErrorHttpStatus(error: unknown): number | null {
   return null
 }
 
+/**
+ * Did `callback()` / `exchangeCode` run against this leftover grant?
+ * Required whenever `#state=` remains — do not infer from error kind
+ * (`redirect_uri` mismatch never entered the token request).
+ */
+export type OauthExchangeAttempt =
+  | 'never_ran'
+  | 'ran_and_failed'
+  | 'ran_and_succeeded'
+
+export type OauthExchangeNeverRanReason =
+  | 'no_callback_params'
+  | 'state_without_code'
+  | 'redirect_uri_mismatch'
+  | 'localhost_rewrite'
+  | 'unknown'
+
+export type OauthExchangeAttemptRecord = {
+  outcome: OauthExchangeAttempt
+  neverRanReason?: OauthExchangeNeverRanReason
+}
+
+export function inferOauthExchangeNeverRanReason(input: {
+  leftoverGrantKeys: Array<'code' | 'state'>
+  hadCallbackParams: boolean
+  redirectUriResolved?: boolean
+  localhostRewrite?: boolean
+}): OauthExchangeNeverRanReason {
+  if (input.localhostRewrite) {
+    return 'localhost_rewrite'
+  }
+  if (input.hadCallbackParams && input.redirectUriResolved === false) {
+    return 'redirect_uri_mismatch'
+  }
+  if (
+    input.leftoverGrantKeys.includes('state') &&
+    !input.leftoverGrantKeys.includes('code')
+  ) {
+    return 'state_without_code'
+  }
+  if (!input.hadCallbackParams) {
+    return 'no_callback_params'
+  }
+  return 'unknown'
+}
+
+export function refineOauthExchangeNeverRanReason(
+  reason: OauthExchangeNeverRanReason | undefined,
+  leftoverGrantKeys: Array<'code' | 'state'>,
+): OauthExchangeNeverRanReason | undefined {
+  if (
+    (reason === 'no_callback_params' || reason === undefined) &&
+    leftoverGrantKeys.includes('state') &&
+    !leftoverGrantKeys.includes('code')
+  ) {
+    return 'state_without_code'
+  }
+  return reason
+}
+
 export type OauthFailureDiagnosis = {
   leftoverGrantInUrl: boolean
   leftoverGrantKeys: Array<'code' | 'state'>
+  exchangeAttempt: OauthExchangeAttempt
+  exchangeNeverRanReason?: OauthExchangeNeverRanReason
   exchangeErrorKind: OauthExchangeErrorKind | 'none'
   tokenEndpointHttpStatus: number | null
   tokenEndpointFailureClass: OauthTokenFailureClass
   snapshotRanBeforeStrip: boolean
   snapshotHadCallbackParams: boolean
+}
+
+/**
+ * Leftover `#state=` is never a soft-gate PASS, even if login painted.
+ * The diagnosis must already distinguish never-ran vs ran-and-failed.
+ */
+export function leftoverGrantBlocksSoftGatePass(
+  leftoverGrantKeys: Array<'code' | 'state'>,
+): boolean {
+  return (
+    leftoverGrantKeys.includes('state') || leftoverGrantKeys.includes('code')
+  )
 }
 
 /**
@@ -204,6 +279,8 @@ export function describeOauthFailureDiagnosis(input: {
   error?: unknown
   snapshotRanBeforeStrip: boolean
   snapshotHadCallbackParams: boolean
+  exchangeAttempt: OauthExchangeAttempt
+  exchangeNeverRanReason?: OauthExchangeNeverRanReason
 }): OauthFailureDiagnosis {
   const leftoverGrantKeys = leftoverOauthGrantKeysFromHref(input.href)
   const tokenEndpointHttpStatus = oauthErrorHttpStatus(input.error)
@@ -216,9 +293,22 @@ export function describeOauthFailureDiagnosis(input: {
         ? 'network'
         : 'none'
   }
+  const exchangeNeverRanReason =
+    input.exchangeAttempt === 'never_ran'
+      ? (refineOauthExchangeNeverRanReason(
+          input.exchangeNeverRanReason,
+          leftoverGrantKeys,
+        ) ??
+        inferOauthExchangeNeverRanReason({
+          leftoverGrantKeys,
+          hadCallbackParams: input.snapshotHadCallbackParams,
+        }))
+      : undefined
   return {
     leftoverGrantInUrl: leftoverGrantKeys.length > 0,
     leftoverGrantKeys,
+    exchangeAttempt: input.exchangeAttempt,
+    ...(exchangeNeverRanReason ? {exchangeNeverRanReason} : {}),
     exchangeErrorKind: input.error
       ? classifyOauthExchangeError(input.error).kind
       : 'none',
@@ -325,10 +415,15 @@ export async function exchangeOrRestoreOauthSession<TSession>(opts: {
   resolveRedirectUri: () => string | undefined
   stripCallbackFromAddressBar?: () => void
   onForcedCallback?: () => void
+  onExchangeAttempt?: (attempt: OauthExchangeAttemptRecord) => void
 }): Promise<OauthExchangeResult<TSession> | undefined> {
   if (opts.callbackParams) {
     const redirectUri = opts.resolveRedirectUri()
     if (!redirectUri) {
+      opts.onExchangeAttempt?.({
+        outcome: 'never_ran',
+        neverRanReason: 'redirect_uri_mismatch',
+      })
       throw new Error(
         'OAuth callback could not be completed: redirect URI mismatch',
       )
@@ -337,14 +432,24 @@ export async function exchangeOrRestoreOauthSession<TSession>(opts: {
     // Exchange *before* stripping the address bar. Library initCallback()
     // and #18 both cleared #code= first; a failed token request then
     // looked like a clean anonymous landing (live 2026-09-05 STOP).
-    const result = await opts.libraryInitCallback(
-      opts.callbackParams,
-      redirectUri,
-    )
-    opts.stripCallbackFromAddressBar?.()
-    return {session: result.session, state: result.state ?? ''}
+    try {
+      const result = await opts.libraryInitCallback(
+        opts.callbackParams,
+        redirectUri,
+      )
+      opts.onExchangeAttempt?.({outcome: 'ran_and_succeeded'})
+      opts.stripCallbackFromAddressBar?.()
+      return {session: result.session, state: result.state ?? ''}
+    } catch (e) {
+      opts.onExchangeAttempt?.({outcome: 'ran_and_failed'})
+      throw e
+    }
   }
 
+  opts.onExchangeAttempt?.({
+    outcome: 'never_ran',
+    neverRanReason: 'no_callback_params',
+  })
   const result = await opts.libraryInit()
   if (!result) {
     return undefined

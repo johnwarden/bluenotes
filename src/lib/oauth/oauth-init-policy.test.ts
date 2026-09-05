@@ -8,6 +8,8 @@ import {
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  inferOauthExchangeNeverRanReason,
+  leftoverGrantBlocksSoftGatePass,
   leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
   oauthErrorHttpStatus,
@@ -59,6 +61,7 @@ describe('OAUTH_BREADCRUMB', () => {
       'oauth: login() established OauthBskyAppAgent',
     )
     expect(OAUTH_BREADCRUMB.failureDiagnosis).toBe('oauth: failure diagnosis')
+    expect(OAUTH_BREADCRUMB.leftoverGrant).toBe('oauth: leftover grant')
   })
 })
 
@@ -169,10 +172,12 @@ describe('describeOauthFailureDiagnosis', () => {
       }),
       snapshotRanBeforeStrip: true,
       snapshotHadCallbackParams: true,
+      exchangeAttempt: 'ran_and_failed',
     })
     expect(diagnosis).toEqual({
       leftoverGrantInUrl: true,
       leftoverGrantKeys: ['code', 'state'],
+      exchangeAttempt: 'ran_and_failed',
       exchangeErrorKind: 'token',
       tokenEndpointHttpStatus: 400,
       tokenEndpointFailureClass: 'http',
@@ -188,6 +193,7 @@ describe('describeOauthFailureDiagnosis', () => {
       error: new TypeError('Failed to fetch'),
       snapshotRanBeforeStrip: true,
       snapshotHadCallbackParams: true,
+      exchangeAttempt: 'ran_and_failed',
     })
     expect(diagnosis.exchangeErrorKind).toBe('cors')
     expect(diagnosis.tokenEndpointHttpStatus).toBeNull()
@@ -200,16 +206,88 @@ describe('describeOauthFailureDiagnosis', () => {
       href: 'http://127.0.0.1:19006/',
       snapshotRanBeforeStrip: true,
       snapshotHadCallbackParams: true,
+      exchangeAttempt: 'never_ran',
+      exchangeNeverRanReason: 'no_callback_params',
     })
     expect(diagnosis).toEqual({
       leftoverGrantInUrl: false,
       leftoverGrantKeys: [],
+      exchangeAttempt: 'never_ran',
+      exchangeNeverRanReason: 'no_callback_params',
       exchangeErrorKind: 'none',
       tokenEndpointHttpStatus: null,
       tokenEndpointFailureClass: 'none',
       snapshotRanBeforeStrip: true,
       snapshotHadCallbackParams: true,
     })
+  })
+
+  it('distinguishes leftover #state= when exchange never ran vs ran-and-failed', () => {
+    const leftoverStateOnly =
+      'http://127.0.0.1:19006/#state=SECRET_STATE&iss=https://bsky.social'
+    const neverRan = describeOauthFailureDiagnosis({
+      href: leftoverStateOnly,
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: false,
+      exchangeAttempt: 'never_ran',
+      exchangeNeverRanReason: 'no_callback_params',
+    })
+    expect(neverRan.exchangeAttempt).toBe('never_ran')
+    expect(neverRan.exchangeNeverRanReason).toBe('state_without_code')
+    expect(neverRan.leftoverGrantKeys).toEqual(['state'])
+    expect(neverRan.exchangeErrorKind).toBe('none')
+    expect(neverRan.tokenEndpointFailureClass).toBe('none')
+    expect(JSON.stringify(neverRan)).not.toContain('SECRET')
+
+    const ranFailed = describeOauthFailureDiagnosis({
+      href: leftoverStateOnly,
+      error: Object.assign(new Error('invalid_grant'), {status: 400}),
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+      exchangeAttempt: 'ran_and_failed',
+    })
+    expect(ranFailed.exchangeAttempt).toBe('ran_and_failed')
+    expect(ranFailed.exchangeNeverRanReason).toBeUndefined()
+    expect(ranFailed.exchangeErrorKind).toBe('token')
+    expect(ranFailed.tokenEndpointHttpStatus).toBe(400)
+    expect(ranFailed.tokenEndpointFailureClass).toBe('http')
+  })
+
+  it('does not treat redirect_uri mismatch as a token-endpoint run', () => {
+    const diagnosis = describeOauthFailureDiagnosis({
+      href: callbackHref,
+      error: new Error(
+        'OAuth callback could not be completed: redirect URI mismatch',
+      ),
+      snapshotRanBeforeStrip: true,
+      snapshotHadCallbackParams: true,
+      exchangeAttempt: 'never_ran',
+      exchangeNeverRanReason: 'redirect_uri_mismatch',
+    })
+    expect(diagnosis.exchangeAttempt).toBe('never_ran')
+    expect(diagnosis.exchangeNeverRanReason).toBe('redirect_uri_mismatch')
+    expect(diagnosis.exchangeErrorKind).toBe('redirect_uri')
+    expect(diagnosis.tokenEndpointFailureClass).toBe('none')
+    expect(diagnosis.leftoverGrantInUrl).toBe(true)
+  })
+})
+
+describe('leftoverGrantBlocksSoftGatePass', () => {
+  it('blocks PASS whenever leftover #state= or #code= remain', () => {
+    expect(leftoverGrantBlocksSoftGatePass(['state'])).toBe(true)
+    expect(leftoverGrantBlocksSoftGatePass(['code', 'state'])).toBe(true)
+    expect(leftoverGrantBlocksSoftGatePass([])).toBe(false)
+  })
+})
+
+describe('inferOauthExchangeNeverRanReason', () => {
+  it('tags leftover #state= without #code= as state_without_code', () => {
+    expect(
+      inferOauthExchangeNeverRanReason({
+        leftoverGrantKeys: ['state'],
+        hadCallbackParams: false,
+      }),
+    ).toBe('state_without_code')
   })
 })
 
@@ -461,5 +539,38 @@ describe('exchangeOrRestoreOauthSession', () => {
     })
     expect(result).toEqual({session})
     expect(libraryInitCallback).not.toHaveBeenCalled()
+  })
+
+  it('records never_ran vs ran_and_failed for leftover-grant diagnosis', async () => {
+    const onExchangeAttempt = jest.fn()
+    await expect(
+      exchangeOrRestoreOauthSession({
+        callbackParams: params,
+        libraryInit: async () => undefined,
+        libraryInitCallback: async () => ({session, state: 's'}),
+        resolveRedirectUri: () => undefined,
+        onExchangeAttempt,
+      }),
+    ).rejects.toThrow('redirect URI mismatch')
+    expect(onExchangeAttempt).toHaveBeenCalledWith({
+      outcome: 'never_ran',
+      neverRanReason: 'redirect_uri_mismatch',
+    })
+
+    onExchangeAttempt.mockClear()
+    await expect(
+      exchangeOrRestoreOauthSession({
+        callbackParams: params,
+        libraryInit: async () => undefined,
+        libraryInitCallback: async () => {
+          throw new Error('token exchange failed')
+        },
+        resolveRedirectUri: () => 'http://127.0.0.1:19006/',
+        onExchangeAttempt,
+      }),
+    ).rejects.toThrow('token exchange failed')
+    expect(onExchangeAttempt).toHaveBeenCalledWith({
+      outcome: 'ran_and_failed',
+    })
   })
 })

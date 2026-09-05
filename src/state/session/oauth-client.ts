@@ -3,6 +3,8 @@
  * See docs/oauth.md for the remaining Expo / client-metadata work.
  */
 
+import {type OauthExchangeAttemptRecord} from '#/lib/oauth/oauth-init-policy'
+
 export type OauthInitResult = {
   session: never
   state?: string
@@ -46,6 +48,10 @@ export function clearOauthCallbackUrl() {}
 
 export function peekLastOauthInitError(): unknown {
   return undefined
+}
+
+export function peekLastOauthExchangeAttempt(): OauthExchangeAttemptRecord {
+  return {outcome: 'never_ran', neverRanReason: 'unknown'}
 }
 
 export function reportOauthFailureDiagnosis(_error?: unknown): void {}

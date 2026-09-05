@@ -114,9 +114,16 @@ function InnerApp() {
           },
           'LoginForm',
         )
+        clearOauthCallbackUrl()
+        if (hasLeftoverOauthGrantInUrl()) {
+          // Leftover `#state=` is never a soft-gate PASS. Emit the
+          // never_ran vs ran_and_failed leftover breadcrumb instead of
+          // `login() established`.
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+          return true
+        }
         oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
         logger.warn(OAUTH_BREADCRUMB.loginEstablished)
-        clearOauthCallbackUrl()
         return true
       }
       if (hasPendingOauthCallback()) {

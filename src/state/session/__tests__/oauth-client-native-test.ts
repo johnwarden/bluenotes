@@ -5,6 +5,7 @@ import {
   hasPendingOauthCallback,
   initOAuthClient,
   isLocalOAuthRevokeInProgress,
+  peekLastOauthExchangeAttempt,
   peekLastOauthInitError,
   reportOauthFailureDiagnosis,
   revokeOAuthSession,
@@ -17,6 +18,10 @@ describe('native oauth-client stubs', () => {
     expect(hasPendingOauthCallback()).toBe(false)
     expect(hasLeftoverOauthGrantInUrl()).toBe(false)
     expect(peekLastOauthInitError()).toBeUndefined()
+    expect(peekLastOauthExchangeAttempt()).toEqual({
+      outcome: 'never_ran',
+      neverRanReason: 'unknown',
+    })
     expect(() => reportOauthFailureDiagnosis(new Error('x'))).not.toThrow()
   })
 

@@ -28,9 +28,11 @@ import {
   describeOauthInitResult,
   exchangeOrRestoreOauthSession,
   formatOauthCallbackDocumentBreadcrumb,
+  leftoverGrantBlocksSoftGatePass,
   leftoverOauthGrantKeysFromHref,
   OAUTH_BREADCRUMB,
   oauthConsoleBreadcrumb,
+  type OauthExchangeAttemptRecord,
 } from '#/lib/oauth/oauth-init-policy'
 import {logger} from '#/logger'
 
@@ -140,14 +142,27 @@ const initialCallbackParams: URLSearchParams | null = (() => {
 type LibraryRedirectUri = Parameters<BrowserOAuthClient['initCallback']>[1]
 
 let lastOauthInitError: unknown
+let lastExchangeAttempt: OauthExchangeAttemptRecord = {
+  outcome: 'never_ran',
+  neverRanReason: 'unknown',
+}
 
 export function peekLastOauthInitError(): unknown {
   return lastOauthInitError
 }
 
+export function peekLastOauthExchangeAttempt(): OauthExchangeAttemptRecord {
+  return lastExchangeAttempt
+}
+
+function recordOauthExchangeAttempt(attempt: OauthExchangeAttemptRecord): void {
+  lastExchangeAttempt = attempt
+}
+
 /**
  * Console diagnosis when exchange fails or the session stays anonymous.
- * Shape only: leftover grant keys, classify kind, token HTTP class, snapshot.
+ * Leftover `#state=` always includes exchangeAttempt (never_ran vs
+ * ran_and_failed). Shape only: no tokens, codes, or bodies.
  */
 export function reportOauthFailureDiagnosis(error?: unknown): void {
   if (arguments.length > 0) {
@@ -159,9 +174,23 @@ export function reportOauthFailureDiagnosis(error?: unknown): void {
     error: error ?? lastOauthInitError,
     snapshotRanBeforeStrip: oauthCallbackSnapshotRanBeforeStrip(),
     snapshotHadCallbackParams: oauthCallbackSnapshotHadParams(),
+    exchangeAttempt: lastExchangeAttempt.outcome,
+    exchangeNeverRanReason: lastExchangeAttempt.neverRanReason,
   })
   oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.failureDiagnosis, diagnosis)
   logger.warn(OAUTH_BREADCRUMB.failureDiagnosis, diagnosis)
+  if (leftoverGrantBlocksSoftGatePass(diagnosis.leftoverGrantKeys)) {
+    oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.leftoverGrant, {
+      exchangeAttempt: diagnosis.exchangeAttempt,
+      exchangeNeverRanReason: diagnosis.exchangeNeverRanReason,
+      leftoverGrantKeys: diagnosis.leftoverGrantKeys,
+      exchangeErrorKind: diagnosis.exchangeErrorKind,
+      tokenEndpointHttpStatus: diagnosis.tokenEndpointHttpStatus,
+      tokenEndpointFailureClass: diagnosis.tokenEndpointFailureClass,
+      snapshotRanBeforeStrip: diagnosis.snapshotRanBeforeStrip,
+      snapshotHadCallbackParams: diagnosis.snapshotHadCallbackParams,
+    })
+  }
 }
 
 /** True when `#code=` / `#state=` (or query) are still on the address bar. */
@@ -189,6 +218,10 @@ export function hasPendingOauthCallback(): boolean {
 
 async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
   if (rewriteLocalhostOriginIfNeeded()) {
+    recordOauthExchangeAttempt({
+      outcome: 'never_ran',
+      neverRanReason: 'localhost_rewrite',
+    })
     // Navigating off localhost; do not open IndexedDB on the wrong origin.
     return undefined
   }
@@ -251,6 +284,7 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
           `oauth: exchanging authorization response via callback() (hash still present)`,
         )
       },
+      onExchangeAttempt: recordOauthExchangeAttempt,
     })
     const finishMeta = describeOauthInitResult(result)
     oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.initFinished, finishMeta)
@@ -260,6 +294,13 @@ async function runOauthClientInit(): Promise<OauthInitResult | undefined> {
       logger.info(OAUTH_BREADCRUMB.initFinished, finishMeta)
     }
     lastOauthInitError = undefined
+    const leftoverAfterInit =
+      typeof window === 'undefined'
+        ? []
+        : leftoverOauthGrantKeysFromHref(window.location.href)
+    if (leftoverGrantBlocksSoftGatePass(leftoverAfterInit)) {
+      reportOauthFailureDiagnosis()
+    }
     return result
   } catch (e) {
     const classified = classifyOauthExchangeError(e)
