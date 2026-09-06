@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from dataclasses import dataclass
 from typing import Any, Literal
 
 from selenium.webdriver.common.by import By
@@ -19,6 +20,30 @@ from assertions import (
 )
 
 AuthMode = Literal["omit", "dpop"]
+
+# Anywhere a post with a note is shown — CN-tab Explore alone is not enough.
+NOTE_BODY_SURFACES = (
+    "cn_feeds",
+    "home_feed",
+    "post_thread",
+)
+
+
+@dataclass(frozen=True)
+class NotedPost:
+    uri: str
+    handle: str
+    rkey: str
+    note: str
+    source_tab: str
+
+    @property
+    def thread_path(self) -> str:
+        return f"/profile/{self.handle}/post/{self.rkey}"
+
+    @property
+    def feed_item_testid(self) -> str:
+        return f"feedItem-by-{self.handle}"
 
 # Injected before any page script so we see fetchWithAgentAuth headers.
 FETCH_PROBE_JS = """
@@ -40,13 +65,27 @@ FETCH_PROBE_JS = """
     const ret = orig(input, init);
     if (url && url.indexOf('org.opencommunitynotes.getProposals') !== -1) {
       return Promise.resolve(ret).then((res) => {
-        g.proposals.push({
+        const record = {
           url: url,
           authorization: authorization,
           dpop: dpop,
           status: res && res.status,
-        });
-        return res;
+          notes: [],
+        };
+        return res
+          .clone()
+          .json()
+          .then((body) => {
+            record.notes = (body && body.proposals ? body.proposals : [])
+              .map((p) => p && p.note)
+              .filter((n) => typeof n === 'string' && n.trim());
+            g.proposals.push(record);
+            return res;
+          })
+          .catch(() => {
+            g.proposals.push(record);
+            return res;
+          });
       });
     }
     return ret;
@@ -111,6 +150,32 @@ def install_fetch_probe(driver: WebDriver) -> None:
     driver.execute_cdp_cmd(
         "Page.addScriptToEvaluateOnNewDocument", {"source": FETCH_PROBE_JS}
     )
+
+
+def reset_probe(driver: WebDriver) -> None:
+    driver.execute_script(
+        "if (window.__cnSmoke) window.__cnSmoke.proposals = [];"
+    )
+
+
+def probe_notes(events: list[dict[str, Any]]) -> list[str]:
+    notes: list[str] = []
+    for event in events:
+        for note in event.get("notes") or []:
+            if isinstance(note, str) and note.strip():
+                notes.append(note)
+    return notes
+
+
+def assert_getproposals_returned_note(
+    events: list[dict[str, Any]], *, surface: str
+) -> None:
+    if not probe_notes(events):
+        raise AssertionError(
+            f"getProposals on {surface} did not return proposals[].note "
+            "(need HTTP 200 with a non-empty note). Label chrome without "
+            f"note.text is FAIL. url events={events!r}"
+        )
 
 
 def probe_proposals(driver: WebDriver) -> list[dict[str, Any]]:
@@ -382,3 +447,26 @@ def open_helpful_feed_via_nav(driver: WebDriver, base_url: str) -> None:
             except Exception:
                 continue
     driver.get(f"{base_url}/community-notes/rated_helpful")
+
+
+def wait_feed_or_thread_posts(driver: WebDriver, timeout: float = 35) -> bool:
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        if driver.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]'):
+            return True
+        if driver.find_elements(By.CSS_SELECTOR, '[data-testid^="postThreadItem-by-"]'):
+            return True
+        if "Readers added" in body_text(driver) or "Rate proposed" in body_text(driver):
+            return True
+        time.sleep(0.4)
+    return False
+
+
+def open_main_home(driver: WebDriver, base_url: str) -> None:
+    """Main Discover/Following home feed — not the Community Notes tab."""
+    driver.get(f"{base_url}/")
+    time.sleep(0.3)
+
+
+def wait_home_feed(driver: WebDriver, timeout: float = 35) -> bool:
+    return wait_feed_or_thread_posts(driver, timeout=timeout)
