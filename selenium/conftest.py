@@ -13,6 +13,8 @@ import pytest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 
+from helpers import install_fetch_probe
+
 
 @dataclass(frozen=True)
 class Settings:
@@ -23,6 +25,8 @@ class Settings:
     headless: bool
     identifier: str | None
     password: str | None
+    oauth_identifier: str | None
+    oauth_password: str | None
     allow_writes: bool
     write_post_uri: str | None
     chrome_bin: str | None
@@ -33,6 +37,10 @@ class Settings:
     def is_local(self) -> bool:
         host = self.base_url.split("://", 1)[-1]
         return host.startswith("127.0.0.1") or host.startswith("localhost")
+
+    @property
+    def has_oauth_creds(self) -> bool:
+        return bool(self.oauth_identifier and self.oauth_password)
 
 
 def _env_flag(name: str, default: bool = False) -> bool:
@@ -55,6 +63,8 @@ def settings() -> Settings:
     base = _env_opt("BASE_URL", "SELENIUM_BASE_URL") or "http://127.0.0.1:19006"
     identifier = _env_opt("BSKY_IDENTIFIER", "OAUTH_IDENTIFIER")
     password = _env_opt("BSKY_APP_PASSWORD", "BSKY_PASSWORD", "OAUTH_PASSWORD")
+    oauth_identifier = _env_opt("OAUTH_IDENTIFIER", "BSKY_IDENTIFIER")
+    oauth_password = _env_opt("OAUTH_PASSWORD", "BSKY_PASSWORD")
     is_local = "127.0.0.1" in base or "localhost" in base
     allow = _env_flag("SMOKE_ALLOW_WRITES", default=is_local)
     return Settings(
@@ -70,6 +80,8 @@ def settings() -> Settings:
         headless=_env_flag("SELENIUM_HEADLESS", default=True),
         identifier=identifier,
         password=password,
+        oauth_identifier=oauth_identifier,
+        oauth_password=oauth_password,
         allow_writes=allow and bool(identifier and password),
         write_post_uri=_env_opt("SMOKE_WRITE_POST_URI"),
         chrome_bin=_env_opt("CHROME_BIN", "GOOGLE_CHROME_BIN"),
@@ -193,6 +205,7 @@ def driver(live_app: Settings) -> Iterator[webdriver.Chrome]:
     chrome = webdriver.Chrome(options=options)
     chrome.set_page_load_timeout(live_app.page_load_timeout)
     chrome.implicitly_wait(live_app.implicit_wait)
+    install_fetch_probe(chrome)
     try:
         yield chrome
     finally:

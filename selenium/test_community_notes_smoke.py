@@ -1,8 +1,11 @@
 """Live Selenium smoke for Blue Notes Community Notes (A–E).
 
-Soft-anon is allowed for getConfig, getProposals(uris=), feed tabs, and
-reading note bodies. propose/vote are optional and skip when credentials
-are missing. OAuth DPoP login is not automated (separate concern).
+Default gate (CI / no OAuth creds): soft-anon Explore on
+``/community-notes/rated_helpful`` — visible note body + getProposals 200
+with Authorization omitted.
+
+Signed-in OAuth/DPoP path exists and skips clearly when credentials are
+missing. Label chrome / feed shell without a visible note body is FAIL.
 """
 
 from __future__ import annotations
@@ -16,14 +19,16 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 
-from assertions import (
-    assert_note_bodies_rendered,
-    is_chrome_only_false_pass,
-    page_shows_note_body,
-    page_shows_widget_chrome,
+from conftest import Settings
+from helpers import (
+    assert_getproposals_auth,
+    assert_visible_note_bodies_or_fail,
+    body_text,
+    open_helpful_feed_via_nav,
+    probe_proposals,
+    wait_cn_surface,
 )
-from conftest import NetworkSniffer, Settings, authorization_is_empty_bearer
-from login import dismiss_welcome_gate, login_with_password
+from login import dismiss_welcome_gate, login_with_oauth, login_with_password
 from notes_api import (
     create_password_session,
     get_config,
@@ -37,63 +42,9 @@ from notes_api import (
 CN_TABS = ("needs_your_help", "new", "rated_helpful")
 
 
-def _body_text(driver: WebDriver) -> str:
-    try:
-        return driver.find_element(By.TAG_NAME, "body").text
-    except Exception:
-        return driver.page_source
-
-
 def _feed_uri(config: dict[str, Any], tab: str) -> str:
     did = config["feedGeneratorDid"]
     return f"at://{did}/app.bsky.feed.generator/{tab}"
-
-
-def _post_path(post: dict[str, Any]) -> str:
-    uri = post.get("uri") or ""
-    handle = (post.get("author") or {}).get("handle") or ""
-    rkey = uri.rstrip("/").split("/")[-1]
-    return f"/profile/{handle}/post/{rkey}"
-
-
-def _wait_cn_surface(driver: WebDriver, timeout: float = 40) -> str:
-    """Return posts | empty | error | splash once the CN route settles.
-
-    Do not treat a first-paint ``communityNotesFeedScreenError`` as terminal.
-    The feed URI is built from getConfig; resolve can 404 until labeler /
-    feedGenerator DID is in, then recover. Wait out that race.
-    """
-    driver.implicitly_wait(0)
-    deadline = time.time() + timeout
-    last = "loading"
-    try:
-        while time.time() < deadline:
-            text = _body_text(driver)
-            if driver.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]'):
-                return "posts"
-            feed_shell = bool(
-                driver.find_elements(By.CSS_SELECTOR, '[data-testid="communityNotesFeed"]')
-            )
-            if feed_shell and "This feed is empty." in text:
-                return "empty"
-            if "This feed is empty." in text and "Community Notes" in text:
-                last = "empty"
-            err_testid = bool(
-                driver.find_elements(
-                    By.CSS_SELECTOR, '[data-testid="communityNotesFeedScreenError"]'
-                )
-            )
-            if err_testid or "Could not load feed" in text:
-                last = "error"
-            elif driver.find_elements(By.CSS_SELECTOR, '[data-testid="noSessionView"]'):
-                if "Community Notes" in text or "Readers added" in text:
-                    last = "loading"
-                else:
-                    last = "splash"
-            time.sleep(0.4)
-        return last
-    finally:
-        driver.implicitly_wait(0.5)
 
 
 def _discover_noted_posts(
@@ -112,14 +63,53 @@ def _discover_noted_posts(
     return posts, list(gp.get("proposals") or [])
 
 
-def _notes_for_visible_posts(
-    posts: list[dict[str, Any]], proposals: list[dict[str, Any]]
-) -> list[str]:
+def _notes_from_proposals(proposals: list[dict[str, Any]]) -> list[str]:
     return [
         p.get("note") or ""
         for p in proposals
         if isinstance(p.get("note"), str) and p.get("note", "").strip()
     ]
+
+
+def _require_notes(settings: Settings, tab: str) -> list[str]:
+    status, config = get_config(settings.notes_api)
+    assert status == 200 and config.get("labelerDid"), config
+    _posts, proposals = _discover_noted_posts(settings, config, tab)
+    notes = _notes_from_proposals(proposals)
+    assert notes, (
+        f"{tab} feed posts have no getProposals note bodies; "
+        "cannot evaluate CommunityNoteWidget. Check the notes service."
+    )
+    return notes
+
+
+def _open_cn_tab_soft_anon(driver: WebDriver, settings: Settings, tab: str) -> str:
+    driver.get(f"{settings.base_url}/community-notes/{tab}")
+    dismiss_welcome_gate(driver)
+    surface = wait_cn_surface(driver)
+    if surface == "error":
+        pytest.fail(
+            f"CN {tab} tab errored. url={driver.current_url} "
+            f"text={body_text(driver)[:400]}"
+        )
+    if surface == "empty":
+        pytest.fail(f"CN {tab} tab loaded an empty feed (no real posts).")
+    if surface == "splash":
+        pytest.fail(
+            f"CN {tab} stayed on the signed-out splash after Explore. "
+            f"url={driver.current_url}"
+        )
+    return surface
+
+
+def _require_oauth_creds(settings: Settings) -> None:
+    if not settings.has_oauth_creds:
+        pytest.skip(
+            "Signed-in OAuth/DPoP note-body test skipped: set OAUTH_IDENTIFIER "
+            "(or BSKY_IDENTIFIER) and OAUTH_PASSWORD. Soft-anon Explore on "
+            "/community-notes/rated_helpful is the default CI gate. "
+            "Never send an empty Bearer."
+        )
 
 
 @pytest.mark.live
@@ -143,7 +133,6 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
         f"{live_app.notes_api}/xrpc/org.opencommunitynotes.getProposals"
         f"?uris={uri}"
     )
-    # Prove the service: an empty Bearer is a hard 401.
     req = urllib.request.Request(url, method="GET")
     req.add_header("Authorization", "Bearer ")
     try:
@@ -156,7 +145,6 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
         "never send Authorization: Bearer "
     )
 
-    # Helpers must omit that header, which the service accepts as soft-anon.
     stripped_status, _ = http_json("GET", url, headers={"Authorization": "Bearer "})
     assert stripped_status == 200, (
         f"http_json must drop empty Bearer (got HTTP {stripped_status})"
@@ -167,97 +155,95 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
 
 
 @pytest.mark.live
-@pytest.mark.parametrize("tab", ("rated_helpful", "needs_your_help"))
-def test_b_note_body_required_not_chrome_only(
-    live_app: Settings, driver: WebDriver, network: NetworkSniffer, tab: str
+def test_b_soft_anon_explore_rated_helpful_visible_body(
+    live_app: Settings, driver: WebDriver
 ) -> None:
-    status, config = get_config(live_app.notes_api)
-    assert status == 200 and config.get("labelerDid")
-    posts, proposals = _discover_noted_posts(live_app, config, tab)
-    notes = _notes_for_visible_posts(posts, proposals)
-    assert notes, (
-        f"{tab} feed posts have no getProposals note bodies; "
-        "cannot evaluate CommunityNoteWidget. Check the notes service."
+    """Default gate: Explore without signing in on /community-notes/rated_helpful.
+
+    Visible note body required. getProposals must be 200 with Authorization
+    omitted. Label chrome / feed shell alone FAIL.
+    """
+    notes = _require_notes(live_app, "rated_helpful")
+    surface = _open_cn_tab_soft_anon(driver, live_app, "rated_helpful")
+    assert surface == "posts"
+    assert "/community-notes/rated_helpful" in driver.current_url, driver.current_url
+
+    assert_visible_note_bodies_or_fail(
+        driver, notes, surface="/community-notes/rated_helpful (soft-anon Explore)"
     )
+    events = probe_proposals(driver)
+    assert_getproposals_auth(events, mode="omit", required=True)
 
-    driver.get(f"{live_app.base_url}/community-notes/{tab}")
-    dismiss_welcome_gate(driver)
-    surface = _wait_cn_surface(driver)
-    if surface == "splash" and live_app.identifier and live_app.password:
-        if login_with_password(driver, live_app):
-            driver.get(f"{live_app.base_url}/community-notes/{tab}")
-            dismiss_welcome_gate(driver)
-            surface = _wait_cn_surface(driver)
-    if surface == "splash":
-        # Soft-anon fallback: open a post thread that has a note.
-        post = next((p for p in posts if p.get("author", {}).get("handle")), None)
-        assert post, "no post handle available for thread fallback"
-        driver.get(f"{live_app.base_url}{_post_path(post)}")
-        WebDriverWait(driver, 40).until(
-            lambda d: "Readers added" in _body_text(d)
-            or "Rate proposed" in _body_text(d)
-            or any(page_shows_note_body(_body_text(d), n) for n in notes)
-            or d.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]')
-            or d.find_elements(By.CSS_SELECTOR, '[data-testid^="postThreadItem-by-"]')
-        )
-    elif surface == "error":
+
+@pytest.mark.live
+def test_b_soft_anon_needs_your_help_visible_body(
+    live_app: Settings, driver: WebDriver
+) -> None:
+    """Same bar on Rate Proposed chrome (do not narrow the product bar)."""
+    notes = _require_notes(live_app, "needs_your_help")
+    _open_cn_tab_soft_anon(driver, live_app, "needs_your_help")
+    assert_visible_note_bodies_or_fail(
+        driver, notes, surface="/community-notes/needs_your_help (soft-anon Explore)"
+    )
+    events = probe_proposals(driver)
+    assert_getproposals_auth(events, mode="omit", required=False)
+
+
+@pytest.mark.live
+@pytest.mark.oauth
+def test_b_signed_in_oauth_dpop_note_bodies(
+    live_app: Settings, driver: WebDriver
+) -> None:
+    """Signed-in OAuth: DPoP getProposals + visible bodies on Helpful chrome.
+
+    Covers in-app Helpful home/feed-tab navigation and
+    ``/community-notes/rated_helpful``. Skips when OAuth creds are missing.
+    """
+    _require_oauth_creds(live_app)
+    notes = _require_notes(live_app, "rated_helpful")
+
+    if not login_with_oauth(driver, live_app):
         pytest.fail(
-            f"CN {tab} tab errored (Could not load feed). "
-            f"url={driver.current_url} text={_body_text(driver)[:400]}"
+            "OAuth credentials were set but the handle-only DPoP flow did not "
+            "complete a signed-in session. Check PDS consent (OAUTH_PASSWORD "
+            "must be the account password, not an app password) and that "
+            "Authorization is never an empty Bearer."
         )
-    elif surface == "empty":
-        pytest.fail(f"CN {tab} tab loaded an empty feed (no real posts).")
 
-    deadline = time.time() + 25
-    last_text = ""
-    saw_chrome = False
-    while time.time() < deadline:
-        last_text = _body_text(driver)
-        if any(page_shows_note_body(last_text, note) for note in notes):
-            break
-        if page_shows_widget_chrome(last_text):
-            saw_chrome = True
-        time.sleep(0.5)
-
-    events = network.proposals_events()
-    if events:
-        for event in events:
-            assert not authorization_is_empty_bearer(event.get("authorization")), (
-                "App sent Authorization: Bearer  (empty). "
-                "fetchWithAgentAuth must omit the header or send DPoP / a real JWT. "
-                f"url={event.get('url')}"
-            )
-            assert "uris=" in (event.get("url") or ""), (
-                f"getProposals was called without uris=: {event.get('url')}"
-            )
-            if event.get("status") is not None:
-                assert event["status"] == 200, (
-                    f"getProposals HTTP {event['status']} {event.get('url')}"
-                )
-            captured = event.get("body") or {}
-            captured_notes = [
-                p.get("note") or ""
-                for p in captured.get("proposals") or []
-                if p.get("note")
-            ]
-            if captured_notes:
-                notes = captured_notes
-
-    if is_chrome_only_false_pass(last_text, notes):
+    # 1) Helpful home / feed-tab chrome (in-app Community Notes nav).
+    driver.get(f"{live_app.base_url}/")
+    dismiss_welcome_gate(driver, timeout=2)
+    open_helpful_feed_via_nav(driver, live_app.base_url)
+    surface = wait_cn_surface(driver)
+    if surface != "posts":
         pytest.fail(
-            "FALSE PASS condition: Readers Added Context / Rate Proposed chrome "
-            f"is visible on the {tab} Community Notes surface, but no note "
-            "body text from getProposals is rendered. "
-            f"captured_getProposals={len(events)} url={driver.current_url}"
+            f"Signed-in Helpful home/feed-tab did not load posts ({surface}). "
+            f"url={driver.current_url} text={body_text(driver)[:400]}"
         )
+    assert_visible_note_bodies_or_fail(
+        driver, notes, surface="Helpful home/feed-tab (signed-in OAuth)"
+    )
+    nav_events = probe_proposals(driver)
+    assert_getproposals_auth(nav_events, mode="dpop", required=True)
 
-    assert_note_bodies_rendered(last_text, notes)
-    if not events:
-        # Network assertion is “when feasible.” CDP can miss late responses;
-        # API-side getProposals already succeeded above.
-        pass
-    elif saw_chrome:
-        pass
+    # 2) Direct rated_helpful route under the same DPoP session.
+    driver.execute_script(
+        "if (window.__cnSmoke) window.__cnSmoke.proposals = [];"
+    )
+    driver.get(f"{live_app.base_url}/community-notes/rated_helpful")
+    surface = wait_cn_surface(driver)
+    if surface != "posts":
+        pytest.fail(
+            f"Signed-in /community-notes/rated_helpful did not load posts "
+            f"({surface}). url={driver.current_url}"
+        )
+    assert_visible_note_bodies_or_fail(
+        driver,
+        notes,
+        surface="/community-notes/rated_helpful (signed-in OAuth)",
+    )
+    direct_events = probe_proposals(driver)
+    assert_getproposals_auth(direct_events, mode="dpop", required=True)
 
 
 @pytest.mark.live
@@ -267,23 +253,22 @@ def test_e_cn_tab_loads_real_posts(
 ) -> None:
     driver.get(f"{live_app.base_url}/community-notes/{tab}")
     dismiss_welcome_gate(driver)
-    surface = _wait_cn_surface(driver)
+    surface = wait_cn_surface(driver)
     if surface == "splash" and live_app.identifier and live_app.password:
         if login_with_password(driver, live_app):
             driver.get(f"{live_app.base_url}/community-notes/{tab}")
             dismiss_welcome_gate(driver)
-            surface = _wait_cn_surface(driver)
+            surface = wait_cn_surface(driver)
     if surface == "splash":
         pytest.skip(
             f"/{tab} presented the signed-out splash. Soft-anon getProposals "
             "is allowed; CN tabs may require a session. Set BSKY_IDENTIFIER "
-            "+ BSKY_APP_PASSWORD to exercise signed-in tabs. "
-            "OAuth soft-gate is a separate concern."
+            "+ BSKY_APP_PASSWORD, or use the dedicated OAuth/DPoP test."
         )
     if surface == "error":
         pytest.fail(
             f"CN tab {tab!r} errored. url={driver.current_url} "
-            f"text={_body_text(driver)[:400]}"
+            f"text={body_text(driver)[:400]}"
         )
     if surface == "empty":
         pytest.fail(f"CN tab {tab!r} is blank (empty feed), expected real posts.")
@@ -295,7 +280,8 @@ def _password_jwt(settings: Settings) -> str:
     if not settings.identifier or not settings.password:
         pytest.skip(
             "Write test skipped: set BSKY_IDENTIFIER and BSKY_APP_PASSWORD "
-            "(or BSKY_PASSWORD). OAuth/DPoP credentials are not used here."
+            "(or BSKY_PASSWORD). Signed-in note-body checks use the OAuth/DPoP "
+            "test (OAUTH_IDENTIFIER + OAUTH_PASSWORD) instead."
         )
     if not settings.allow_writes:
         pytest.skip(
@@ -314,9 +300,7 @@ def _password_jwt(settings: Settings) -> str:
 
 @pytest.mark.live
 @pytest.mark.write
-def test_c_propose_succeeds(
-    live_app: Settings, driver: WebDriver
-) -> None:
+def test_c_propose_succeeds(live_app: Settings, driver: WebDriver) -> None:
     token = _password_jwt(live_app)
     target = live_app.write_post_uri
     if not target:
@@ -346,7 +330,6 @@ def test_c_propose_succeeds(
     assert status == 200, f"propose HTTP {status}: {body}"
     assert body.get("uri") or (body.get("proposal") or {}).get("uri"), body
 
-    # Persistence check: getProposals (with JWT, never empty Bearer) sees the note.
     gp_status, gp = get_proposals(live_app.notes_api, [target], access_jwt=token)
     assert gp_status == 200, gp
     notes = [p.get("note") or "" for p in gp.get("proposals") or []]
@@ -355,16 +338,14 @@ def test_c_propose_succeeds(
     ), f"propose succeeded but getProposals did not return the note: {gp}"
 
     handle_path = target.split("/")
-    # Best-effort UI confirm; API success already counts.
     try:
         rkey = handle_path[-1]
         did = urlparse(target.replace("at://", "https://")).netloc or handle_path[2]
         driver.get(f"{live_app.base_url}/profile/{did}/post/{rkey}")
         WebDriverWait(driver, 15).until(
-            lambda d: "selenium-smoke" in _body_text(d)
+            lambda d: "selenium-smoke" in body_text(d)
         )
     except Exception:
-        # API persistence already asserted; UI confirm is best-effort.
         pass
 
 
