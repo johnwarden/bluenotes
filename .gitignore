@@ -106,6 +106,13 @@ google-services.json
 # Performance results (Flashlight)
 .perf/
 
+# Selenium web smoke (local venv / pytest / failure screenshots)
+selenium/.venv/
+selenium/.pytest_cache/
+selenium/__pycache__/
+selenium/**/__pycache__/
+selenium/artifacts/
+
 # ESLint
 .eslintcache
 
