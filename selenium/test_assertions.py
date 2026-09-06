@@ -23,9 +23,11 @@ from assertions import (
 from helpers import (
     NOTE_BODY_SURFACES,
     assert_getproposals_auth,
+    assert_getproposals_returned_note,
     authorization_is_dpop,
     authorization_is_empty_bearer,
     redact_authorization,
+    redact_probe_events,
 )
 from notes_api import auth_headers
 
@@ -286,6 +288,27 @@ def test_getproposals_auth_errors_redact_tokens() -> None:
         )
     assert jwt not in str(dpop_exc.value)
     assert "Bearer <redacted>" in str(dpop_exc.value)
+
+
+def test_getproposals_returned_note_errors_redact_tokens() -> None:
+    jwt = "eyJhbGciOiJIUzI1NiJ9.payload.signature"
+    events = [
+        {
+            "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
+            "authorization": f"DPoP {jwt}",
+            "dpop": jwt,
+            "status": 200,
+            "notes": [],
+        }
+    ]
+    redacted = redact_probe_events(events)
+    assert redacted[0]["authorization"] == "DPoP <redacted>"
+    assert redacted[0]["dpop"] == "present"
+    assert jwt not in repr(redacted)
+    with pytest.raises(AssertionError) as exc:
+        assert_getproposals_returned_note(events, surface="thread")
+    assert jwt not in str(exc.value)
+    assert "DPoP <redacted>" in str(exc.value)
 
 
 def test_getproposals_auth_dpop_rejects_empty_or_bearer() -> None:

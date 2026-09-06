@@ -235,7 +235,7 @@ def assert_getproposals_returned_note(
         raise AssertionError(
             f"getProposals on {surface} did not return proposals[].note "
             "(need HTTP 200 with a non-empty note). Label chrome without "
-            f"note.text is FAIL. url events={events!r}"
+            f"note.text is FAIL. url events={redact_probe_events(events)!r}"
         )
 
 
@@ -348,6 +348,20 @@ def redact_authorization(value: str | None) -> str:
     return "present"
 
 
+def redact_probe_event(event: dict[str, Any]) -> dict[str, Any]:
+    """Copy a getProposals probe record with tokens stripped."""
+    out = dict(event)
+    if "authorization" in out:
+        out["authorization"] = redact_authorization(out.get("authorization"))
+    if "dpop" in out:
+        out["dpop"] = "present" if out.get("dpop") else "absent"
+    return out
+
+
+def redact_probe_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [redact_probe_event(event) for event in events]
+
+
 def authorization_is_empty_bearer(value: str | None) -> bool:
     if value is None:
         return False
@@ -375,25 +389,30 @@ def assert_getproposals_auth(
     for event in events:
         auth = event.get("authorization")
         url = event.get("url") or ""
-        assert "uris=" in url, f"getProposals missing uris=: {url}"
-        assert not authorization_is_empty_bearer(auth), (
-            "App sent Authorization: Bearer  (empty). "
-            "fetchWithAgentAuth must omit the header (soft-anon) or send "
-            f"DPoP / a real JWT. url={url}"
-        )
+        # Raise (do not `assert` on raw auth) so pytest rewriting cannot
+        # dump DPoP / Bearer tokens into CI logs.
+        if "uris=" not in url:
+            raise AssertionError(f"getProposals missing uris=: {url}")
+        if authorization_is_empty_bearer(auth):
+            raise AssertionError(
+                "App sent Authorization: Bearer  (empty). "
+                "fetchWithAgentAuth must omit the header (soft-anon) or send "
+                f"DPoP / a real JWT. url={url}"
+            )
         status = event.get("status")
-        if status is not None:
-            assert status == 200, f"getProposals HTTP {status} {url}"
+        if status is not None and status != 200:
+            raise AssertionError(f"getProposals HTTP {status} {url}")
         observed = redact_authorization(auth)
-        if mode == "omit":
-            assert not auth, (
+        if mode == "omit" and auth:
+            raise AssertionError(
                 "Soft-anon Explore must omit Authorization on getProposals "
                 f"(observed {observed}). url={url}"
             )
-        elif mode == "dpop":
-            assert authorization_is_dpop(auth), (
+        if mode == "dpop" and not authorization_is_dpop(auth):
+            raise AssertionError(
                 "Signed-in OAuth getProposals must use Authorization: DPoP "
-                f"<token> (fetchWithAgentAuth). Observed {observed}. url={url}"
+                "<token> (fetchWithAgentAuth). Observed "
+                f"{observed}. url={url}"
             )
 
 
