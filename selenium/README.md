@@ -22,9 +22,10 @@ allowed):
 | **E** | CN tabs `needs_your_help` / `new` / `rated_helpful` load real posts (not blank/error) | soft-anon or session |
 
 OAuth soft-gate / DPoP login is **not** automated here (separate concern).
-API helpers follow `fetchWithAgentAuth`: send `Authorization: Bearer <jwt>`
-only when the JWT is non-empty; otherwise **omit** the header. Never send an
-empty Bearer (the notes service returns 401).
+The logged-out beta welcome modal is dismissed via **Explore the app without
+signing in**. API helpers follow `fetchWithAgentAuth`: send
+`Authorization: Bearer <jwt>` only when the JWT is non-empty; otherwise
+**omit** the header. Never send an empty Bearer (the notes service returns 401).
 
 `selenium/test_assertions.py` is offline: it fails a chrome-only fixture so
 the suite still encodes the false-PASS even when production currently
