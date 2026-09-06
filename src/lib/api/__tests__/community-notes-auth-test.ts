@@ -118,16 +118,81 @@ describe('fetchWithAgentAuth', () => {
 
     await fetchWithAgentAuth(
       agent,
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
+      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
+      {method: 'POST'},
     )
 
     expect(fetchHandler).toHaveBeenCalledTimes(1)
     expect(fetchHandler).toHaveBeenCalledWith(
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
+      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
+      {method: 'POST'},
     )
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('never sends Authorization: Bearer with an empty token', async () => {
+    await fetchWithAgentAuth(
+      {session: {accessJwt: ''}, oauthSession: undefined},
+      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+      {method: 'GET'},
+      {optionalAuth: true},
+    )
+
+    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
+    const header = new Headers(init.headers).get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
+  })
+
+  it('optionalAuth + OAuth omits Authorization and does not call fetchHandler', async () => {
+    const fetchHandler = jest.fn(async () => jsonResponse({ok: true}))
+    const agent: ServiceAuthAgent = {
+      session: {accessJwt: ''},
+      oauthSession: {fetchHandler},
+    }
+
+    await fetchWithAgentAuth(
+      agent,
+      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+      {method: 'GET'},
+      {optionalAuth: true},
+    )
+
+    expect(fetchHandler).not.toHaveBeenCalled()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
+    expect(new Headers(init.headers).has('Authorization')).toBe(false)
+  })
+
+  it('optionalAuth retries without Authorization after a password 401', async () => {
+    globalThis.fetch = jest.fn(async (_input, init?: RequestInit) => {
+      const header = new Headers(init?.headers).get('Authorization')
+      if (header === 'Bearer expired-jwt') {
+        return jsonResponse({error: 'AuthenticationRequired'}, 401)
+      }
+      return jsonResponse({proposals: []})
+    }) as typeof fetch
+
+    const response = await fetchWithAgentAuth(
+      {session: {accessJwt: 'expired-jwt'}},
+      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+      {method: 'GET'},
+      {optionalAuth: true},
+    )
+
+    expect(response.status).toBe(200)
+    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
+    const [, retryInit] = (globalThis.fetch as jest.Mock).mock.calls[1] as [
+      string,
+      RequestInit,
+    ]
+    expect(new Headers(retryInit.headers).has('Authorization')).toBe(false)
   })
 })
 
@@ -190,16 +255,23 @@ describe('community notes API auth', () => {
     )
   })
 
-  it('getProposals uses DPoP fetchHandler for an OAuth session', async () => {
+  it('getProposals omits Authorization for an OAuth session (no empty Bearer, no DPoP)', async () => {
     const fetchHandler = jest.fn(async (_url: string, _init?: RequestInit) =>
-      jsonResponse({proposals: []}),
+      jsonResponse({error: 'AuthenticationRequired'}, 401),
     )
-    await getProposals(oauthAgent(fetchHandler), NOTES_POST_URI)
+    const result = await getProposals(oauthAgent(fetchHandler), NOTES_POST_URI)
 
-    expect(fetchHandler).toHaveBeenCalledTimes(1)
-    const [url] = fetchHandler.mock.calls[0]
+    expect(result).toEqual({proposals: []})
+    expect(fetchHandler).not.toHaveBeenCalled()
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    const [url, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
     expect(url).toContain('org.opencommunitynotes.getProposals')
-    expect(globalThis.fetch).not.toHaveBeenCalled()
+    const header = new Headers(init.headers).get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
   })
 
   it('propose uses DPoP fetchHandler for an OAuth session', async () => {

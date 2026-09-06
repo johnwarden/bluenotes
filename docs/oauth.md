@@ -272,16 +272,25 @@ Community Notes XRPC (`getProposals`, `propose`, `vote`) talks to a
 cannot go through `Agent`'s built-in XRPC client. They use
 `fetchWithAgentAuth` in `src/lib/api/community-notes-auth.ts`.
 
-| Session | What is sent |
-| --- | --- |
-| No real access token (`accessJwt` missing or `''`) | **Omit** `Authorization`. An empty `Bearer` is a hard 401; a missing header is soft-anonymous `getProposals`. |
-| Password / app-password | `Authorization: Bearer <accessJwt>` when the JWT is non-empty. |
-| OAuth (`OauthBskyAppAgent`) | `OAuthSession.fetchHandler` from `@atproto/oauth-client`. |
+| Session | `getProposals` (optional-auth) | `propose` / `vote` (required-auth) |
+| --- | --- | --- |
+| No real access token (`accessJwt` missing or `''`) | **Omit** `Authorization`. An empty `Bearer` is a hard 401; a missing header is soft-anonymous 200. | N/A (must be logged in) |
+| Password / app-password | `Authorization: Bearer <accessJwt>` when the JWT is non-empty. On 401, retry with no header so note bodies still render. | `Authorization: Bearer <accessJwt>` |
+| OAuth (`OauthBskyAppAgent`) | **Omit** `Authorization`. Do not use `fetchHandler` here. | `OAuthSession.fetchHandler` (DPoP) |
+
+`getProposals` is optional-auth on the notes service. Signed-in OAuth
+must not send DPoP on that read: production `OAuthSession.fetchHandler`
+against `https://api.bluenotes.social` returns 401 (resource-server
+`htu` / `PUBLIC_URL`; the helper is bound to the PDS audience). A
+rejected DPoP header is a hard 401 and hides note bodies; omitting
+the header is soft-anonymous 200. `fetchHandler` can also `delStored`
+the PDS session if the notes service returns
+`WWW-Authenticate: DPoP error="invalid_token"`.
 
 OAuth access tokens are DPoP-bound and live in the browser OAuth client
 store, not in persisted `session.accessJwt` (that field is empty on
-purpose). `fetchHandler` loads the real token via `getTokenSet`, sets
-`Authorization: DPoP <access_token>` (`token_type` is `DPoP`), and the
-library `dpopFetchWrapper` adds the `DPoP` proof (method + `htu` + `ath`)
-and handles nonce retry / refresh. Do not hand-roll DPoP or send
-`session.accessJwt` for OAuth sessions.
+purpose). For required-auth writes, `fetchHandler` loads the real token
+via `getTokenSet`, sets `Authorization: DPoP <access_token>`
+(`token_type` is `DPoP`), and the library `dpopFetchWrapper` adds the
+`DPoP` proof (method + `htu` + `ath`) and handles nonce retry / refresh.
+Do not hand-roll DPoP or send `session.accessJwt` for OAuth sessions.
