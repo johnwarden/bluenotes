@@ -145,13 +145,17 @@ export async function mintNotesServiceAuth(
   agent: ServiceAuthAgent,
   params: ServiceAuthParams,
 ): Promise<string> {
-  const getServiceAuth = agent?.com?.atproto?.server?.getServiceAuth
-  if (typeof getServiceAuth !== 'function') {
+  const server = agent?.com?.atproto?.server
+  if (!server || typeof server.getServiceAuth !== 'function') {
     throw new Error(
       'Agent cannot mint service-auth (com.atproto.server.getServiceAuth is missing)',
     )
   }
-  const {data} = await getServiceAuth({
+  // Call through the namespace so `this` stays the XRPC server object.
+  // Extracting (`const fn = server.getServiceAuth; await fn(...)`) is
+  // unbound: `@atproto/api` methods read `this._client` and throw
+  // TypeError, which signed-in getProposals then soft-anons.
+  const {data} = await server.getServiceAuth({
     aud: params.aud,
     lxm: params.lxm,
     ...(params.exp !== undefined ? {exp: params.exp} : {}),

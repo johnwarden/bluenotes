@@ -234,6 +234,39 @@ describe('mintNotesServiceAuth', () => {
       ),
     ).rejects.toThrow('getServiceAuth is missing')
   })
+
+  it('does not throw TypeError when OauthBskyAppAgent getServiceAuth needs this._client', async () => {
+    // Mirrors @atproto/api XRPC namespace methods on OauthBskyAppAgent:
+    // getServiceAuth() { return this._client.call('com.atproto.server.getServiceAuth', ...) }
+    // An unbound extract (`const fn = server.getServiceAuth; await fn(...)`)
+    // leaves `this` undefined → TypeError → signed-in soft-anon omit.
+    const server = {
+      _client: {
+        call: async () => ({data: {token: SERVICE_JWT}}),
+      },
+      async getServiceAuth(
+        this: {_client?: {call: () => Promise<{data: {token: string}}>}},
+        _params: ServiceAuthParams,
+      ) {
+        expect(this).toBe(server)
+        if (this == null || this._client == null) {
+          throw new TypeError(
+            "Cannot read properties of undefined (reading '_client')",
+          )
+        }
+        return this._client.call()
+      },
+    }
+    const agent: ServiceAuthAgent = {
+      session: {accessJwt: ''},
+      oauthSession: {fetchHandler: async () => jsonResponse({})},
+      com: {atproto: {server}},
+    }
+
+    await expect(
+      mintNotesServiceAuth(agent, {aud: NOTES_DID, lxm: NOTES_LXM.propose}),
+    ).resolves.toBe(SERVICE_JWT)
+  })
 })
 
 describe('fetchWithAgentAuth', () => {
@@ -346,6 +379,38 @@ describe('fetchWithAgentAuth', () => {
     expect(headers.get('Authorization')).not.toBe(
       'Bearer leftover-password-jwt',
     )
+  })
+
+  it('OAuth still sends Bearer when getServiceAuth is this-bound (not TypeError soft-anon)', async () => {
+    const server = {
+      _client: {
+        call: async () => ({data: {token: SERVICE_JWT}}),
+      },
+      async getServiceAuth(
+        this: {_client?: {call: () => Promise<{data: {token: string}}>}},
+        _params: ServiceAuthParams,
+      ) {
+        if (this == null || this._client == null) {
+          throw new TypeError(
+            "Cannot read properties of undefined (reading '_client')",
+          )
+        }
+        return this._client.call()
+      },
+    }
+    await fetchWithAgentAuth(
+      {
+        session: {accessJwt: ''},
+        oauthSession: {fetchHandler: async () => jsonResponse({})},
+        com: {atproto: {server}},
+      },
+      NOTES_GET,
+      {method: 'GET'},
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
   })
 
   it('getProposals falls back to soft-anon when service-auth mint fails', async () => {
