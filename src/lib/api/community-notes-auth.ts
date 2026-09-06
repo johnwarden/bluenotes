@@ -156,7 +156,11 @@ export async function mintNotesServiceAuth(
     lxm: params.lxm,
     ...(params.exp !== undefined ? {exp: params.exp} : {}),
   })
-  if (!data?.token || typeof data.token !== 'string' || data.token.length === 0) {
+  if (
+    !data?.token ||
+    typeof data.token !== 'string' ||
+    data.token.length === 0
+  ) {
     throw new Error('getServiceAuth returned no token')
   }
   return data.token

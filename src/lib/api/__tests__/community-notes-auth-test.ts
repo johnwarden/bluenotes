@@ -145,9 +145,9 @@ describe('getPasswordAccessJwt', () => {
 describe('getOauthSessionFromAgent', () => {
   it('returns the session object when present', () => {
     const fetchHandler = async () => jsonResponse({})
-    expect(
-      getOauthSessionFromAgent({oauthSession: {fetchHandler}}),
-    ).toEqual({fetchHandler})
+    expect(getOauthSessionFromAgent({oauthSession: {fetchHandler}})).toEqual({
+      fetchHandler,
+    })
   })
 
   it('returns undefined when oauthSession is missing', () => {
@@ -167,9 +167,9 @@ describe('lexiconMethodFromNotesUrl', () => {
   })
 
   it('returns null for a non-xrpc URL', () => {
-    expect(lexiconMethodFromNotesUrl('https://api.bluenotes.social/health')).toBe(
-      null,
-    )
+    expect(
+      lexiconMethodFromNotesUrl('https://api.bluenotes.social/health'),
+    ).toBe(null)
   })
 })
 
@@ -274,9 +274,13 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('sends Bearer when a password accessJwt is present', async () => {
-    await fetchWithAgentAuth({session: {accessJwt: 'password-jwt'}}, NOTES_VOTE, {
-      method: 'POST',
-    })
+    await fetchWithAgentAuth(
+      {session: {accessJwt: 'password-jwt'}},
+      NOTES_VOTE,
+      {
+        method: 'POST',
+      },
+    )
 
     const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
     expect(headers.get('Authorization')).toBe('Bearer password-jwt')
@@ -286,7 +290,7 @@ describe('fetchWithAgentAuth', () => {
     const fetchHandler = jest.fn(async () => {
       throw new Error('must not DPoP notes')
     })
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => ({
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
       data: {token: SERVICE_JWT},
     }))
     const agent: ServiceAuthAgent = {
@@ -295,9 +299,14 @@ describe('fetchWithAgentAuth', () => {
       com: {atproto: {server: {getServiceAuth}}},
     }
 
-    await fetchWithAgentAuth(agent, NOTES_GET, {method: 'GET'}, {
-      lxm: NOTES_LXM.getProposals,
-    })
+    await fetchWithAgentAuth(
+      agent,
+      NOTES_GET,
+      {method: 'GET'},
+      {
+        lxm: NOTES_LXM.getProposals,
+      },
+    )
 
     expect(getServiceAuth).toHaveBeenCalledTimes(1)
     expect(getServiceAuth).toHaveBeenCalledWith({
@@ -334,7 +343,9 @@ describe('fetchWithAgentAuth', () => {
     expect(getServiceAuth).toHaveBeenCalledTimes(1)
     const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
     expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
-    expect(headers.get('Authorization')).not.toBe('Bearer leftover-password-jwt')
+    expect(headers.get('Authorization')).not.toBe(
+      'Bearer leftover-password-jwt',
+    )
   })
 
   it('getProposals falls back to soft-anon when service-auth mint fails', async () => {
@@ -410,7 +421,7 @@ describe('community notes API auth', () => {
   })
 
   it('getProposals mints service-auth for an OAuth session (viewer context)', async () => {
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => ({
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
       data: {token: SERVICE_JWT},
     }))
     const fetchHandler = jest.fn(async () => {
@@ -433,7 +444,7 @@ describe('community notes API auth', () => {
   })
 
   it('propose mints service-auth for an OAuth session', async () => {
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => ({
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
       data: {token: SERVICE_JWT},
     }))
     const fetchHandler = jest.fn(async () => {
@@ -451,7 +462,9 @@ describe('community notes API auth', () => {
       lxm: NOTES_LXM.propose,
     })
     expect(fetchHandler).not.toHaveBeenCalled()
-    const {url, init, headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    const {url, init, headers} = lastNotesXrpcCall(
+      globalThis.fetch as jest.Mock,
+    )
     expect(url).toContain(NOTES_LXM.propose)
     expect(init?.method).toBe('POST')
     expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
@@ -459,7 +472,7 @@ describe('community notes API auth', () => {
   })
 
   it('vote mints service-auth for an OAuth session', async () => {
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => ({
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
       data: {token: SERVICE_JWT},
     }))
     const fetchHandler = jest.fn(async () => {
@@ -477,7 +490,9 @@ describe('community notes API auth', () => {
       lxm: NOTES_LXM.vote,
     })
     expect(fetchHandler).not.toHaveBeenCalled()
-    const {url, init, headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    const {url, init, headers} = lastNotesXrpcCall(
+      globalThis.fetch as jest.Mock,
+    )
     expect(url).toContain(NOTES_LXM.vote)
     expect(init?.method).toBe('POST')
     expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
@@ -505,12 +520,7 @@ describe('community notes API auth', () => {
       throw new Error('PDS getServiceAuth failed')
     })
     await expect(
-      propose(
-        oauthAgent({getServiceAuth}),
-        NOTES_POST_URI,
-        'context',
-        [],
-      ),
+      propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', []),
     ).rejects.toThrow('PDS getServiceAuth failed')
     const proposeCalls = (globalThis.fetch as jest.Mock).mock.calls.filter(
       ([url]) => String(url).includes(NOTES_LXM.propose),
@@ -535,16 +545,11 @@ describe('community notes API auth', () => {
         proposal: {uri: NOTES_NOTE_URI},
       })
     })
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => ({
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
       data: {token: SERVICE_JWT},
     }))
 
-    await propose(
-      oauthAgent({getServiceAuth}),
-      NOTES_POST_URI,
-      'context',
-      [],
-    )
+    await propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', [])
 
     expect(getServiceAuth).toHaveBeenCalledWith({
       aud,
