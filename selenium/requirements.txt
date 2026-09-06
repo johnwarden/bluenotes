@@ -1,0 +1,4 @@
+# Isolated from the app yarn.lock. Selenium 4+ ships Selenium Manager
+# (auto-resolves chromedriver). Do not add these to the root package.json.
+selenium>=4.20,<5
+pytest>=8.0,<9
