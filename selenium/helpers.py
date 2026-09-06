@@ -12,7 +12,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from assertions import (
+    NoteMode,
     assert_note_bodies_rendered,
+    assert_note_mode_and_body,
     is_chrome_only_false_pass,
     note_snippet,
     nonempty_notes,
@@ -36,6 +38,9 @@ class NotedPost:
     rkey: str
     note: str
     source_tab: str
+    mode: NoteMode
+    status: str = ""
+    val: str = ""
 
     @property
     def thread_path(self) -> str:
@@ -76,9 +81,18 @@ FETCH_PROBE_JS = """
           .clone()
           .json()
           .then((body) => {
-            record.notes = (body && body.proposals ? body.proposals : [])
+            const proposals = (body && body.proposals ? body.proposals : []) || [];
+            record.notes = proposals
               .map((p) => p && p.note)
               .filter((n) => typeof n === 'string' && n.trim());
+            record.proposalMeta = proposals
+              .filter((p) => p && typeof p.note === 'string' && p.note.trim())
+              .map((p) => ({
+                note: p.note,
+                status: p.status || '',
+                val: p.val || '',
+                targetUri: p.targetUri || '',
+              }));
             g.proposals.push(record);
             return res;
           })
@@ -117,6 +131,40 @@ while ((n = walker.nextNode())) {
   return true;
 }
 return false;
+"""
+
+CARD_TEXT_FOR_NOTE_JS = """
+const snippet = arguments[0];
+if (!snippet) return '';
+const welcome = [...document.querySelectorAll('div,section,aside')].find((el) => {
+  const t = (el.innerText || '');
+  return t.includes('Welcome to the Bluenotes') && t.length < 1800;
+});
+const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+let n;
+while ((n = walker.nextNode())) {
+  const raw = (n.textContent || '').replace(/\\s+/g, ' ');
+  if (raw.indexOf(snippet) === -1) continue;
+  const start = n.parentElement;
+  if (!start) continue;
+  if (welcome && welcome.contains(start)) continue;
+  if (start.closest('[aria-modal="true"]')) continue;
+  const style = window.getComputedStyle(start);
+  if (style.display === 'none' || style.visibility === 'hidden') continue;
+  if (parseFloat(style.opacity || '1') === 0) continue;
+  const r = start.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) continue;
+  let el = start;
+  while (el && el !== document.body) {
+    const tid = (el.getAttribute && el.getAttribute('data-testid')) || '';
+    if (tid.startsWith('feedItem-by-') || tid.startsWith('postThreadItem-by-')) {
+      return (el.innerText || '').replace(/\\s+/g, ' ');
+    }
+    el = el.parentElement;
+  }
+  return (start.innerText || '').replace(/\\s+/g, ' ');
+}
+return '';
 """
 
 VISIBLE_TEXT_JS = """
@@ -165,6 +213,19 @@ def probe_notes(events: list[dict[str, Any]]) -> list[str]:
             if isinstance(note, str) and note.strip():
                 notes.append(note)
     return notes
+
+
+def probe_proposal_meta(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    meta: list[dict[str, Any]] = []
+    for event in events:
+        rows = event.get("proposalMeta") or []
+        if rows:
+            meta.extend(row for row in rows if isinstance(row, dict))
+            continue
+        for note in event.get("notes") or []:
+            if isinstance(note, str) and note.strip():
+                meta.append({"note": note, "status": "", "val": "", "targetUri": ""})
+    return meta
 
 
 def assert_getproposals_returned_note(
@@ -261,6 +322,32 @@ def any_note_body_visible(driver: WebDriver, notes: list[str]) -> bool:
     return any(note_body_is_visible(driver, note) for note in nonempty_notes(notes))
 
 
+def visible_card_text(driver: WebDriver, note: str) -> str:
+    """Visible text of the feed/thread card that contains this note body."""
+    snippet = note_snippet(note)
+    if not snippet:
+        return ""
+    try:
+        return str(driver.execute_script(CARD_TEXT_FOR_NOTE_JS, snippet) or "")
+    except Exception:
+        return ""
+
+
+def redact_authorization(value: str | None) -> str:
+    """Scheme-only auth for assertion text. Never interpolate raw tokens."""
+    if value is None or not str(value).strip():
+        return "absent"
+    stripped = str(value).strip()
+    lower = stripped.lower()
+    if lower in {"bearer", "bearer:"}:
+        return "Bearer <empty>"
+    if lower.startswith("dpop "):
+        return "DPoP <redacted>"
+    if lower.startswith("bearer "):
+        return "Bearer <redacted>"
+    return "present"
+
+
 def authorization_is_empty_bearer(value: str | None) -> bool:
     if value is None:
         return False
@@ -297,15 +384,16 @@ def assert_getproposals_auth(
         status = event.get("status")
         if status is not None:
             assert status == 200, f"getProposals HTTP {status} {url}"
+        observed = redact_authorization(auth)
         if mode == "omit":
             assert not auth, (
                 "Soft-anon Explore must omit Authorization on getProposals "
-                f"(observed {auth!r}). url={url}"
+                f"(observed {observed}). url={url}"
             )
         elif mode == "dpop":
             assert authorization_is_dpop(auth), (
                 "Signed-in OAuth getProposals must use Authorization: DPoP "
-                f"<token> (fetchWithAgentAuth). Observed {auth!r}. url={url}"
+                f"<token> (fetchWithAgentAuth). Observed {observed}. url={url}"
             )
 
 
@@ -370,8 +458,11 @@ def assert_visible_note_bodies_or_fail(
     notes: list[str],
     *,
     surface: str,
+    mode: NoteMode | None = None,
+    exclusive: bool = False,
+    notes_with_modes: list[tuple[str, NoteMode]] | None = None,
 ) -> None:
-    """Fail on label-only / feed-shell without a visibly rendered note body."""
+    """Fail on label-only chrome or chrome that does not match helpful/proposed."""
     visible = wait_visible_note_bodies(driver, notes)
     if is_chrome_only_false_pass(visible, notes) or (
         page_shows_widget_chrome(visible) and not any_note_body_visible(driver, notes)
@@ -389,6 +480,33 @@ def assert_visible_note_bodies_or_fail(
             f"Expected snippets: {snippets}. url={driver.current_url}"
         )
     assert_note_bodies_rendered(visible, notes)
+
+    pairs: list[tuple[str, NoteMode]] = list(notes_with_modes or [])
+    if mode is not None and not pairs:
+        pairs = [(note, mode) for note in nonempty_notes(notes)]
+
+    if exclusive and mode is not None:
+        assert_note_mode_and_body(visible, notes, mode)
+        return
+
+    if not pairs:
+        return
+
+    matched = 0
+    for note, note_mode in pairs:
+        if not note_body_is_visible(driver, note):
+            continue
+        card = visible_card_text(driver, note)
+        scoped = card or visible
+        assert_note_mode_and_body(scoped, [note], note_mode)
+        matched += 1
+    if matched == 0 and pairs:
+        modes = sorted({m for _, m in pairs})
+        raise AssertionError(
+            f"No note body with matching helpful/proposed chrome on {surface}. "
+            f"Expected modes {modes}. One mode's chrome is not a PASS for the "
+            f"other. url={driver.current_url}"
+        )
 
 
 def open_community_notes_nav(driver: WebDriver, base_url: str) -> None:
