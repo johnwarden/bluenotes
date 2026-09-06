@@ -1,6 +1,6 @@
 import {type BskyAgent} from '@atproto/api'
 
-import {fetchWithAgentAuth} from '#/lib/api/community-notes-auth'
+import {fetchWithAgentAuth, NOTES_LXM} from '#/lib/api/community-notes-auth'
 import {
   type CommunityNote,
   type NoteRatingState,
@@ -148,17 +148,22 @@ export async function vote(
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
-    const response = await fetchWithAgentAuth(agent, url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uri: noteUri,
+          val: mapVoteValue(value),
+          reasons: reasons,
+        }),
       },
-      body: JSON.stringify({
-        uri: noteUri,
-        val: mapVoteValue(value),
-        reasons: reasons,
-      }),
-    })
+      {lxm: NOTES_LXM.vote, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
@@ -214,13 +219,18 @@ export async function propose(
   }
 
   try {
-    const response = await fetchWithAgentAuth(agent, url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    })
+      {lxm: NOTES_LXM.propose, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
@@ -284,9 +294,14 @@ export async function getProposals(
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   try {
-    const response = await fetchWithAgentAuth(agent, url, {
-      method: 'GET',
-    })
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'GET',
+      },
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
@@ -354,16 +369,21 @@ export async function deleteNoteRating(agent: BskyAgent, noteUri: string) {
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
-    const response = await fetchWithAgentAuth(agent, url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uri: noteUri,
+          delete: true, // Use delete flag instead of empty val
+        }),
       },
-      body: JSON.stringify({
-        uri: noteUri,
-        delete: true, // Use delete flag instead of empty val
-      }),
-    })
+      {lxm: NOTES_LXM.vote, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`

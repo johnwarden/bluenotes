@@ -269,19 +269,48 @@ off. Do not land this by rewriting `AGENTS.md` / shipping-install docs
 Community Notes XRPC (`getProposals`, `propose`, `vote`) talks to a
 **separate notes service** (`https://api.bluenotes.social`, or
 `localhost:2595` against a local PDS), not the user's PDS. Those calls
-cannot go through `Agent`'s built-in XRPC client. They use
-`fetchWithAgentAuth` in `src/lib/api/community-notes-auth.ts`.
+cannot go through `Agent`'s built-in XRPC client as notes methods. They
+use `fetchWithAgentAuth` in `src/lib/api/community-notes-auth.ts`.
 
-| Session | What is sent |
+Notes (atproto-community-notes PR #9 / tip `6c7f08af`) verifies AT
+Protocol **service-auth** JWTs. Live Bluesky OAuth advertises
+`jwks_uri` `https://bsky.social/oauth/jwks` → `{"keys":[]}`. Notes
+therefore **rejects** empty-JWKS OAuth DPoP and will not replay a
+notes-bound DPoP proof to PDS `getSession` (`htu` mismatch).
+
+### Soft-gate for signed-in note bodies
+
+**Service-auth.** A signed-in OAuth session that needs note bodies /
+viewer ratings (`getProposals`) or writes (`propose` / `vote`) mints a
+PDS service-auth JWT and sends it to notes as Bearer. Interim:
+**omit `Authorization` on `getProposals` only** if minting fails
+(soft-anonymous note bodies, no viewer rating). `propose` / `vote`
+must not ship on soft-anon.
+
+| Session | What is sent to notes |
 | --- | --- |
-| No real access token (`accessJwt` missing or `''`) | **Omit** `Authorization`. An empty `Bearer` is a hard 401; a missing header is soft-anonymous `getProposals`. |
-| Password / app-password | `Authorization: Bearer <accessJwt>` when the JWT is non-empty. |
-| OAuth (`OauthBskyAppAgent`) | `OAuthSession.fetchHandler` from `@atproto/oauth-client`. |
+| Soft-anon (no `oauthSession`, `accessJwt` missing or `''`) | **Omit** `Authorization`. An empty `Bearer` is a hard 401; a missing header is soft-anonymous `getProposals`. |
+| Password / app-password | `Authorization: Bearer <accessJwt>` when the JWT is non-empty. Notes still verifies password sessions via PDS `getSession`. |
+| OAuth (`OauthBskyAppAgent`) | `Authorization: Bearer <service-auth jwt>` from PDS `com.atproto.server.getServiceAuth`. **Not** notes-URL DPoP. |
 
-OAuth access tokens are DPoP-bound and live in the browser OAuth client
-store, not in persisted `session.accessJwt` (that field is empty on
-purpose). `fetchHandler` loads the real token via `getTokenSet`, sets
-`Authorization: DPoP <access_token>` (`token_type` is `DPoP`), and the
-library `dpopFetchWrapper` adds the `DPoP` proof (method + `htu` + `ath`)
-and handles nonce retry / refresh. Do not hand-roll DPoP or send
-`session.accessJwt` for OAuth sessions.
+### OAuth mint path (per notes method)
+
+1. `GET {notes}/xrpc/org.opencommunitynotes.getConfig` (unauthenticated).
+   `feedGeneratorDid` is `aud` (bare DID today, e.g.
+   `did:plc:jqzvhkz7gxovq55fa7ibs6px`; `did#serviceId` is also accepted).
+2. At the **user's PDS**, `com.atproto.server.getServiceAuth({ aud, lxm })`
+   where `lxm` is this notes NSID (`org.opencommunitynotes.getProposals`
+   / `propose` / `vote`). The Agent uses `OAuthSession.fetchHandler`
+   with DPoP bound to that **PDS** URL. Do not reuse a notes-request
+   DPoP proof at the PDS.
+3. Notes: `Authorization: Bearer <jwt>`. Do not send empty-JWKS OAuth
+   DPoP to notes for signed-in flows.
+
+OAuth access tokens stay in the browser OAuth client store, not in
+persisted `session.accessJwt` (that field is empty on purpose).
+`fetchHandler` is for **PDS** calls (including `getServiceAuth`), not
+for the notes host. Do not hand-roll DPoP or send `session.accessJwt`
+for OAuth sessions.
+
+PR #21 (empty-JWKS DPoP via `fetchHandler` against notes) is
+insufficient once notes rejects empty JWKS. This path supersedes it.
