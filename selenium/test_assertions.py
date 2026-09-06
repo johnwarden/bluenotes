@@ -17,6 +17,7 @@ from assertions import (
     page_shows_widget_chrome,
 )
 from helpers import (
+    NOTE_BODY_SURFACES,
     assert_getproposals_auth,
     authorization_is_dpop,
     authorization_is_empty_bearer,
@@ -41,6 +42,30 @@ REAL_NOTE = (
     "state visit. When extra security is required, the Government provides "
     "extra funding."
 )
+
+
+def test_note_body_required_on_all_three_surfaces() -> None:
+    assert NOTE_BODY_SURFACES == ("cn_feeds", "home_feed", "post_thread")
+
+
+def test_chrome_only_fails_on_home_and_thread_copy() -> None:
+    home = """
+    Following
+    SURPRISE — Trump is refusing to pay
+    Readers added context they thought people might want to know
+    Do you find this helpful?
+    """
+    thread = """
+    Post
+    Rate proposed Community Notes
+    Is this proposed note helpful?
+    """
+    assert is_chrome_only_false_pass(home, [REAL_NOTE])
+    assert is_chrome_only_false_pass(thread, [REAL_NOTE])
+    with pytest.raises(AssertionError, match="chrome"):
+        assert_note_bodies_rendered(home, [REAL_NOTE])
+    with pytest.raises(AssertionError, match="chrome"):
+        assert_note_bodies_rendered(thread, [REAL_NOTE])
 
 
 def test_chrome_phrases_are_detected() -> None:

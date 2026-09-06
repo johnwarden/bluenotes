@@ -22,12 +22,13 @@ just selenium-prod
 ```
 
 Live tests skip if `BASE_URL` is down. The default B gate is **soft-anon
-Explore** on `/community-notes/rated_helpful` (visible note body;
-`getProposals` with Authorization omitted). The signed-in OAuth/DPoP
-note-body test skips unless `OAUTH_IDENTIFIER` and `OAUTH_PASSWORD` are
-set. `propose` / `vote` skip unless `BSKY_IDENTIFIER` and
-`BSKY_APP_PASSWORD` are set (and `SMOKE_ALLOW_WRITES=1` against non-local
-URLs). Never send an empty `Authorization: Bearer`.
+Explore** with a **visible** ``note.text`` on Community Notes feeds, the
+**main home feed** (same post card), and the **post thread**. CN-tab
+Explore alone is not a PASS. The signed-in OAuth/DPoP three-surface test
+skips unless `OAUTH_IDENTIFIER` and `OAUTH_PASSWORD` are set. `propose` /
+`vote` skip unless `BSKY_IDENTIFIER` and `BSKY_APP_PASSWORD` are set (and
+`SMOKE_ALLOW_WRITES=1` against non-local URLs). Never send an empty
+`Authorization: Bearer`.
 
 ## Using Maestro
 

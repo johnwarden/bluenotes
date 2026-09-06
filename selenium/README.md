@@ -16,22 +16,21 @@ allowed):
 | | Check | Auth |
 | --- | --- | --- |
 | **A** | `org.opencommunitynotes.getConfig` succeeds; `labelerDid` set | unauth |
-| **B** | On a post with proposed/helpful notes, `getProposals?uris=` returns notes **and** the widget shows **visible note body text** | soft-anon Explore is the default gate; signed-in OAuth/DPoP is a separate test |
+| **B** | Visible ``note.text`` **anywhere** a noted post is shown: CN feeds, **main home feed** (same post card), **and** `/profile/…/post/…` thread | soft-anon is the default gate; signed-in OAuth/DPoP is a separate test |
 | **C** | `propose` succeeds | optional — skip if credentials missing |
 | **D** | `vote` persists | optional — same |
 | **E** | CN tabs `needs_your_help` / `new` / `rated_helpful` load real posts (not blank/error) | soft-anon or session |
 
-**B default (CI / no OAuth creds):** dismiss the beta welcome modal via
-**Explore the app without signing in**, stay on `/community-notes/rated_helpful`,
-assert a **visible** Community Note body (not labels / feed-shell chrome),
-and assert `getProposals` HTTP 200 with **Authorization omitted**.
+**B default (CI / no OAuth creds):** after **Explore the app without signing
+in**, assert a **visible** Community Note body (not labels / feed-shell) on
+all three surfaces. `getProposals` on the CN helpful feed must be HTTP 200
+with **Authorization omitted**. Explore on the CN tab alone is **not** a PASS.
 
-**B signed-in OAuth:** handle-only form (not “Use password instead”) → PDS
-consent → DPoP session. Assert visible note bodies on **Helpful home/feed-tab
-chrome** and on `/community-notes/rated_helpful`. `getProposals` must send
-`Authorization: DPoP <token>` (`fetchWithAgentAuth`). Never empty Bearer.
-**Skips** with a clear message when `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD`
-are missing.
+**B signed-in OAuth:** pick a post known to have a helpful or proposed note.
+Assert CommunityNoteWidget ``note.text`` (and/or network `getProposals?uris=`
+200 with `proposals[].note`) on the CN feed, the main home feed, and the
+direct thread URL. `getProposals` must send `Authorization: DPoP <token>`.
+**Skips** when `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD` are missing.
 
 `selenium/test_assertions.py` is offline: it fails a chrome-only fixture so
 the suite still encodes the false-PASS even when production currently
@@ -96,7 +95,10 @@ still run.
 
 - Unauth `getProposals?uris=` works on `https://api.bluenotes.social` (omit header).
 - `Authorization: Bearer ` (empty) → **401**.
-- Soft-anon Explore is the default CI gate for visible note bodies.
+- Soft-anon must show ``note.text`` on CN feeds, the main home feed, and the
+post thread. Explore on the CN tab alone is not a PASS. As of 2026-09-06
+production CN feeds render bodies; **home and thread do not** — the live
+B test fails those surfaces on purpose (product gap, not a flaky selector).
 - Signed-in path must use DPoP via `fetchWithAgentAuth`. Set `OAUTH_IDENTIFIER`
   + `OAUTH_PASSWORD` to run it; otherwise it skips.
 - C/D use a password session (`createSession` → non-empty Bearer). They do

@@ -1,11 +1,16 @@
 """Live Selenium smoke for Blue Notes Community Notes (A–E).
 
-Default gate (CI / no OAuth creds): soft-anon Explore on
-``/community-notes/rated_helpful`` — visible note body + getProposals 200
-with Authorization omitted.
+Note bodies must appear anywhere a post with a note is shown:
 
-Signed-in OAuth/DPoP path exists and skips clearly when credentials are
-missing. Label chrome / feed shell without a visible note body is FAIL.
+1. Community Notes feeds (needs_your_help / new / rated_helpful)
+2. Main home feed (same post card)
+3. Direct post URL / thread (/profile/.../post/...)
+
+Explore on the CN tab alone is not sufficient. Label chrome without
+``note.text`` is FAIL on every surface.
+
+Soft-anon is the default CI gate. Signed-in OAuth/DPoP picks a known
+noted post and asserts all three surfaces; it skips when creds are missing.
 """
 
 from __future__ import annotations
@@ -21,12 +26,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 from conftest import Settings
 from helpers import (
+    NOTE_BODY_SURFACES,
+    NotedPost,
     assert_getproposals_auth,
+    assert_getproposals_returned_note,
     assert_visible_note_bodies_or_fail,
     body_text,
-    open_helpful_feed_via_nav,
+    open_main_home,
+    probe_notes,
     probe_proposals,
+    reset_probe,
     wait_cn_surface,
+    wait_feed_or_thread_posts,
+    wait_home_feed,
 )
 from login import dismiss_welcome_gate, login_with_oauth, login_with_password
 from notes_api import (
@@ -71,19 +83,42 @@ def _notes_from_proposals(proposals: list[dict[str, Any]]) -> list[str]:
     ]
 
 
-def _require_notes(settings: Settings, tab: str) -> list[str]:
+def _pick_noted_post(settings: Settings) -> tuple[NotedPost, dict[str, list[str]]]:
+    """Pick one post with a real note; also return notes per CN tab."""
     status, config = get_config(settings.notes_api)
     assert status == 200 and config.get("labelerDid"), config
-    _posts, proposals = _discover_noted_posts(settings, config, tab)
-    notes = _notes_from_proposals(proposals)
-    assert notes, (
-        f"{tab} feed posts have no getProposals note bodies; "
-        "cannot evaluate CommunityNoteWidget. Check the notes service."
+    notes_by_tab: dict[str, list[str]] = {}
+    picked: NotedPost | None = None
+    for tab in ("rated_helpful", "needs_your_help", "new"):
+        posts, proposals = _discover_noted_posts(settings, config, tab)
+        notes_by_tab[tab] = _notes_from_proposals(proposals)
+        if picked or not notes_by_tab[tab]:
+            continue
+        by_uri = {p.get("targetUri"): p for p in proposals if p.get("targetUri")}
+        for post in posts:
+            uri = post.get("uri") or ""
+            handle = (post.get("author") or {}).get("handle") or ""
+            api = by_uri.get(uri) or {}
+            note = api.get("note") or ""
+            if uri and handle and isinstance(note, str) and note.strip():
+                picked = NotedPost(
+                    uri=uri,
+                    handle=handle,
+                    rkey=uri.rstrip("/").split("/")[-1],
+                    note=note,
+                    source_tab=tab,
+                )
+                break
+    assert picked, (
+        "No Community Notes post with a non-empty note.text on "
+        f"{'/'.join(CN_TABS)}. Cannot evaluate CommunityNoteWidget."
     )
-    return notes
+    assert NOTE_BODY_SURFACES == ("cn_feeds", "home_feed", "post_thread")
+    return picked, notes_by_tab
 
 
-def _open_cn_tab_soft_anon(driver: WebDriver, settings: Settings, tab: str) -> str:
+def _open_cn_tab(driver: WebDriver, settings: Settings, tab: str) -> str:
+    reset_probe(driver)
     driver.get(f"{settings.base_url}/community-notes/{tab}")
     dismiss_welcome_gate(driver)
     surface = wait_cn_surface(driver)
@@ -102,12 +137,32 @@ def _open_cn_tab_soft_anon(driver: WebDriver, settings: Settings, tab: str) -> s
     return surface
 
 
+def _assert_surface(
+    driver: WebDriver,
+    notes: list[str],
+    *,
+    surface: str,
+    auth_mode: str,
+    auth_required: bool,
+    network_note_required: bool,
+) -> None:
+    assert_visible_note_bodies_or_fail(driver, notes, surface=surface)
+    events = probe_proposals(driver)
+    assert_getproposals_auth(events, mode=auth_mode, required=auth_required)
+    if network_note_required:
+        if probe_notes(events):
+            assert_getproposals_returned_note(events, surface=surface)
+        # API-side notes were already required by the caller; chrome-only
+        # without visible note.text has already failed above.
+
+
 def _require_oauth_creds(settings: Settings) -> None:
     if not settings.has_oauth_creds:
         pytest.skip(
-            "Signed-in OAuth/DPoP note-body test skipped: set OAUTH_IDENTIFIER "
-            "(or BSKY_IDENTIFIER) and OAUTH_PASSWORD. Soft-anon Explore on "
-            "/community-notes/rated_helpful is the default CI gate. "
+            "Signed-in OAuth/DPoP three-surface note-body test skipped: set "
+            "OAUTH_IDENTIFIER (or BSKY_IDENTIFIER) and OAUTH_PASSWORD. "
+            "Soft-anon still requires visible note.text on CN feeds, the "
+            "main home feed, and the post thread — not the CN tab alone. "
             "Never send an empty Bearer."
         )
 
@@ -155,52 +210,126 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
 
 
 @pytest.mark.live
-def test_b_soft_anon_explore_rated_helpful_visible_body(
+def test_b_soft_anon_note_body_on_feeds_home_and_thread(
     live_app: Settings, driver: WebDriver
 ) -> None:
-    """Default gate: Explore without signing in on /community-notes/rated_helpful.
+    """Soft-anon: visible note.text on CN feeds, home post card, and thread.
 
-    Visible note body required. getProposals must be 200 with Authorization
-    omitted. Label chrome / feed shell alone FAIL.
+    Explore on the CN tab alone is not a PASS.
     """
-    notes = _require_notes(live_app, "rated_helpful")
-    surface = _open_cn_tab_soft_anon(driver, live_app, "rated_helpful")
-    assert surface == "posts"
-    assert "/community-notes/rated_helpful" in driver.current_url, driver.current_url
+    picked, notes_by_tab = _pick_noted_post(live_app)
+    failures: list[str] = []
 
-    assert_visible_note_bodies_or_fail(
-        driver, notes, surface="/community-notes/rated_helpful (soft-anon Explore)"
-    )
-    events = probe_proposals(driver)
-    assert_getproposals_auth(events, mode="omit", required=True)
+    def _catch(label: str, fn) -> None:
+        try:
+            fn()
+        except AssertionError as exc:
+            failures.append(f"{label}: {exc}")
 
+    for tab in CN_TABS:
+        notes = notes_by_tab.get(tab) or []
 
-@pytest.mark.live
-def test_b_soft_anon_needs_your_help_visible_body(
-    live_app: Settings, driver: WebDriver
-) -> None:
-    """Same bar on Rate Proposed chrome (do not narrow the product bar)."""
-    notes = _require_notes(live_app, "needs_your_help")
-    _open_cn_tab_soft_anon(driver, live_app, "needs_your_help")
-    assert_visible_note_bodies_or_fail(
-        driver, notes, surface="/community-notes/needs_your_help (soft-anon Explore)"
-    )
-    events = probe_proposals(driver)
-    assert_getproposals_auth(events, mode="omit", required=False)
+        def _cn(tab=tab, notes=notes) -> None:
+            if not notes:
+                raise AssertionError(
+                    f"CN feed {tab} has posts but getProposals returned no "
+                    "note.text. Label chrome / feed shell alone is FAIL."
+                )
+            surface = _open_cn_tab(driver, live_app, tab)
+            assert surface == "posts"
+            _assert_surface(
+                driver,
+                notes,
+                surface=f"/community-notes/{tab} (soft-anon)",
+                auth_mode="omit",
+                auth_required=tab == "rated_helpful",
+                network_note_required=tab == "rated_helpful",
+            )
+
+        _catch(f"cn_feeds:{tab}", _cn)
+
+    def _thread() -> None:
+        reset_probe(driver)
+        driver.get(f"{live_app.base_url}{picked.thread_path}")
+        dismiss_welcome_gate(driver)
+        if not wait_feed_or_thread_posts(driver):
+            raise AssertionError(
+                f"Thread {picked.thread_path} did not render a post card. "
+                f"url={driver.current_url} text={body_text(driver)[:400]}"
+            )
+        _assert_surface(
+            driver,
+            [picked.note],
+            surface=f"post thread {picked.thread_path} (soft-anon)",
+            auth_mode="omit",
+            auth_required=False,
+            network_note_required=False,
+        )
+
+    _catch("post_thread", _thread)
+
+    def _home() -> None:
+        reset_probe(driver)
+        open_main_home(driver, live_app.base_url)
+        dismiss_welcome_gate(driver)
+        if not wait_home_feed(driver):
+            raise AssertionError(
+                "Main home feed did not load posts after Explore. "
+                "CN-tab Explore alone is not sufficient. "
+                f"url={driver.current_url}"
+            )
+        home_notes = [picked.note]
+        for tab_notes in notes_by_tab.values():
+            home_notes.extend(tab_notes)
+        try:
+            assert_visible_note_bodies_or_fail(
+                driver, home_notes, surface="main home feed (soft-anon)"
+            )
+        except AssertionError:
+            events = probe_proposals(driver)
+            probed = probe_notes(events)
+            if probed:
+                assert_visible_note_bodies_or_fail(
+                    driver,
+                    probed,
+                    surface="main home feed (soft-anon, getProposals notes)",
+                )
+            else:
+                raise AssertionError(
+                    "Main home feed showed no visible Community Note body for "
+                    "a post that has a note. Explore on the CN tab alone is "
+                    "not a PASS. Label chrome without note.text is FAIL. "
+                    f"known_post={picked.uri} url={driver.current_url}"
+                )
+        events = probe_proposals(driver)
+        assert_getproposals_auth(events, mode="omit", required=False)
+        if events and (
+            probe_notes(events) or "Readers added" in body_text(driver)
+        ):
+            assert_getproposals_returned_note(events, surface="main home feed")
+
+    _catch("home_feed", _home)
+
+    if failures:
+        pytest.fail(
+            "Note body missing on one or more surfaces (CN-tab Explore "
+            "alone is not a PASS). Label chrome without note.text is FAIL.\n"
+            + "\n".join(f"- {item}" for item in failures)
+        )
 
 
 @pytest.mark.live
 @pytest.mark.oauth
-def test_b_signed_in_oauth_dpop_note_bodies(
+def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
     live_app: Settings, driver: WebDriver
 ) -> None:
-    """Signed-in OAuth: DPoP getProposals + visible bodies on Helpful chrome.
+    """Signed-in OAuth: known noted post on CN feed, home card, and thread.
 
-    Covers in-app Helpful home/feed-tab navigation and
-    ``/community-notes/rated_helpful``. Skips when OAuth creds are missing.
+    getProposals must be DPoP (fetchWithAgentAuth). Skips without OAuth creds.
     """
     _require_oauth_creds(live_app)
-    notes = _require_notes(live_app, "rated_helpful")
+    picked, notes_by_tab = _pick_noted_post(live_app)
+    source_notes = notes_by_tab.get(picked.source_tab) or [picked.note]
 
     if not login_with_oauth(driver, live_app):
         pytest.fail(
@@ -210,40 +339,82 @@ def test_b_signed_in_oauth_dpop_note_bodies(
             "Authorization is never an empty Bearer."
         )
 
-    # 1) Helpful home / feed-tab chrome (in-app Community Notes nav).
-    driver.get(f"{live_app.base_url}/")
-    dismiss_welcome_gate(driver, timeout=2)
-    open_helpful_feed_via_nav(driver, live_app.base_url)
-    surface = wait_cn_surface(driver)
-    if surface != "posts":
-        pytest.fail(
-            f"Signed-in Helpful home/feed-tab did not load posts ({surface}). "
-            f"url={driver.current_url} text={body_text(driver)[:400]}"
-        )
-    assert_visible_note_bodies_or_fail(
-        driver, notes, surface="Helpful home/feed-tab (signed-in OAuth)"
-    )
-    nav_events = probe_proposals(driver)
-    assert_getproposals_auth(nav_events, mode="dpop", required=True)
+    failures: list[str] = []
 
-    # 2) Direct rated_helpful route under the same DPoP session.
-    driver.execute_script(
-        "if (window.__cnSmoke) window.__cnSmoke.proposals = [];"
-    )
-    driver.get(f"{live_app.base_url}/community-notes/rated_helpful")
-    surface = wait_cn_surface(driver)
-    if surface != "posts":
-        pytest.fail(
-            f"Signed-in /community-notes/rated_helpful did not load posts "
-            f"({surface}). url={driver.current_url}"
+    def _catch(label: str, fn) -> None:
+        try:
+            fn()
+        except AssertionError as exc:
+            failures.append(f"{label}: {exc}")
+
+    def _cn() -> None:
+        _open_cn_tab(driver, live_app, picked.source_tab)
+        _assert_surface(
+            driver,
+            source_notes,
+            surface=f"/community-notes/{picked.source_tab} (signed-in OAuth)",
+            auth_mode="dpop",
+            auth_required=True,
+            network_note_required=True,
         )
-    assert_visible_note_bodies_or_fail(
-        driver,
-        notes,
-        surface="/community-notes/rated_helpful (signed-in OAuth)",
-    )
-    direct_events = probe_proposals(driver)
-    assert_getproposals_auth(direct_events, mode="dpop", required=True)
+
+    def _home() -> None:
+        reset_probe(driver)
+        open_main_home(driver, live_app.base_url)
+        if not wait_home_feed(driver):
+            raise AssertionError(
+                "Signed-in main home feed did not load posts. "
+                f"url={driver.current_url}"
+            )
+        home_notes = [picked.note, *source_notes]
+        try:
+            assert_visible_note_bodies_or_fail(
+                driver, home_notes, surface="main home feed (signed-in OAuth)"
+            )
+        except AssertionError:
+            events = probe_proposals(driver)
+            probed = probe_notes(events)
+            if not probed:
+                raise AssertionError(
+                    "Signed-in home feed showed no visible note.text for a "
+                    f"post known to have a note ({picked.uri}). CN-tab only "
+                    "is not sufficient. Label chrome without note.text is FAIL."
+                )
+            assert_visible_note_bodies_or_fail(
+                driver,
+                probed,
+                surface="main home feed (signed-in OAuth, getProposals)",
+            )
+        home_events = probe_proposals(driver)
+        assert_getproposals_auth(home_events, mode="dpop", required=True)
+        if probe_notes(home_events):
+            assert_getproposals_returned_note(home_events, surface="main home feed")
+
+    def _thread() -> None:
+        reset_probe(driver)
+        driver.get(f"{live_app.base_url}{picked.thread_path}")
+        if not wait_feed_or_thread_posts(driver):
+            raise AssertionError(
+                f"Signed-in thread {picked.thread_path} did not render. "
+                f"url={driver.current_url}"
+            )
+        _assert_surface(
+            driver,
+            [picked.note],
+            surface=f"post thread {picked.thread_path} (signed-in OAuth)",
+            auth_mode="dpop",
+            auth_required=True,
+            network_note_required=True,
+        )
+
+    _catch("cn_feeds", _cn)
+    _catch("home_feed", _home)
+    _catch("post_thread", _thread)
+    if failures:
+        pytest.fail(
+            "Signed-in OAuth/DPoP: note body missing on one or more surfaces.\n"
+            + "\n".join(f"- {item}" for item in failures)
+        )
 
 
 @pytest.mark.live
@@ -281,7 +452,7 @@ def _password_jwt(settings: Settings) -> str:
         pytest.skip(
             "Write test skipped: set BSKY_IDENTIFIER and BSKY_APP_PASSWORD "
             "(or BSKY_PASSWORD). Signed-in note-body checks use the OAuth/DPoP "
-            "test (OAUTH_IDENTIFIER + OAUTH_PASSWORD) instead."
+            "three-surface test (OAUTH_IDENTIFIER + OAUTH_PASSWORD) instead."
         )
     if not settings.allow_writes:
         pytest.skip(
