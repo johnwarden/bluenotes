@@ -25,6 +25,14 @@ typecheck:
 web:
 	yarn web
 
+# Web Community Notes smoke (Selenium). Does not replace Maestro (__e2e__).
+selenium *args:
+	./scripts/run-selenium.sh {{args}}
+
+# Same suite against production Blue Notes
+selenium-prod *args:
+	BASE_URL=https://bluenotes.social ./scripts/run-selenium.sh {{args}}
+
 ios-simulator:
 	open -a Simulator.app
 

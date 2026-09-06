@@ -3,6 +3,36 @@
 Make sure you've copied `.env.example` to `.env.test` and provided any required
 values.
 
+## Community Notes web smoke (Selenium)
+
+Product smoke for Blue Notes Community Notes on web. **Does not replace**
+Maestro (`__e2e__/`). See [selenium/README.md](../selenium/README.md).
+
+```bash
+# Offline assertion that chrome-only UI is a FAIL (no Chrome required)
+./scripts/run-selenium.sh selenium/test_assertions.py
+
+# Full suite (headless Chrome). Default BASE_URL=http://127.0.0.1:19006
+yarn test:selenium
+just selenium
+
+# Production
+BASE_URL=https://bluenotes.social yarn test:selenium
+just selenium-prod
+```
+
+Live tests skip if `BASE_URL` is down. The default B gate is **soft-anon
+Explore** with a **visible** ``note.text`` plus matching helpful/proposed
+chrome on Community Notes feeds, the **main home feed** (same post card),
+and the **post thread**. Helpful notes must look like “Readers added
+context”, not the rate-proposed prompt; proposed notes must show “Is this
+proposed note helpful?”, not the helpful-context presentation. CN-tab
+Explore alone is not a PASS. The signed-in OAuth/DPoP three-surface test
+skips unless `OAUTH_IDENTIFIER` and `OAUTH_PASSWORD` are set. `propose` /
+`vote` skip unless `BSKY_IDENTIFIER` and `BSKY_APP_PASSWORD` are set (and
+`SMOKE_ALLOW_WRITES=1` against non-local URLs). Never send an empty
+`Authorization: Bearer`.
+
 ## Using Maestro
 
 1. Install Maestro by following [these instructions](https://maestro.mobile.dev/getting-started/installing-maestro). This will help us run the E2E tests.
