@@ -23,7 +23,7 @@ from assertions import (
     page_shows_widget_chrome,
 )
 from conftest import NetworkSniffer, Settings, authorization_is_empty_bearer
-from login import login_with_password
+from login import dismiss_welcome_gate, login_with_password
 from notes_api import (
     create_password_session,
     get_config,
@@ -57,29 +57,43 @@ def _post_path(post: dict[str, Any]) -> str:
 
 
 def _wait_cn_surface(driver: WebDriver, timeout: float = 40) -> str:
-    """Return posts | empty | error | splash once the CN route settles."""
+    """Return posts | empty | error | splash once the CN route settles.
 
-    def settled(d: WebDriver) -> str | bool:
-        text = _body_text(d)
-        if "Could not load feed" in text:
-            return "error"
-        if d.find_elements(By.CSS_SELECTOR, '[data-testid="communityNotesFeedScreenError"]'):
-            return "error"
-        if d.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]'):
-            return "posts"
-        if d.find_elements(By.CSS_SELECTOR, '[data-testid="communityNotesFeed"]'):
-            if "This feed is empty." in text:
+    Do not treat a first-paint ``communityNotesFeedScreenError`` as terminal.
+    The feed URI is built from getConfig; resolve can 404 until labeler /
+    feedGenerator DID is in, then recover. Wait out that race.
+    """
+    driver.implicitly_wait(0)
+    deadline = time.time() + timeout
+    last = "loading"
+    try:
+        while time.time() < deadline:
+            text = _body_text(driver)
+            if driver.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]'):
+                return "posts"
+            feed_shell = bool(
+                driver.find_elements(By.CSS_SELECTOR, '[data-testid="communityNotesFeed"]')
+            )
+            if feed_shell and "This feed is empty." in text:
                 return "empty"
-        if d.find_elements(By.CSS_SELECTOR, '[data-testid="noSessionView"]'):
-            # May still be hydrating the signed-out shell; keep waiting a bit.
-            if "Community Notes" in text or "Readers added" in text:
-                return False
-            return "splash"
-        if "This feed is empty." in text:
-            return "empty"
-        return False
-
-    return WebDriverWait(driver, timeout).until(settled)
+            if "This feed is empty." in text and "Community Notes" in text:
+                last = "empty"
+            err_testid = bool(
+                driver.find_elements(
+                    By.CSS_SELECTOR, '[data-testid="communityNotesFeedScreenError"]'
+                )
+            )
+            if err_testid or "Could not load feed" in text:
+                last = "error"
+            elif driver.find_elements(By.CSS_SELECTOR, '[data-testid="noSessionView"]'):
+                if "Community Notes" in text or "Readers added" in text:
+                    last = "loading"
+                else:
+                    last = "splash"
+            time.sleep(0.4)
+        return last
+    finally:
+        driver.implicitly_wait(0.5)
 
 
 def _discover_noted_posts(
@@ -153,42 +167,46 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
 
 
 @pytest.mark.live
+@pytest.mark.parametrize("tab", ("rated_helpful", "needs_your_help"))
 def test_b_note_body_required_not_chrome_only(
-    live_app: Settings, driver: WebDriver, network: NetworkSniffer
+    live_app: Settings, driver: WebDriver, network: NetworkSniffer, tab: str
 ) -> None:
     status, config = get_config(live_app.notes_api)
     assert status == 200 and config.get("labelerDid")
-    posts, proposals = _discover_noted_posts(live_app, config, "rated_helpful")
+    posts, proposals = _discover_noted_posts(live_app, config, tab)
     notes = _notes_for_visible_posts(posts, proposals)
     assert notes, (
-        "rated_helpful feed posts have no getProposals note bodies; "
+        f"{tab} feed posts have no getProposals note bodies; "
         "cannot evaluate CommunityNoteWidget. Check the notes service."
     )
 
-    driver.get(f"{live_app.base_url}/community-notes/rated_helpful")
+    driver.get(f"{live_app.base_url}/community-notes/{tab}")
+    dismiss_welcome_gate(driver)
     surface = _wait_cn_surface(driver)
     if surface == "splash" and live_app.identifier and live_app.password:
         if login_with_password(driver, live_app):
-            driver.get(f"{live_app.base_url}/community-notes/rated_helpful")
+            driver.get(f"{live_app.base_url}/community-notes/{tab}")
+            dismiss_welcome_gate(driver)
             surface = _wait_cn_surface(driver)
     if surface == "splash":
-        # Soft-anon fallback: open a post thread that has a helpful note.
+        # Soft-anon fallback: open a post thread that has a note.
         post = next((p for p in posts if p.get("author", {}).get("handle")), None)
         assert post, "no post handle available for thread fallback"
         driver.get(f"{live_app.base_url}{_post_path(post)}")
         WebDriverWait(driver, 40).until(
             lambda d: "Readers added" in _body_text(d)
+            or "Rate proposed" in _body_text(d)
             or any(page_shows_note_body(_body_text(d), n) for n in notes)
             or d.find_elements(By.CSS_SELECTOR, '[data-testid^="feedItem-by-"]')
             or d.find_elements(By.CSS_SELECTOR, '[data-testid^="postThreadItem-by-"]')
         )
     elif surface == "error":
         pytest.fail(
-            "CN rated_helpful tab errored (Could not load feed). "
+            f"CN {tab} tab errored (Could not load feed). "
             f"url={driver.current_url} text={_body_text(driver)[:400]}"
         )
     elif surface == "empty":
-        pytest.fail("CN rated_helpful tab loaded an empty feed (no real posts).")
+        pytest.fail(f"CN {tab} tab loaded an empty feed (no real posts).")
 
     deadline = time.time() + 25
     last_text = ""
@@ -228,7 +246,7 @@ def test_b_note_body_required_not_chrome_only(
     if is_chrome_only_false_pass(last_text, notes):
         pytest.fail(
             "FALSE PASS condition: Readers Added Context / Rate Proposed chrome "
-            "is visible on the Helpful Community Notes surface, but no note "
+            f"is visible on the {tab} Community Notes surface, but no note "
             "body text from getProposals is rendered. "
             f"captured_getProposals={len(events)} url={driver.current_url}"
         )
@@ -248,10 +266,12 @@ def test_e_cn_tab_loads_real_posts(
     live_app: Settings, driver: WebDriver, tab: str
 ) -> None:
     driver.get(f"{live_app.base_url}/community-notes/{tab}")
+    dismiss_welcome_gate(driver)
     surface = _wait_cn_surface(driver)
     if surface == "splash" and live_app.identifier and live_app.password:
         if login_with_password(driver, live_app):
             driver.get(f"{live_app.base_url}/community-notes/{tab}")
+            dismiss_welcome_gate(driver)
             surface = _wait_cn_surface(driver)
     if surface == "splash":
         pytest.skip(
