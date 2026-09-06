@@ -121,9 +121,11 @@ GitHub Actions runs **offline assertion tests only** when `selenium/**`
 changes (`.github/workflows/selenium-smoke.yml`). Live Chrome against
 production is not in the default PR matrix: it needs a browser, a running
 app or `BASE_URL`, and optional write credentials. Dispatch the workflow
-with a `base_url` input to run live smoke; that job installs Chrome via
-`browser-actions/setup-chrome` so `ubuntu-latest` has a browser for
-Selenium Manager. No `AssertionError` path interpolates raw Authorization
+with a `base_url` input to run live smoke. `ubuntu-latest` does not ship
+Chrome; that job installs stable Chrome and Linux deps via
+`browser-actions/setup-chrome` (`install-dependencies: true`) and sets
+`CHROME_BIN` so Selenium Manager can drive it. A self-hosted runner is
+not required. No `AssertionError` path interpolates raw Authorization
 or DPoP: `assert_getproposals_auth` and `assert_getproposals_returned_note`
 redact to scheme-only (`DPoP <redacted>` / `Bearer <redacted>` / `absent`)
 and raise explicitly so pytest rewriting cannot dump tokens.

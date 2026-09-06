@@ -1,6 +1,7 @@
 # Community Notes Selenium smoke.
 # Default PR job is offline assertions only (no Chrome, no live app).
 # Live product smoke needs a browser + BASE_URL and is workflow_dispatch.
+# ubuntu-latest does not ship Chrome; the live job installs it.
 # Maestro (__e2e__) and Jest are unchanged.
 name: Selenium CN smoke
 
@@ -45,6 +46,11 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v2
         id: chrome
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Confirm Chrome
+        run: ${{ steps.chrome.outputs.chrome-path }} --version
       - name: Run live Selenium smoke
         env:
           BASE_URL: ${{ inputs.base_url }}
