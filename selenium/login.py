@@ -28,6 +28,17 @@ def _click_first(driver: WebDriver, locators: list[tuple[str, str]], timeout: fl
     return False
 
 
+def dismiss_welcome_gate(driver: WebDriver, timeout: float = 2.5) -> bool:
+    """Clear the logged-out beta welcome modal (soft-anon explore path)."""
+    return _click_first(
+        driver,
+        [
+            (By.XPATH, "//*[normalize-space()='Explore the app without signing in']"),
+        ],
+        timeout=timeout,
+    )
+
+
 def login_with_password(driver: WebDriver, settings: Settings, timeout: float = 30) -> bool:
     """Sign in with handle + app password. Returns True on success."""
     if not settings.identifier or not settings.password:
