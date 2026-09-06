@@ -6,11 +6,20 @@ Note bodies must appear anywhere a post with a note is shown:
 2. Main home feed (same post card)
 3. Direct post URL / thread (/profile/.../post/...)
 
-Explore on the CN tab alone is not sufficient. Label chrome without
-``note.text`` is FAIL on every surface.
+Helpful vs proposed must look different on every surface:
 
-Soft-anon is the default CI gate. Signed-in OAuth/DPoP picks a known
-noted post and asserts all three surfaces; it skips when creds are missing.
+- Rated helpful (``annotation`` / ``rated_helpful``): “Readers added
+  context” + note body — not the rate-proposed prompt as primary chrome.
+- Proposed (``proposed-annotation`` / ``needs_more_ratings``): note body
+  + “Is this proposed note helpful?” — not the helpful-context presentation.
+
+Label-only chrome without matching body+mode is FAIL. One mode's chrome
+is never a PASS for the other. Assert both modes when fixtures exist.
+
+Explore on the CN tab alone is not sufficient.
+
+Soft-anon is the default CI gate. Signed-in OAuth/DPoP picks known
+noted posts and asserts all three surfaces; it skips when creds are missing.
 """
 
 from __future__ import annotations
@@ -25,6 +34,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from conftest import Settings
+from assertions import TAB_NOTE_MODE, NoteMode, infer_note_mode
 from helpers import (
     NOTE_BODY_SURFACES,
     NotedPost,
@@ -34,6 +44,7 @@ from helpers import (
     body_text,
     open_main_home,
     probe_notes,
+    probe_proposal_meta,
     probe_proposals,
     reset_probe,
     wait_cn_surface,
@@ -83,37 +94,59 @@ def _notes_from_proposals(proposals: list[dict[str, Any]]) -> list[str]:
     ]
 
 
-def _pick_noted_post(settings: Settings) -> tuple[NotedPost, dict[str, list[str]]]:
-    """Pick one post with a real note; also return notes per CN tab."""
+def _noted_post_from(
+    post: dict[str, Any], api: dict[str, Any], tab: str
+) -> NotedPost | None:
+    uri = post.get("uri") or ""
+    handle = (post.get("author") or {}).get("handle") or ""
+    note = api.get("note") or ""
+    if not (uri and handle and isinstance(note, str) and note.strip()):
+        return None
+    mode = infer_note_mode(
+        status=api.get("status"),
+        val=api.get("val"),
+        labels=post.get("labels"),
+        tab=tab,
+    )
+    if mode is None:
+        return None
+    return NotedPost(
+        uri=uri,
+        handle=handle,
+        rkey=uri.rstrip("/").split("/")[-1],
+        note=note,
+        source_tab=tab,
+        mode=mode,
+        status=str(api.get("status") or ""),
+        val=str(api.get("val") or ""),
+    )
+
+
+def _pick_noted_posts(
+    settings: Settings,
+) -> tuple[list[NotedPost], dict[str, list[str]]]:
+    """Pick one helpful and one proposed post when fixtures exist."""
     status, config = get_config(settings.notes_api)
     assert status == 200 and config.get("labelerDid"), config
     notes_by_tab: dict[str, list[str]] = {}
-    picked: NotedPost | None = None
+    picked_by_mode: dict[NoteMode, NotedPost] = {}
     for tab in ("rated_helpful", "needs_your_help", "new"):
         posts, proposals = _discover_noted_posts(settings, config, tab)
         notes_by_tab[tab] = _notes_from_proposals(proposals)
-        if picked or not notes_by_tab[tab]:
-            continue
         by_uri = {p.get("targetUri"): p for p in proposals if p.get("targetUri")}
         for post in posts:
-            uri = post.get("uri") or ""
-            handle = (post.get("author") or {}).get("handle") or ""
-            api = by_uri.get(uri) or {}
-            note = api.get("note") or ""
-            if uri and handle and isinstance(note, str) and note.strip():
-                picked = NotedPost(
-                    uri=uri,
-                    handle=handle,
-                    rkey=uri.rstrip("/").split("/")[-1],
-                    note=note,
-                    source_tab=tab,
-                )
-                break
-    assert picked, (
+            api = by_uri.get(post.get("uri") or "") or {}
+            noted = _noted_post_from(post, api, tab)
+            if noted and noted.mode not in picked_by_mode:
+                picked_by_mode[noted.mode] = noted
+    assert picked_by_mode, (
         "No Community Notes post with a non-empty note.text on "
         f"{'/'.join(CN_TABS)}. Cannot evaluate CommunityNoteWidget."
     )
     assert NOTE_BODY_SURFACES == ("cn_feeds", "home_feed", "post_thread")
+    # Helpful first so thread/home reports stay stable when both exist.
+    order: tuple[NoteMode, ...] = ("helpful", "proposed")
+    picked = [picked_by_mode[m] for m in order if m in picked_by_mode]
     return picked, notes_by_tab
 
 
@@ -145,15 +178,25 @@ def _assert_surface(
     auth_mode: str,
     auth_required: bool,
     network_note_required: bool,
+    mode: NoteMode | None = None,
+    exclusive: bool = False,
+    notes_with_modes: list[tuple[str, NoteMode]] | None = None,
 ) -> None:
-    assert_visible_note_bodies_or_fail(driver, notes, surface=surface)
+    assert_visible_note_bodies_or_fail(
+        driver,
+        notes,
+        surface=surface,
+        mode=mode,
+        exclusive=exclusive,
+        notes_with_modes=notes_with_modes,
+    )
     events = probe_proposals(driver)
     assert_getproposals_auth(events, mode=auth_mode, required=auth_required)
     if network_note_required:
         if probe_notes(events):
             assert_getproposals_returned_note(events, surface=surface)
         # API-side notes were already required by the caller; chrome-only
-        # without visible note.text has already failed above.
+        # without matching body+mode has already failed above.
 
 
 def _require_oauth_creds(settings: Settings) -> None:
@@ -213,11 +256,12 @@ def test_empty_bearer_is_401_omit_is_ok(live_app: Settings) -> None:
 def test_b_soft_anon_note_body_on_feeds_home_and_thread(
     live_app: Settings, driver: WebDriver
 ) -> None:
-    """Soft-anon: visible note.text on CN feeds, home post card, and thread.
+    """Soft-anon: visible note.text + matching helpful/proposed chrome.
 
-    Explore on the CN tab alone is not a PASS.
+    Explore on the CN tab alone is not a PASS. One mode's chrome is not
+    a PASS for the other.
     """
-    picked, notes_by_tab = _pick_noted_post(live_app)
+    picked, notes_by_tab = _pick_noted_posts(live_app)
     failures: list[str] = []
 
     def _catch(label: str, fn) -> None:
@@ -228,8 +272,9 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
 
     for tab in CN_TABS:
         notes = notes_by_tab.get(tab) or []
+        tab_mode = TAB_NOTE_MODE[tab]
 
-        def _cn(tab=tab, notes=notes) -> None:
+        def _cn(tab=tab, notes=notes, tab_mode=tab_mode) -> None:
             if not notes:
                 raise AssertionError(
                     f"CN feed {tab} has posts but getProposals returned no "
@@ -240,33 +285,43 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
             _assert_surface(
                 driver,
                 notes,
-                surface=f"/community-notes/{tab} (soft-anon)",
+                surface=f"/community-notes/{tab} (soft-anon, {tab_mode})",
                 auth_mode="omit",
                 auth_required=tab == "rated_helpful",
                 network_note_required=tab == "rated_helpful",
+                mode=tab_mode,
+                exclusive=True,
             )
 
-        _catch(f"cn_feeds:{tab}", _cn)
+        _catch(f"cn_feeds:{tab}:{tab_mode}", _cn)
 
-    def _thread() -> None:
-        reset_probe(driver)
-        driver.get(f"{live_app.base_url}{picked.thread_path}")
-        dismiss_welcome_gate(driver)
-        if not wait_feed_or_thread_posts(driver):
-            raise AssertionError(
-                f"Thread {picked.thread_path} did not render a post card. "
-                f"url={driver.current_url} text={body_text(driver)[:400]}"
+    for post in picked:
+
+        def _thread(post=post) -> None:
+            reset_probe(driver)
+            driver.get(f"{live_app.base_url}{post.thread_path}")
+            dismiss_welcome_gate(driver)
+            if not wait_feed_or_thread_posts(driver):
+                raise AssertionError(
+                    f"Thread {post.thread_path} did not render a post card. "
+                    f"url={driver.current_url} text={body_text(driver)[:400]}"
+                )
+            _assert_surface(
+                driver,
+                [post.note],
+                surface=(
+                    f"post thread {post.thread_path} "
+                    f"(soft-anon, {post.mode})"
+                ),
+                auth_mode="omit",
+                auth_required=False,
+                network_note_required=False,
+                mode=post.mode,
+                exclusive=False,
+                notes_with_modes=[(post.note, post.mode)],
             )
-        _assert_surface(
-            driver,
-            [picked.note],
-            surface=f"post thread {picked.thread_path} (soft-anon)",
-            auth_mode="omit",
-            auth_required=False,
-            network_note_required=False,
-        )
 
-    _catch("post_thread", _thread)
+        _catch(f"post_thread:{post.mode}", _thread)
 
     def _home() -> None:
         reset_probe(driver)
@@ -278,33 +333,55 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
                 "CN-tab Explore alone is not sufficient. "
                 f"url={driver.current_url}"
             )
-        home_notes = [picked.note]
-        for tab_notes in notes_by_tab.values():
-            home_notes.extend(tab_notes)
+        home_pairs: list[tuple[str, NoteMode]] = [
+            (post.note, post.mode) for post in picked
+        ]
+        for tab, tab_notes in notes_by_tab.items():
+            tab_mode = TAB_NOTE_MODE[tab]
+            home_pairs.extend((note, tab_mode) for note in tab_notes)
+        home_notes = [note for note, _ in home_pairs]
         try:
             assert_visible_note_bodies_or_fail(
-                driver, home_notes, surface="main home feed (soft-anon)"
+                driver,
+                home_notes,
+                surface="main home feed (soft-anon)",
+                notes_with_modes=home_pairs,
             )
         except AssertionError:
             events = probe_proposals(driver)
-            probed = probe_notes(events)
+            meta = probe_proposal_meta(events)
+            probed_pairs: list[tuple[str, NoteMode]] = []
+            for row in meta:
+                mode = infer_note_mode(
+                    status=row.get("status"),
+                    val=row.get("val"),
+                )
+                note = row.get("note") or ""
+                if mode and note:
+                    probed_pairs.append((note, mode))
+            probed = [note for note, _ in probed_pairs] or probe_notes(events)
             if probed:
                 assert_visible_note_bodies_or_fail(
                     driver,
                     probed,
                     surface="main home feed (soft-anon, getProposals notes)",
+                    notes_with_modes=probed_pairs or None,
                 )
             else:
+                known = ", ".join(f"{p.mode}:{p.uri}" for p in picked)
                 raise AssertionError(
-                    "Main home feed showed no visible Community Note body for "
-                    "a post that has a note. Explore on the CN tab alone is "
-                    "not a PASS. Label chrome without note.text is FAIL. "
-                    f"known_post={picked.uri} url={driver.current_url}"
+                    "Main home feed showed no visible Community Note body "
+                    "with matching helpful/proposed chrome. Explore on the "
+                    "CN tab alone is not a PASS. One mode's chrome is not "
+                    f"a PASS for the other. known_posts={known} "
+                    f"url={driver.current_url}"
                 )
         events = probe_proposals(driver)
         assert_getproposals_auth(events, mode="omit", required=False)
         if events and (
-            probe_notes(events) or "Readers added" in body_text(driver)
+            probe_notes(events)
+            or "Readers added" in body_text(driver)
+            or "Rate proposed" in body_text(driver)
         ):
             assert_getproposals_returned_note(events, surface="main home feed")
 
@@ -312,8 +389,9 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
 
     if failures:
         pytest.fail(
-            "Note body missing on one or more surfaces (CN-tab Explore "
-            "alone is not a PASS). Label chrome without note.text is FAIL.\n"
+            "Note body or matching helpful/proposed chrome missing on one "
+            "or more surfaces (CN-tab Explore alone is not a PASS). "
+            "Label chrome without matching body+mode is FAIL.\n"
             + "\n".join(f"- {item}" for item in failures)
         )
 
@@ -323,13 +401,13 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
 def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
     live_app: Settings, driver: WebDriver
 ) -> None:
-    """Signed-in OAuth: known noted post on CN feed, home card, and thread.
+    """Signed-in OAuth: known notes on CN feed, home card, and thread.
 
     getProposals must be DPoP (fetchWithAgentAuth). Skips without OAuth creds.
+    Asserts both helpful and proposed when fixtures exist.
     """
     _require_oauth_creds(live_app)
-    picked, notes_by_tab = _pick_noted_post(live_app)
-    source_notes = notes_by_tab.get(picked.source_tab) or [picked.note]
+    picked, notes_by_tab = _pick_noted_posts(live_app)
 
     if not login_with_oauth(driver, live_app):
         pytest.fail(
@@ -347,16 +425,29 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
         except AssertionError as exc:
             failures.append(f"{label}: {exc}")
 
-    def _cn() -> None:
-        _open_cn_tab(driver, live_app, picked.source_tab)
-        _assert_surface(
-            driver,
-            source_notes,
-            surface=f"/community-notes/{picked.source_tab} (signed-in OAuth)",
-            auth_mode="dpop",
-            auth_required=True,
-            network_note_required=True,
-        )
+    seen_tabs: set[str] = set()
+    for post in picked:
+        tab = post.source_tab
+        if tab in seen_tabs:
+            continue
+        seen_tabs.add(tab)
+        source_notes = notes_by_tab.get(tab) or [post.note]
+        tab_mode = TAB_NOTE_MODE[tab]
+
+        def _cn(tab=tab, source_notes=source_notes, tab_mode=tab_mode) -> None:
+            _open_cn_tab(driver, live_app, tab)
+            _assert_surface(
+                driver,
+                source_notes,
+                surface=f"/community-notes/{tab} (signed-in OAuth, {tab_mode})",
+                auth_mode="dpop",
+                auth_required=True,
+                network_note_required=True,
+                mode=tab_mode,
+                exclusive=True,
+            )
+
+        _catch(f"cn_feeds:{tab}:{tab_mode}", _cn)
 
     def _home() -> None:
         reset_probe(driver)
@@ -366,53 +457,83 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
                 "Signed-in main home feed did not load posts. "
                 f"url={driver.current_url}"
             )
-        home_notes = [picked.note, *source_notes]
+        home_pairs: list[tuple[str, NoteMode]] = [
+            (post.note, post.mode) for post in picked
+        ]
+        for tab, tab_notes in notes_by_tab.items():
+            home_pairs.extend((note, TAB_NOTE_MODE[tab]) for note in tab_notes)
+        home_notes = [note for note, _ in home_pairs]
         try:
             assert_visible_note_bodies_or_fail(
-                driver, home_notes, surface="main home feed (signed-in OAuth)"
+                driver,
+                home_notes,
+                surface="main home feed (signed-in OAuth)",
+                notes_with_modes=home_pairs,
             )
         except AssertionError:
             events = probe_proposals(driver)
-            probed = probe_notes(events)
+            meta = probe_proposal_meta(events)
+            probed_pairs: list[tuple[str, NoteMode]] = []
+            for row in meta:
+                mode = infer_note_mode(
+                    status=row.get("status"),
+                    val=row.get("val"),
+                )
+                note = row.get("note") or ""
+                if mode and note:
+                    probed_pairs.append((note, mode))
+            probed = [note for note, _ in probed_pairs] or probe_notes(events)
             if not probed:
+                known = ", ".join(f"{p.mode}:{p.uri}" for p in picked)
                 raise AssertionError(
-                    "Signed-in home feed showed no visible note.text for a "
-                    f"post known to have a note ({picked.uri}). CN-tab only "
-                    "is not sufficient. Label chrome without note.text is FAIL."
+                    "Signed-in home feed showed no visible note.text with "
+                    f"matching helpful/proposed chrome ({known}). CN-tab "
+                    "only is not sufficient. One mode's chrome is not a "
+                    "PASS for the other."
                 )
             assert_visible_note_bodies_or_fail(
                 driver,
                 probed,
                 surface="main home feed (signed-in OAuth, getProposals)",
+                notes_with_modes=probed_pairs or None,
             )
         home_events = probe_proposals(driver)
         assert_getproposals_auth(home_events, mode="dpop", required=True)
         if probe_notes(home_events):
             assert_getproposals_returned_note(home_events, surface="main home feed")
 
-    def _thread() -> None:
-        reset_probe(driver)
-        driver.get(f"{live_app.base_url}{picked.thread_path}")
-        if not wait_feed_or_thread_posts(driver):
-            raise AssertionError(
-                f"Signed-in thread {picked.thread_path} did not render. "
-                f"url={driver.current_url}"
-            )
-        _assert_surface(
-            driver,
-            [picked.note],
-            surface=f"post thread {picked.thread_path} (signed-in OAuth)",
-            auth_mode="dpop",
-            auth_required=True,
-            network_note_required=True,
-        )
-
-    _catch("cn_feeds", _cn)
     _catch("home_feed", _home)
-    _catch("post_thread", _thread)
+
+    for post in picked:
+
+        def _thread(post=post) -> None:
+            reset_probe(driver)
+            driver.get(f"{live_app.base_url}{post.thread_path}")
+            if not wait_feed_or_thread_posts(driver):
+                raise AssertionError(
+                    f"Signed-in thread {post.thread_path} did not render. "
+                    f"url={driver.current_url}"
+                )
+            _assert_surface(
+                driver,
+                [post.note],
+                surface=(
+                    f"post thread {post.thread_path} "
+                    f"(signed-in OAuth, {post.mode})"
+                ),
+                auth_mode="dpop",
+                auth_required=True,
+                network_note_required=True,
+                mode=post.mode,
+                notes_with_modes=[(post.note, post.mode)],
+            )
+
+        _catch(f"post_thread:{post.mode}", _thread)
+
     if failures:
         pytest.fail(
-            "Signed-in OAuth/DPoP: note body missing on one or more surfaces.\n"
+            "Signed-in OAuth/DPoP: note body or matching helpful/proposed "
+            "chrome missing on one or more surfaces.\n"
             + "\n".join(f"- {item}" for item in failures)
         )
 

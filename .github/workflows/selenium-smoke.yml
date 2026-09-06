@@ -42,8 +42,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v2
+        id: chrome
       - name: Run live Selenium smoke
         env:
           BASE_URL: ${{ inputs.base_url }}
           SELENIUM_HEADLESS: '1'
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
         run: ./scripts/run-selenium.sh
