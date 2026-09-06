@@ -16,16 +16,22 @@ allowed):
 | | Check | Auth |
 | --- | --- | --- |
 | **A** | `org.opencommunitynotes.getConfig` succeeds; `labelerDid` set | unauth |
-| **B** | On a post with proposed/helpful notes, `getProposals?uris=` returns notes **and** the widget shows **note body text** | soft-anon OK |
+| **B** | On a post with proposed/helpful notes, `getProposals?uris=` returns notes **and** the widget shows **visible note body text** | soft-anon Explore is the default gate; signed-in OAuth/DPoP is a separate test |
 | **C** | `propose` succeeds | optional — skip if credentials missing |
 | **D** | `vote` persists | optional — same |
 | **E** | CN tabs `needs_your_help` / `new` / `rated_helpful` load real posts (not blank/error) | soft-anon or session |
 
-OAuth soft-gate / DPoP login is **not** automated here (separate concern).
-The logged-out beta welcome modal is dismissed via **Explore the app without
-signing in**. API helpers follow `fetchWithAgentAuth`: send
-`Authorization: Bearer <jwt>` only when the JWT is non-empty; otherwise
-**omit** the header. Never send an empty Bearer (the notes service returns 401).
+**B default (CI / no OAuth creds):** dismiss the beta welcome modal via
+**Explore the app without signing in**, stay on `/community-notes/rated_helpful`,
+assert a **visible** Community Note body (not labels / feed-shell chrome),
+and assert `getProposals` HTTP 200 with **Authorization omitted**.
+
+**B signed-in OAuth:** handle-only form (not “Use password instead”) → PDS
+consent → DPoP session. Assert visible note bodies on **Helpful home/feed-tab
+chrome** and on `/community-notes/rated_helpful`. `getProposals` must send
+`Authorization: DPoP <token>` (`fetchWithAgentAuth`). Never empty Bearer.
+**Skips** with a clear message when `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD`
+are missing.
 
 `selenium/test_assertions.py` is offline: it fails a chrome-only fixture so
 the suite still encodes the false-PASS even when production currently
@@ -64,6 +70,8 @@ Offline assertions only (no Chrome, no live app):
 | `CHROME_BIN` | (auto) | Chrome binary override |
 | `BSKY_IDENTIFIER` | unset | Handle for optional C/D |
 | `BSKY_APP_PASSWORD` | unset | App password (or `BSKY_PASSWORD`) |
+| `OAUTH_IDENTIFIER` | unset | Handle for signed-in DPoP note-body test |
+| `OAUTH_PASSWORD` | unset | Account password for PDS OAuth consent (not an app password) |
 | `BSKY_PDS` | `https://bsky.social` | `createSession` host |
 | `SMOKE_ALLOW_WRITES` | `1` on localhost, else `0` | Required for C/D against production |
 | `SMOKE_WRITE_POST_URI` | unset | Post `at://…` to annotate in C |
@@ -86,8 +94,11 @@ still run.
 
 ## Auth notes
 
-- Unauth `getProposals?uris=` works on `https://api.bluenotes.social`.
+- Unauth `getProposals?uris=` works on `https://api.bluenotes.social` (omit header).
 - `Authorization: Bearer ` (empty) → **401**.
+- Soft-anon Explore is the default CI gate for visible note bodies.
+- Signed-in path must use DPoP via `fetchWithAgentAuth`. Set `OAUTH_IDENTIFIER`
+  + `OAUTH_PASSWORD` to run it; otherwise it skips.
 - C/D use a password session (`createSession` → non-empty Bearer). They do
   not hand-roll DPoP.
 
