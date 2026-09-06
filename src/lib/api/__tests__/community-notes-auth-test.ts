@@ -4,12 +4,16 @@ import {afterEach, beforeEach, describe, expect, it, jest} from '@jest/globals'
 import {getProposals, propose, vote} from '../community-notes'
 import {
   fetchWithAgentAuth,
+  getOauthSessionFromAgent,
   getPasswordAccessJwt,
   type ServiceAuthAgent,
 } from '../community-notes-auth'
 
 const NOTES_POST_URI = 'at://did:plc:post/app.bsky.feed.post/1'
 const NOTES_NOTE_URI = 'at://did:plc:note/org.opencommunitynotes.proposal/1'
+const NOTES_GET =
+  'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals'
+const NOTES_VOTE = 'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -27,10 +31,11 @@ function passwordAgent(accessJwt: string): BskyAgent {
 
 function oauthAgent(
   fetchHandler: (url: string, init?: RequestInit) => Promise<Response>,
+  accessJwt = '',
 ): BskyAgent {
   return {
     service: {toString: () => 'https://bsky.social'},
-    session: {accessJwt: ''},
+    session: {accessJwt},
     oauthSession: {fetchHandler},
   } as unknown as BskyAgent
 }
@@ -52,6 +57,20 @@ describe('getPasswordAccessJwt', () => {
   })
 })
 
+describe('getOauthSessionFromAgent', () => {
+  it('returns the session when fetchHandler is present', () => {
+    const fetchHandler = async () => jsonResponse({})
+    expect(
+      getOauthSessionFromAgent({oauthSession: {fetchHandler}}),
+    ).toEqual({fetchHandler})
+  })
+
+  it('returns undefined when fetchHandler is missing', () => {
+    expect(getOauthSessionFromAgent({oauthSession: {} as never})).toBeUndefined()
+    expect(getOauthSessionFromAgent({session: {accessJwt: ''}})).toBeUndefined()
+  })
+})
+
 describe('fetchWithAgentAuth', () => {
   const originalFetch = globalThis.fetch
 
@@ -63,12 +82,10 @@ describe('fetchWithAgentAuth', () => {
     globalThis.fetch = originalFetch
   })
 
-  it('omits Authorization when accessJwt is empty', async () => {
-    await fetchWithAgentAuth(
-      {session: {accessJwt: ''}},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
-    )
+  it('omits Authorization for intentional soft-anon (empty accessJwt, no oauthSession)', async () => {
+    await fetchWithAgentAuth({session: {accessJwt: ''}}, NOTES_GET, {
+      method: 'GET',
+    })
 
     expect(globalThis.fetch).toHaveBeenCalledTimes(1)
     const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
@@ -78,14 +95,29 @@ describe('fetchWithAgentAuth', () => {
     const headers = new Headers(init.headers)
     expect(headers.has('Authorization')).toBe(false)
     expect(headers.get('Authorization')).toBeNull()
+    expect(headers.get('Authorization') === 'Bearer ').toBe(false)
+  })
+
+  it('never sends Authorization: Bearer with an empty token', async () => {
+    await fetchWithAgentAuth(
+      {session: {accessJwt: ''}, oauthSession: undefined},
+      NOTES_GET,
+      {method: 'GET'},
+    )
+
+    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
+      string,
+      RequestInit,
+    ]
+    const header = new Headers(init.headers).get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
   })
 
   it('sends Bearer when a password accessJwt is present', async () => {
-    await fetchWithAgentAuth(
-      {session: {accessJwt: 'password-jwt'}},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
-      {method: 'POST'},
-    )
+    await fetchWithAgentAuth({session: {accessJwt: 'password-jwt'}}, NOTES_VOTE, {
+      method: 'POST',
+    })
 
     const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
       string,
@@ -116,83 +148,37 @@ describe('fetchWithAgentAuth', () => {
       return jsonResponse({ok: true})
     }) as typeof fetch
 
+    await fetchWithAgentAuth(agent, NOTES_GET, {method: 'GET'})
+
+    expect(fetchHandler).toHaveBeenCalledTimes(1)
+    expect(fetchHandler).toHaveBeenCalledWith(NOTES_GET, {method: 'GET'})
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+  })
+
+  it('never takes the password-JWT path when oauthSession is present', async () => {
+    const fetchHandler = jest.fn(async () => jsonResponse({ok: true}))
     await fetchWithAgentAuth(
-      agent,
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
-      {method: 'POST'},
+      {
+        session: {accessJwt: 'leftover-password-jwt'},
+        oauthSession: {fetchHandler},
+      },
+      NOTES_GET,
+      {method: 'GET'},
     )
 
     expect(fetchHandler).toHaveBeenCalledTimes(1)
-    expect(fetchHandler).toHaveBeenCalledWith(
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
-      {method: 'POST'},
-    )
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  it('never sends Authorization: Bearer with an empty token', async () => {
-    await fetchWithAgentAuth(
-      {session: {accessJwt: ''}, oauthSession: undefined},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
-      {optionalAuth: true},
-    )
-
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    const header = new Headers(init.headers).get('Authorization')
-    expect(header).toBeNull()
-    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
-  })
-
-  it('optionalAuth + OAuth omits Authorization and does not call fetchHandler', async () => {
-    const fetchHandler = jest.fn(async () => jsonResponse({ok: true}))
-    const agent: ServiceAuthAgent = {
-      session: {accessJwt: ''},
-      oauthSession: {fetchHandler},
-    }
-
-    await fetchWithAgentAuth(
-      agent,
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
-      {optionalAuth: true},
-    )
-
-    expect(fetchHandler).not.toHaveBeenCalled()
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    expect(new Headers(init.headers).has('Authorization')).toBe(false)
-  })
-
-  it('optionalAuth retries without Authorization after a password 401', async () => {
-    globalThis.fetch = jest.fn(async (_input, init?: RequestInit) => {
-      const header = new Headers(init?.headers).get('Authorization')
-      if (header === 'Bearer expired-jwt') {
-        return jsonResponse({error: 'AuthenticationRequired'}, 401)
-      }
-      return jsonResponse({proposals: []})
-    }) as typeof fetch
-
-    const response = await fetchWithAgentAuth(
-      {session: {accessJwt: 'expired-jwt'}},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
-      {method: 'GET'},
-      {optionalAuth: true},
-    )
-
-    expect(response.status).toBe(200)
-    expect(globalThis.fetch).toHaveBeenCalledTimes(2)
-    const [, retryInit] = (globalThis.fetch as jest.Mock).mock.calls[1] as [
-      string,
-      RequestInit,
-    ]
-    expect(new Headers(retryInit.headers).has('Authorization')).toBe(false)
+  it('throws when oauthSession exists but fetchHandler is missing', async () => {
+    await expect(
+      fetchWithAgentAuth(
+        {session: {accessJwt: 'leftover-jwt'}, oauthSession: {} as never},
+        NOTES_GET,
+        {method: 'GET'},
+      ),
+    ).rejects.toThrow('OAuth session is missing fetchHandler')
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 })
 
@@ -203,7 +189,9 @@ describe('community notes API auth', () => {
     globalThis.fetch = jest.fn(async (input: RequestInfo | URL) => {
       const url = String(input)
       if (url.includes('getProposals')) {
-        return jsonResponse({proposals: []})
+        return jsonResponse({
+          proposals: [{uri: NOTES_NOTE_URI, note: 'context from the service'}],
+        })
       }
       if (url.includes('propose')) {
         return jsonResponse({
@@ -232,14 +220,16 @@ describe('community notes API auth', () => {
     globalThis.fetch = originalFetch
   })
 
-  it('getProposals omits Authorization when accessJwt is empty', async () => {
+  it('getProposals omits Authorization when accessJwt is empty (soft-anon)', async () => {
     await getProposals(passwordAgent(''), NOTES_POST_URI)
 
     const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
       string,
       RequestInit,
     ]
-    expect(new Headers(init.headers).has('Authorization')).toBe(false)
+    const header = new Headers(init.headers).get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
   })
 
   it('getProposals sends Bearer for a password session', async () => {
@@ -255,23 +245,31 @@ describe('community notes API auth', () => {
     )
   })
 
-  it('getProposals omits Authorization for an OAuth session (no empty Bearer, no DPoP)', async () => {
+  it('getProposals uses DPoP fetchHandler for an OAuth session', async () => {
     const fetchHandler = jest.fn(async (_url: string, _init?: RequestInit) =>
-      jsonResponse({error: 'AuthenticationRequired'}, 401),
+      jsonResponse({
+        proposals: [{uri: NOTES_NOTE_URI, note: 'context from the service'}],
+      }),
     )
     const result = await getProposals(oauthAgent(fetchHandler), NOTES_POST_URI)
 
-    expect(result).toEqual({proposals: []})
-    expect(fetchHandler).not.toHaveBeenCalled()
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-    const [url, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
+    expect(result.proposals[0]?.note).toBe('context from the service')
+    expect(fetchHandler).toHaveBeenCalledTimes(1)
+    const [url] = fetchHandler.mock.calls[0]
     expect(url).toContain('org.opencommunitynotes.getProposals')
-    const header = new Headers(init.headers).get('Authorization')
-    expect(header).toBeNull()
-    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+  })
+
+  it('getProposals DPoP path does not send empty Bearer', async () => {
+    const fetchHandler = jest.fn(async (_url: string, init?: RequestInit) => {
+      const header = new Headers(init?.headers).get('Authorization')
+      expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
+      expect(Boolean(header?.startsWith('Bearer'))).toBe(false)
+      return jsonResponse({proposals: []})
+    })
+    await getProposals(oauthAgent(fetchHandler, ''), NOTES_POST_URI)
+    expect(fetchHandler).toHaveBeenCalledTimes(1)
+    expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
   it('propose uses DPoP fetchHandler for an OAuth session', async () => {

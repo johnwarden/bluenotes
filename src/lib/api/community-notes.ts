@@ -284,12 +284,9 @@ export async function getProposals(
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   try {
-    const response = await fetchWithAgentAuth(
-      agent,
-      url,
-      {method: 'GET'},
-      {optionalAuth: true},
-    )
+    const response = await fetchWithAgentAuth(agent, url, {
+      method: 'GET',
+    })
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
