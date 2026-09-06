@@ -4,17 +4,38 @@ import {afterEach, beforeEach, describe, expect, it, jest} from '@jest/globals'
 import {getProposals, propose, vote} from '../community-notes'
 import {
   fetchWithAgentAuth,
+  getNotesServiceAudience,
+  getOauthSessionFromAgent,
   getPasswordAccessJwt,
+  lexiconMethodFromNotesUrl,
+  mintNotesServiceAuth,
+  NOTES_LXM,
+  resetNotesConfigCache,
   type ServiceAuthAgent,
+  type ServiceAuthParams,
 } from '../community-notes-auth'
 
 const NOTES_POST_URI = 'at://did:plc:post/app.bsky.feed.post/1'
 const NOTES_NOTE_URI = 'at://did:plc:note/org.opencommunitynotes.proposal/1'
+const NOTES_ORIGIN = 'https://api.bluenotes.social'
+const NOTES_GET = `${NOTES_ORIGIN}/xrpc/${NOTES_LXM.getProposals}`
+const NOTES_VOTE = `${NOTES_ORIGIN}/xrpc/${NOTES_LXM.vote}`
+const NOTES_PROPOSE = `${NOTES_ORIGIN}/xrpc/${NOTES_LXM.propose}`
+const NOTES_DID = 'did:plc:jqzvhkz7gxovq55fa7ibs6px'
+const SERVICE_JWT = 'service-auth-jwt-for-notes'
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {'Content-Type': 'application/json'},
+  })
+}
+
+function notesConfigResponse() {
+  return jsonResponse({
+    version: '2026-09-06T00:00:00.000Z',
+    labelerDid: 'did:plc:labeler',
+    feedGeneratorDid: NOTES_DID,
   })
 }
 
@@ -25,14 +46,83 @@ function passwordAgent(accessJwt: string): BskyAgent {
   } as unknown as BskyAgent
 }
 
-function oauthAgent(
-  fetchHandler: (url: string, init?: RequestInit) => Promise<Response>,
-): BskyAgent {
+function oauthAgent(opts?: {
+  getServiceAuth?: (
+    params: ServiceAuthParams,
+  ) => Promise<{data: {token: string}}>
+  fetchHandler?: (url: string, init?: RequestInit) => Promise<Response>
+  accessJwt?: string
+}): BskyAgent {
+  const fetchHandler =
+    opts?.fetchHandler ??
+    jest.fn(async () => {
+      throw new Error(
+        'OAuthSession.fetchHandler must not be used against the notes URL',
+      )
+    })
+  const getServiceAuth =
+    opts?.getServiceAuth ??
+    jest.fn(async (params: ServiceAuthParams) => ({
+      data: {token: `${SERVICE_JWT}:${params.aud}:${params.lxm}`},
+    }))
   return {
     service: {toString: () => 'https://bsky.social'},
-    session: {accessJwt: ''},
+    session: {accessJwt: opts?.accessJwt ?? ''},
     oauthSession: {fetchHandler},
+    com: {
+      atproto: {
+        server: {getServiceAuth},
+      },
+    },
   } as unknown as BskyAgent
+}
+
+function notesFetchMock() {
+  return jest.fn(async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes(NOTES_LXM.getConfig)) {
+      return notesConfigResponse()
+    }
+    if (url.includes(NOTES_LXM.getProposals)) {
+      return jsonResponse({
+        proposals: [{uri: NOTES_NOTE_URI, note: 'context from the service'}],
+      })
+    }
+    if (url.includes(NOTES_LXM.propose)) {
+      return jsonResponse({
+        uri: NOTES_NOTE_URI,
+        cid: 'bafy',
+        proposal: {uri: NOTES_NOTE_URI},
+      })
+    }
+    if (url.includes(NOTES_LXM.vote)) {
+      return jsonResponse({
+        success: true,
+        rating: {
+          uri: 'at://did:plc:note/org.opencommunitynotes.rating/1',
+          targetUri: NOTES_NOTE_URI,
+          cts: '2026-01-01T00:00:00.000Z',
+          val: 1,
+          reasons: [],
+        },
+      })
+    }
+    return jsonResponse({}, 404)
+  })
+}
+
+function lastNotesXrpcCall(fetchMock: jest.Mock) {
+  const calls = fetchMock.mock.calls as [string, RequestInit?][]
+  const notesCalls = calls.filter(([url]) => {
+    return (
+      url.includes('/xrpc/') &&
+      !url.includes(NOTES_LXM.getConfig) &&
+      !url.includes('com.atproto.server.getServiceAuth')
+    )
+  })
+  expect(notesCalls.length).toBeGreaterThan(0)
+  const [url, init] = notesCalls[notesCalls.length - 1]
+  return {url, init, headers: new Headers(init?.headers)}
 }
 
 describe('getPasswordAccessJwt', () => {
@@ -52,82 +142,251 @@ describe('getPasswordAccessJwt', () => {
   })
 })
 
+describe('getOauthSessionFromAgent', () => {
+  it('returns the session object when present', () => {
+    const fetchHandler = async () => jsonResponse({})
+    expect(getOauthSessionFromAgent({oauthSession: {fetchHandler}})).toEqual({
+      fetchHandler,
+    })
+  })
+
+  it('returns undefined when oauthSession is missing', () => {
+    expect(getOauthSessionFromAgent({session: {accessJwt: ''}})).toBeUndefined()
+    expect(getOauthSessionFromAgent(null)).toBeUndefined()
+  })
+})
+
+describe('lexiconMethodFromNotesUrl', () => {
+  it('extracts the notes NSID', () => {
+    expect(lexiconMethodFromNotesUrl(NOTES_PROPOSE)).toBe(NOTES_LXM.propose)
+    expect(
+      lexiconMethodFromNotesUrl(
+        `${NOTES_GET}?uris=at://did:plc:post/app.bsky.feed.post/1`,
+      ),
+    ).toBe(NOTES_LXM.getProposals)
+  })
+
+  it('returns null for a non-xrpc URL', () => {
+    expect(
+      lexiconMethodFromNotesUrl('https://api.bluenotes.social/health'),
+    ).toBe(null)
+  })
+})
+
+describe('getNotesServiceAudience', () => {
+  const originalFetch = globalThis.fetch
+
+  beforeEach(() => {
+    resetNotesConfigCache()
+    globalThis.fetch = jest.fn(async () => notesConfigResponse())
+  })
+
+  afterEach(() => {
+    resetNotesConfigCache()
+    globalThis.fetch = originalFetch
+  })
+
+  it('reads feedGeneratorDid from getConfig and caches it', async () => {
+    const first = await getNotesServiceAudience(NOTES_PROPOSE)
+    const second = await getNotesServiceAudience(NOTES_VOTE)
+
+    expect(first).toBe(NOTES_DID)
+    expect(second).toBe(NOTES_DID)
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    expect(String((globalThis.fetch as jest.Mock).mock.calls[0][0])).toBe(
+      `${NOTES_ORIGIN}/xrpc/${NOTES_LXM.getConfig}`,
+    )
+  })
+
+  it('rejects a getConfig body without a DID', async () => {
+    globalThis.fetch = jest.fn(async () =>
+      jsonResponse({version: '1', labelerDid: 'did:plc:x'}),
+    )
+    await expect(getNotesServiceAudience(NOTES_GET)).rejects.toThrow(
+      'getConfig.feedGeneratorDid is not a DID',
+    )
+  })
+})
+
+describe('mintNotesServiceAuth', () => {
+  it('calls PDS getServiceAuth with aud and lxm', async () => {
+    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => {
+      expect(params.aud).toBe(NOTES_DID)
+      expect(params.lxm).toBe(NOTES_LXM.propose)
+      return {data: {token: SERVICE_JWT}}
+    })
+    const agent: ServiceAuthAgent = {
+      oauthSession: {fetchHandler: async () => jsonResponse({})},
+      com: {atproto: {server: {getServiceAuth}}},
+    }
+
+    await expect(
+      mintNotesServiceAuth(agent, {aud: NOTES_DID, lxm: NOTES_LXM.propose}),
+    ).resolves.toBe(SERVICE_JWT)
+    expect(getServiceAuth).toHaveBeenCalledTimes(1)
+  })
+
+  it('throws when getServiceAuth is missing', async () => {
+    await expect(
+      mintNotesServiceAuth(
+        {oauthSession: {fetchHandler: async () => jsonResponse({})}},
+        {aud: NOTES_DID, lxm: NOTES_LXM.vote},
+      ),
+    ).rejects.toThrow('getServiceAuth is missing')
+  })
+})
+
 describe('fetchWithAgentAuth', () => {
   const originalFetch = globalThis.fetch
 
   beforeEach(() => {
-    globalThis.fetch = jest.fn(async () => jsonResponse({ok: true}))
+    resetNotesConfigCache()
+    globalThis.fetch = notesFetchMock()
   })
 
   afterEach(() => {
+    resetNotesConfigCache()
     globalThis.fetch = originalFetch
   })
 
-  it('omits Authorization when accessJwt is empty', async () => {
+  it('omits Authorization for intentional soft-anon (empty accessJwt, no oauthSession)', async () => {
+    await fetchWithAgentAuth({session: {accessJwt: ''}}, NOTES_GET, {
+      method: 'GET',
+    })
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.has('Authorization')).toBe(false)
+    expect(headers.get('Authorization')).toBeNull()
+    expect(headers.get('Authorization') === 'Bearer ').toBe(false)
+  })
+
+  it('never sends Authorization: Bearer with an empty token', async () => {
     await fetchWithAgentAuth(
-      {session: {accessJwt: ''}},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+      {session: {accessJwt: ''}, oauthSession: undefined},
+      NOTES_GET,
       {method: 'GET'},
     )
 
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    const headers = new Headers(init.headers)
-    expect(headers.has('Authorization')).toBe(false)
-    expect(headers.get('Authorization')).toBeNull()
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    const header = headers.get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
   })
 
   it('sends Bearer when a password accessJwt is present', async () => {
     await fetchWithAgentAuth(
       {session: {accessJwt: 'password-jwt'}},
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.vote',
-      {method: 'POST'},
+      NOTES_VOTE,
+      {
+        method: 'POST',
+      },
     )
 
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    expect(new Headers(init.headers).get('Authorization')).toBe(
-      'Bearer password-jwt',
-    )
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe('Bearer password-jwt')
   })
 
-  it('uses OAuthSession.fetchHandler (DPoP) and does not send Bearer accessJwt', async () => {
-    const fetchHandler = jest.fn(async (url: string, init?: RequestInit) => {
-      const headers = new Headers(init?.headers)
-      headers.set('Authorization', 'DPoP oauth-access-token')
-      headers.set('DPoP', 'mocked-dpop-proof')
-      return globalThis.fetch(url, {...init, headers})
+  it('OAuth mints service-auth and sends Bearer, not notes-URL DPoP', async () => {
+    const fetchHandler = jest.fn(async () => {
+      throw new Error('must not DPoP notes')
     })
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
+      data: {token: SERVICE_JWT},
+    }))
     const agent: ServiceAuthAgent = {
       session: {accessJwt: ''},
       oauthSession: {fetchHandler},
+      com: {atproto: {server: {getServiceAuth}}},
     }
-
-    globalThis.fetch = jest.fn(async (_input, init?: RequestInit) => {
-      const headers = new Headers(init?.headers)
-      expect(headers.get('Authorization')).toBe('DPoP oauth-access-token')
-      expect(headers.get('DPoP')).toBe('mocked-dpop-proof')
-      expect(headers.get('Authorization')?.startsWith('Bearer')).toBe(false)
-      return jsonResponse({ok: true})
-    }) as typeof fetch
 
     await fetchWithAgentAuth(
       agent,
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+      NOTES_GET,
       {method: 'GET'},
+      {
+        lxm: NOTES_LXM.getProposals,
+      },
     )
 
-    expect(fetchHandler).toHaveBeenCalledTimes(1)
-    expect(fetchHandler).toHaveBeenCalledWith(
-      'https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals',
+    expect(getServiceAuth).toHaveBeenCalledTimes(1)
+    expect(getServiceAuth).toHaveBeenCalledWith({
+      aud: NOTES_DID,
+      lxm: NOTES_LXM.getProposals,
+    })
+    expect(fetchHandler).not.toHaveBeenCalled()
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.has('DPoP')).toBe(false)
+    expect(headers.get('Authorization')?.startsWith('DPoP')).toBe(false)
+  })
+
+  it('never takes the password-JWT path when oauthSession is present', async () => {
+    const getServiceAuth = jest.fn(async () => ({
+      data: {token: SERVICE_JWT},
+    }))
+    await fetchWithAgentAuth(
+      {
+        session: {accessJwt: 'leftover-password-jwt'},
+        oauthSession: {
+          fetchHandler: jest.fn(async () => {
+            throw new Error('must not DPoP notes')
+          }),
+        },
+        com: {atproto: {server: {getServiceAuth}}},
+      },
+      NOTES_GET,
       {method: 'GET'},
+      {lxm: NOTES_LXM.getProposals},
     )
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+
+    expect(getServiceAuth).toHaveBeenCalledTimes(1)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.get('Authorization')).not.toBe(
+      'Bearer leftover-password-jwt',
+    )
+  })
+
+  it('getProposals falls back to soft-anon when service-auth mint fails', async () => {
+    const getServiceAuth = jest.fn(async () => {
+      throw new Error('PDS getServiceAuth failed')
+    })
+    await fetchWithAgentAuth(
+      {
+        session: {accessJwt: ''},
+        oauthSession: {fetchHandler: async () => jsonResponse({})},
+        com: {atproto: {server: {getServiceAuth}}},
+      },
+      NOTES_GET,
+      {method: 'GET'},
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.has('Authorization')).toBe(false)
+  })
+
+  it('throws when requireAuth mint fails (propose/vote)', async () => {
+    const getServiceAuth = jest.fn(async () => {
+      throw new Error('PDS getServiceAuth failed')
+    })
+    await expect(
+      fetchWithAgentAuth(
+        {
+          session: {accessJwt: ''},
+          oauthSession: {fetchHandler: async () => jsonResponse({})},
+          com: {atproto: {server: {getServiceAuth}}},
+        },
+        NOTES_VOTE,
+        {method: 'POST'},
+        {lxm: NOTES_LXM.vote, requireAuth: true},
+      ),
+    ).rejects.toThrow('PDS getServiceAuth failed')
+    const notesCalls = (globalThis.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => String(url).includes(NOTES_LXM.vote),
+    )
+    expect(notesCalls).toHaveLength(0)
   })
 })
 
@@ -135,121 +394,166 @@ describe('community notes API auth', () => {
   const originalFetch = globalThis.fetch
 
   beforeEach(() => {
-    globalThis.fetch = jest.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
-      if (url.includes('getProposals')) {
-        return jsonResponse({proposals: []})
-      }
-      if (url.includes('propose')) {
-        return jsonResponse({
-          uri: NOTES_NOTE_URI,
-          cid: 'bafy',
-          proposal: {uri: NOTES_NOTE_URI},
-        })
-      }
-      if (url.includes('vote')) {
-        return jsonResponse({
-          success: true,
-          rating: {
-            uri: 'at://did:plc:note/org.opencommunitynotes.rating/1',
-            targetUri: NOTES_NOTE_URI,
-            cts: '2026-01-01T00:00:00.000Z',
-            val: 1,
-            reasons: [],
-          },
-        })
-      }
-      return jsonResponse({}, 404)
-    })
+    resetNotesConfigCache()
+    globalThis.fetch = notesFetchMock()
   })
 
   afterEach(() => {
+    resetNotesConfigCache()
     globalThis.fetch = originalFetch
   })
 
-  it('getProposals omits Authorization when accessJwt is empty', async () => {
+  it('getProposals omits Authorization when accessJwt is empty (soft-anon)', async () => {
     await getProposals(passwordAgent(''), NOTES_POST_URI)
 
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    expect(new Headers(init.headers).has('Authorization')).toBe(false)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    const header = headers.get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
   })
 
   it('getProposals sends Bearer for a password session', async () => {
     await getProposals(passwordAgent('password-jwt'), NOTES_POST_URI)
 
-    const [url, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    expect(url).toContain('org.opencommunitynotes.getProposals')
-    expect(new Headers(init.headers).get('Authorization')).toBe(
-      'Bearer password-jwt',
-    )
+    const {url, headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(url).toContain(NOTES_LXM.getProposals)
+    expect(headers.get('Authorization')).toBe('Bearer password-jwt')
   })
 
-  it('getProposals uses DPoP fetchHandler for an OAuth session', async () => {
-    const fetchHandler = jest.fn(async (_url: string, _init?: RequestInit) =>
-      jsonResponse({proposals: []}),
+  it('getProposals mints service-auth for an OAuth session (viewer context)', async () => {
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
+      data: {token: SERVICE_JWT},
+    }))
+    const fetchHandler = jest.fn(async () => {
+      throw new Error('must not DPoP notes')
+    })
+    const result = await getProposals(
+      oauthAgent({getServiceAuth, fetchHandler}),
+      NOTES_POST_URI,
     )
-    await getProposals(oauthAgent(fetchHandler), NOTES_POST_URI)
 
-    expect(fetchHandler).toHaveBeenCalledTimes(1)
-    const [url] = fetchHandler.mock.calls[0]
-    expect(url).toContain('org.opencommunitynotes.getProposals')
-    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(result.proposals[0]?.note).toBe('context from the service')
+    expect(getServiceAuth).toHaveBeenCalledWith({
+      aud: NOTES_DID,
+      lxm: NOTES_LXM.getProposals,
+    })
+    expect(fetchHandler).not.toHaveBeenCalled()
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.has('DPoP')).toBe(false)
   })
 
-  it('propose uses DPoP fetchHandler for an OAuth session', async () => {
-    const fetchHandler = jest.fn(async (_url: string, _init?: RequestInit) =>
-      jsonResponse({
+  it('propose mints service-auth for an OAuth session', async () => {
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
+      data: {token: SERVICE_JWT},
+    }))
+    const fetchHandler = jest.fn(async () => {
+      throw new Error('must not DPoP notes')
+    })
+    await propose(
+      oauthAgent({getServiceAuth, fetchHandler}),
+      NOTES_POST_URI,
+      'context',
+      [],
+    )
+
+    expect(getServiceAuth).toHaveBeenCalledWith({
+      aud: NOTES_DID,
+      lxm: NOTES_LXM.propose,
+    })
+    expect(fetchHandler).not.toHaveBeenCalled()
+    const {url, init, headers} = lastNotesXrpcCall(
+      globalThis.fetch as jest.Mock,
+    )
+    expect(url).toContain(NOTES_LXM.propose)
+    expect(init?.method).toBe('POST')
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.has('DPoP')).toBe(false)
+  })
+
+  it('vote mints service-auth for an OAuth session', async () => {
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
+      data: {token: SERVICE_JWT},
+    }))
+    const fetchHandler = jest.fn(async () => {
+      throw new Error('must not DPoP notes')
+    })
+    await vote(
+      oauthAgent({getServiceAuth, fetchHandler}),
+      NOTES_NOTE_URI,
+      'helpful',
+      [],
+    )
+
+    expect(getServiceAuth).toHaveBeenCalledWith({
+      aud: NOTES_DID,
+      lxm: NOTES_LXM.vote,
+    })
+    expect(fetchHandler).not.toHaveBeenCalled()
+    const {url, init, headers} = lastNotesXrpcCall(
+      globalThis.fetch as jest.Mock,
+    )
+    expect(url).toContain(NOTES_LXM.vote)
+    expect(init?.method).toBe('POST')
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.has('DPoP')).toBe(false)
+  })
+
+  it('propose sends Bearer for a password session and does not mint service-auth', async () => {
+    const getServiceAuth = jest.fn(async () => ({
+      data: {token: SERVICE_JWT},
+    }))
+    const agent = {
+      ...passwordAgent('password-jwt'),
+      com: {atproto: {server: {getServiceAuth}}},
+    } as unknown as BskyAgent
+
+    await propose(agent, NOTES_POST_URI, 'context', [])
+
+    expect(getServiceAuth).not.toHaveBeenCalled()
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe('Bearer password-jwt')
+  })
+
+  it('propose fails closed when OAuth service-auth mint fails', async () => {
+    const getServiceAuth = jest.fn(async () => {
+      throw new Error('PDS getServiceAuth failed')
+    })
+    await expect(
+      propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', []),
+    ).rejects.toThrow('PDS getServiceAuth failed')
+    const proposeCalls = (globalThis.fetch as jest.Mock).mock.calls.filter(
+      ([url]) => String(url).includes(NOTES_LXM.propose),
+    )
+    expect(proposeCalls).toHaveLength(0)
+  })
+
+  it('accepts did#serviceId audience from getConfig as getServiceAuth aud', async () => {
+    const aud = `${NOTES_DID}#atproto_pds`
+    globalThis.fetch = jest.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes(NOTES_LXM.getConfig)) {
+        return jsonResponse({
+          version: '1',
+          labelerDid: 'did:plc:labeler',
+          feedGeneratorDid: aud,
+        })
+      }
+      return jsonResponse({
         uri: NOTES_NOTE_URI,
         cid: 'bafy',
         proposal: {uri: NOTES_NOTE_URI},
-      }),
-    )
-    await propose(oauthAgent(fetchHandler), NOTES_POST_URI, 'context', [])
+      })
+    })
+    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
+      data: {token: SERVICE_JWT},
+    }))
 
-    expect(fetchHandler).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchHandler.mock.calls[0]
-    expect(url).toContain('org.opencommunitynotes.propose')
-    expect(init?.method).toBe('POST')
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
+    await propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', [])
 
-  it('vote uses DPoP fetchHandler for an OAuth session', async () => {
-    const fetchHandler = jest.fn(async (_url: string, _init?: RequestInit) =>
-      jsonResponse({
-        success: true,
-        rating: {
-          uri: 'at://did:plc:note/org.opencommunitynotes.rating/1',
-          targetUri: NOTES_NOTE_URI,
-          cts: '2026-01-01T00:00:00.000Z',
-          val: 1,
-          reasons: [],
-        },
-      }),
-    )
-    await vote(oauthAgent(fetchHandler), NOTES_NOTE_URI, 'helpful', [])
-
-    expect(fetchHandler).toHaveBeenCalledTimes(1)
-    const [url, init] = fetchHandler.mock.calls[0]
-    expect(url).toContain('org.opencommunitynotes.vote')
-    expect(init?.method).toBe('POST')
-    expect(globalThis.fetch).not.toHaveBeenCalled()
-  })
-
-  it('propose sends Bearer for a password session', async () => {
-    await propose(passwordAgent('password-jwt'), NOTES_POST_URI, 'context', [])
-
-    const [, init] = (globalThis.fetch as jest.Mock).mock.calls[0] as [
-      string,
-      RequestInit,
-    ]
-    expect(new Headers(init.headers).get('Authorization')).toBe(
-      'Bearer password-jwt',
-    )
+    expect(getServiceAuth).toHaveBeenCalledWith({
+      aud,
+      lxm: NOTES_LXM.propose,
+    })
   })
 })

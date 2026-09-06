@@ -184,9 +184,11 @@ export class OauthBskyAppAgent extends Agent {
   session?: AtpSessionData
   readonly service: URL
   /**
-   * The live `@atproto/oauth-client` session. Community Notes and other
-   * non-PDS fetches must use this (via `fetchWithAgentAuth`) so they send
-   * the DPoP-bound access token instead of the empty persisted `accessJwt`.
+   * The live `@atproto/oauth-client` session. PDS XRPC (including
+   * `com.atproto.server.getServiceAuth` for Community Notes) uses this
+   * session's DPoP bound to the **PDS** URL. Notes itself gets a
+   * service-auth Bearer JWT, not notes-URL DPoP — Bluesky issuer JWKS
+   * is empty, so notes rejects OAuth DPoP.
    */
   readonly oauthSession: OAuthSession
   private unsubscribeSessionEvents?: () => void
