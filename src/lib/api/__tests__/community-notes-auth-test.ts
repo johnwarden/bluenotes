@@ -240,7 +240,6 @@ describe('mintNotesServiceAuth', () => {
     // getServiceAuth() { return this._client.call('com.atproto.server.getServiceAuth', ...) }
     // An unbound extract (`const fn = server.getServiceAuth; await fn(...)`)
     // leaves `this` undefined → TypeError → signed-in soft-anon omit.
-    let receivedThis: unknown
     const server = {
       _client: {
         call: async () => ({data: {token: SERVICE_JWT}}),
@@ -249,7 +248,7 @@ describe('mintNotesServiceAuth', () => {
         this: {_client?: {call: () => Promise<{data: {token: string}}>}},
         _params: ServiceAuthParams,
       ) {
-        receivedThis = this
+        expect(this).toBe(server)
         if (this == null || this._client == null) {
           throw new TypeError(
             "Cannot read properties of undefined (reading '_client')",
@@ -267,7 +266,6 @@ describe('mintNotesServiceAuth', () => {
     await expect(
       mintNotesServiceAuth(agent, {aud: NOTES_DID, lxm: NOTES_LXM.propose}),
     ).resolves.toBe(SERVICE_JWT)
-    expect(receivedThis).toBe(server)
   })
 })
 
