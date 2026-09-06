@@ -123,8 +123,9 @@ production is not in the default PR matrix: it needs a browser, a running
 app or `BASE_URL`, and optional write credentials. Dispatch the workflow
 with a `base_url` input to run live smoke; that job installs Chrome via
 `browser-actions/setup-chrome` so `ubuntu-latest` has a browser for
-Selenium Manager. Assertion failures redact Authorization to scheme-only
-(`DPoP <redacted>` / `Bearer <redacted>` / `absent`) and never interpolate
-raw tokens.
+Selenium Manager. No `AssertionError` path interpolates raw Authorization
+or DPoP: `assert_getproposals_auth` and `assert_getproposals_returned_note`
+redact to scheme-only (`DPoP <redacted>` / `Bearer <redacted>` / `absent`)
+and raise explicitly so pytest rewriting cannot dump tokens.
 
 Maestro (`yarn e2e:run`) and Jest (`yarn test`) are unchanged.
