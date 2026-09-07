@@ -1,27 +1,27 @@
 'use strict'
 
 /*
- * Zod 3.25 is a dual ESM/CJS package. Webpack prefers the ESM build
- * (`index.js`), whose default export is the `z` namespace (has `.string`,
- * no `.z`). CJS dependents such as `@atproto/oauth-types` then do
- * `require("zod").z.string()` at module init and throw
- * `Cannot read properties of undefined (reading 'string')` before React
- * mounts.
+ * Zod 3.25 is a dual ESM/CJS package. Webpack may expose either:
+ *   1. the CJS module `{z, default, ...}` so `require("zod").z.string()` works
+ *   2. the `z` namespace itself (has `.string` / `.unknown`, no `.z`)
  *
- * This shim loads the CJS entry and re-exports both the named `z` (for
- * `import {z} from 'zod'`) and `exports.z` (for `require("zod").z`).
+ * `@atproto/oauth-types` and `@atproto/common` CJS do `require("zod").z.*`
+ * at module init. If `.z` is missing, the static SPA throws before React
+ * mounts. Always export a real namespace on both `.z` and `.default`.
  */
 
-/** @type {typeof import('zod') & {z: typeof import('zod')}} */
-const zodCjs = require('../node_modules/zod/index.cjs')
+/** @type {typeof import('zod') & {z?: typeof import('zod')}} */
+const raw = require('../node_modules/zod/index.cjs')
+
+const z = raw && raw.z && typeof raw.z.string === 'function' ? raw.z : raw
 
 exports.__esModule = true
-exports.z = zodCjs.z
-exports.default = zodCjs.z
+exports.z = z
+exports.default = z
 
-for (const key of Object.keys(zodCjs)) {
+for (const key of Object.keys(raw)) {
   if (key === 'default' || key === 'z' || key === '__esModule') {
     continue
   }
-  exports[key] = zodCjs[key]
+  exports[key] = raw[key]
 }
