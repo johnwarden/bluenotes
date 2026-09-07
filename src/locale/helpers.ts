@@ -11,6 +11,8 @@ import {
   LANGUAGES_MAP_CODE3,
 } from './languages'
 
+export {findSupportedAppLanguage} from './languages'
+
 export function code2ToCode3(lang: string): string {
   if (lang.length === 2) {
     return LANGUAGES_MAP_CODE2[lang]?.code3 || lang
@@ -273,23 +275,6 @@ export function fixLegacyLanguageCode(code: string | null): string | null {
     return 'yi'
   }
   return code
-}
-
-/**
- * Find the first language supported by our translation infra. Values should be
- * in order of preference, and match the values of {@link AppLanguage}.
- *
- * If no match, returns `en`.
- */
-export function findSupportedAppLanguage(languageTags: (string | undefined)[]) {
-  const supported = new Set(Object.values(AppLanguage))
-  for (const tag of languageTags) {
-    if (!tag) continue
-    if (supported.has(tag as AppLanguage)) {
-      return tag
-    }
-  }
-  return AppLanguage.en
 }
 
 /**
