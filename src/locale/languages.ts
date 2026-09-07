@@ -49,6 +49,26 @@ export enum AppLanguage {
   zh_TW = 'zh-Hant-TW',
 }
 
+/**
+ * First language tag that this app can translate. Values should be in order
+ * of preference and match {@link AppLanguage}. Falls back to `en`.
+ *
+ * Kept here (not in `#/locale/helpers`) so persisted schema defaults can
+ * resolve an app language without importing lexicons / AT Protocol types.
+ * helpers.ts pulls `#/lexicons`, which evaluates `l.string()` at module
+ * init; that must not sit on the persisted-state boot path.
+ */
+export function findSupportedAppLanguage(languageTags: (string | undefined)[]) {
+  const supported = new Set(Object.values(AppLanguage))
+  for (const tag of languageTags) {
+    if (!tag) continue
+    if (supported.has(tag as AppLanguage)) {
+      return tag
+    }
+  }
+  return AppLanguage.en
+}
+
 interface AppLanguageConfig {
   code2: AppLanguage
   name: string

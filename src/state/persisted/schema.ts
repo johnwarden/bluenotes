@@ -2,7 +2,7 @@ import {isDidString} from '@atproto/lex'
 import {z} from 'zod'
 
 import {deviceLanguageCodes, deviceLocales} from '#/locale/deviceLocales'
-import {findSupportedAppLanguage} from '#/locale/helpers'
+import {findSupportedAppLanguage} from '#/locale/languages'
 import {logger} from '#/logger'
 import {PlatformInfo} from '../../../modules/expo-bluesky-swiss-army'
 

@@ -100,6 +100,13 @@ module.exports = async function (env, argv) {
       __dirname,
       'node_modules/react-native-reanimated/lib/module/ReanimatedModule/js-reanimated/webUtils',
     )]: path.join(__dirname, 'web/reanimatedWebUtilsShim.js'),
+    /*
+     * Dual-shape shim: ESM `import {z} from 'zod'` and CJS
+     * `require("zod").z.string()` (used by @atproto/oauth-types at
+     * module init). The shim must load zod's ESM `.js` entry - webpack
+     * file-loader emits `.cjs` as a media URL. See web/zodWebpackShim.js.
+     */
+    zod: path.join(__dirname, 'web/zodWebpackShim.js'),
   })
 
   /*
