@@ -37,4 +37,4 @@ Keep `tooling` current on `upstream/main`, then rebase both working lines onto `
 
 # Release assemble
 
-Use `./prepare-release-interactive.sh`. It rebases `tooling` onto the pinned Bluesky release tag (`BLUESKY_RELEASE_TAG`, default `1.109.0` in the script; override via that env var or the first argument), then rebases both working lines onto `tooling`, then assembles `release` (reset to `bluenotes-rebrand`, merge `community-notes-feature`, force-push). Do not use floating `upstream/main` for that assemble. Deal with any merge conflicts along the way. Deploy is `just deploy` (or the push-to-`release` Fly workflow).
+Use `./prepare-release-interactive.sh`. It rebases `tooling` onto the pinned Bluesky release tag (`BLUESKY_RELEASE_TAG`, default `1.133.0` in the script; override via that env var or the first argument), then rebases both working lines onto `tooling`, then assembles `release` (reset to `bluenotes-rebrand`, merge `community-notes-feature`, force-push). Do not use floating `upstream/main` for that assemble. Deal with any merge conflicts along the way. Deploy is `just deploy` (or the push-to-`release` Fly workflow).
