@@ -1,8 +1,17 @@
 import {useQuery} from '@tanstack/react-query'
 
-import {COMMUNITY_NOTES_SERVICE} from '#/lib/constants'
+import {type CommunityNotesAuth} from '#/lib/api/community-notes'
+import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
 import {STALE} from '#/state/queries'
-import {useAgent} from '#/state/session'
+import {useSession} from '#/state/session'
+
+export function useCommunityNotesAuth(): CommunityNotesAuth {
+  const {currentAccount} = useSession()
+  return {
+    service: currentAccount?.service ?? DEFAULT_SERVICE,
+    accessJwt: currentAccount?.accessJwt,
+  }
+}
 
 export interface CommunityNotesConfig {
   version: string
@@ -17,15 +26,12 @@ const RQKEY_ROOT = 'community-notes-config'
 export const RQKEY = () => [RQKEY_ROOT]
 
 export function useCommunityNotesConfig() {
-  const agent = useAgent()
+  const auth = useCommunityNotesAuth()
 
   return useQuery<CommunityNotesConfig>({
-    queryKey: RQKEY(),
+    queryKey: [...RQKEY(), auth.service],
     queryFn: async () => {
-      const serviceUrl = agent
-        ? agent.service.toString()
-        : 'https://bsky.social'
-      const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
+      const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(auth.service)
 
       // Fetch basic config
       const configResponse = await fetch(
@@ -62,8 +68,6 @@ export function useCommunityNotesConfig() {
       return failureCount < 3
     },
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
-    // Only fetch if we have an agent (user is logged in or app is initialized)
-    enabled: !!agent,
   })
 }
 

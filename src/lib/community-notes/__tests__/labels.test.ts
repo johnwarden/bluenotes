@@ -1,4 +1,4 @@
-import {type AppBskyFeedDefs, type ComAtprotoLabelDefs} from '@atproto/api'
+import {type app, type com} from '#/lexicons'
 
 import {
   COMMUNITY_NOTES_LABELS,
@@ -18,8 +18,8 @@ const TEST_LABELER_DIDS = {
 
 // Mock post factory
 function createMockPost(
-  labels: ComAtprotoLabelDefs.Label[] = [],
-): AppBskyFeedDefs.PostView {
+  labels: com.atproto.label.defs.Label[] = [],
+): app.bsky.feed.defs.PostView {
   return {
     uri: 'at://did:example/app.bsky.feed.post/123',
     cid: 'bafyreibxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -31,11 +31,11 @@ function createMockPost(
     record: {},
     indexedAt: '2024-01-01T00:00:00.000Z',
     labels,
-  } as AppBskyFeedDefs.PostView
+  } as app.bsky.feed.defs.PostView
 }
 
 // Mock label factory
-function createMockLabel(src: string, val: string): ComAtprotoLabelDefs.Label {
+function createMockLabel(src: string, val: string): com.atproto.label.defs.Label {
   return {
     src,
     uri: 'at://did:example/app.bsky.feed.post/123',
