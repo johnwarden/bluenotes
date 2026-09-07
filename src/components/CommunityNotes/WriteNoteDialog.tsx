@@ -208,8 +208,6 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
         selectedReasons,
       )
 
-      console.log('Note created successfully:', response)
-
       // Store the note URI and create note object for the success dialog
       setSubmittedNoteUri(response.uri)
       const noteObj = apilib.mapProposalApiResponseToCommunityNote(
