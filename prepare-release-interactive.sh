@@ -7,9 +7,9 @@ set -o nounset
 echo "🔄 Starting release preparation..."
 
 # Bluesky tag/ref tooling rebases onto for a release assemble.
-# Not floating upstream/main. Override: BLUESKY_RELEASE_TAG=1.110.0 ./prepare-release-interactive.sh
-# or: ./prepare-release-interactive.sh 1.110.0
-BLUESKY_RELEASE_TAG="${1:-${BLUESKY_RELEASE_TAG:-1.109.0}}"
+# Not floating upstream/main. Override: BLUESKY_RELEASE_TAG=1.134.0 ./prepare-release-interactive.sh
+# or: ./prepare-release-interactive.sh 1.134.0
+BLUESKY_RELEASE_TAG="${1:-${BLUESKY_RELEASE_TAG:-1.133.0}}"
 
 # Fetch latest changes
 echo "📥 Fetching latest changes..."
