@@ -1,32 +1,13 @@
-import {type CommunityNote} from '#/lib/community-notes/types'
-import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
-import {type NoteRatingState} from '#/state/cache/community-notes-shadow'
-
-/**
- * Session bits CN XRPC calls need after 1.133 removed BskyAgent / useAgent.
- * `accessJwt` is required for write/vote; getProposals works without it.
- */
-export type CommunityNotesAuth = {
-  service: string
-  accessJwt?: string
-}
-
-function serviceUrlOf(auth: CommunityNotesAuth | null | undefined) {
-  return auth?.service ?? DEFAULT_SERVICE
-}
-
-function messageFromUnknownJson(data: unknown, fallback: string) {
-  if (data && typeof data === 'object') {
-    const rec = data as {message?: unknown; error?: unknown}
-    if (typeof rec.message === 'string' && rec.message) return rec.message
-    if (typeof rec.error === 'string' && rec.error) return rec.error
-  }
-  return fallback
-}
-
-function stringifyUnknown(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
-}
+import {
+  fetchWithAgentAuth,
+  NOTES_LXM,
+  type ServiceAuthAgent,
+} from '#/lib/api/community-notes-auth'
+import {
+  type CommunityNote,
+  type NoteRatingState,
+} from '#/lib/community-notes/types'
+import {COMMUNITY_NOTES_SERVICE} from '#/lib/constants'
 
 type VoteValue = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
@@ -150,41 +131,84 @@ export function mapApiRatingToNoteRatingState(
   }
 }
 
+function messageFromJsonBody(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object') {
+    const record = data as {message?: unknown; error?: unknown}
+    if (typeof record.message === 'string' && record.message.length > 0) {
+      return record.message
+    }
+    if (typeof record.error === 'string' && record.error.length > 0) {
+      return record.error
+    }
+  }
+  return fallback
+}
+
+function jsonErrorCode(data: unknown): string | undefined {
+  if (data && typeof data === 'object' && 'error' in data) {
+    const error = (data as {error?: unknown}).error
+    return typeof error === 'string' ? error : undefined
+  }
+  return undefined
+}
+
+function unknownErrorText(error: unknown): string {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (typeof error === 'number' || typeof error === 'boolean') {
+    return String(error)
+  }
+  return 'Unknown error'
+}
+
+function serviceUrlOf(agent: ServiceAuthAgent): string {
+  const service = agent?.service
+  if (!service) {
+    return 'https://bsky.social'
+  }
+  return typeof service === 'string' ? service : service.toString()
+}
+
 export async function vote(
-  auth: CommunityNotesAuth,
+  agent: ServiceAuthAgent,
   noteUri: string,
   value: VoteValue,
   reasons: string[],
 ): Promise<RateProposalResponse> {
-  if (!auth.accessJwt) {
+  if (!agent?.session && !agent?.isOauthSession && !agent?.oauthSession) {
     throw new Error('Must be logged in to rate a note')
   }
 
   // Note: Anonymous ID (AID) is generated server-side by the Community Notes service
   // based on the authenticated user's DID. The service uses: 'org.opencommunitynotes:' + sha256(did)
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(agent))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${auth.accessJwt}`,
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uri: noteUri,
+          val: mapVoteValue(value),
+          reasons: reasons,
+        }),
       },
-      body: JSON.stringify({
-        uri: noteUri,
-        val: mapVoteValue(value),
-        reasons: reasons,
-      }),
-    })
+      {lxm: NOTES_LXM.vote, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
         const errorData: unknown = await response.json()
-        errorMessage = messageFromUnknownJson(errorData, errorMessage)
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -207,22 +231,22 @@ export async function vote(
       throw error
     }
     throw new Error(
-      `Network error while rating note: ${stringifyUnknown(error)}`,
+      `Network error while rating note: ${unknownErrorText(error)}`,
     )
   }
 }
 
 export async function propose(
-  auth: CommunityNotesAuth,
+  agent: ServiceAuthAgent,
   targetUri: string,
   noteText: string,
   reasons: string[],
 ): Promise<CreateProposalResponse> {
-  if (!auth.accessJwt) {
+  if (!agent?.session && !agent?.isOauthSession && !agent?.oauthSession) {
     throw new Error('Must be logged in to create a note')
   }
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(agent))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.propose`
 
   const requestBody: CreateProposalRequest = {
@@ -234,28 +258,27 @@ export async function propose(
   }
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${auth.accessJwt}`,
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
       },
-      body: JSON.stringify(requestBody),
-    })
+      {lxm: NOTES_LXM.propose, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
         const errorData: unknown = await response.json()
-        if (
-          errorData &&
-          typeof errorData === 'object' &&
-          'error' in errorData &&
-          errorData.error === 'DuplicateProposal'
-        ) {
+        if (jsonErrorCode(errorData) === 'DuplicateProposal') {
           throw new Error('You have already created a note for this post')
         }
-        errorMessage = messageFromUnknownJson(errorData, errorMessage)
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch (parseError) {
         if (
           parseError instanceof Error &&
@@ -282,19 +305,21 @@ export async function propose(
       throw error
     }
     throw new Error(
-      `Network error while creating note: ${stringifyUnknown(error)}`,
+      `Network error while creating note: ${unknownErrorText(error)}`,
     )
   }
 }
 
 export async function getProposals(
-  auth: CommunityNotesAuth | null,
+  agent: ServiceAuthAgent,
   subjectUris: string | string[],
   options?: {
     status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
   },
 ): Promise<GetProposalsAPIResponse> {
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
+  // Use the agent's service URL if available, otherwise default to bsky.social
+  const serviceUrl = serviceUrlOf(agent)
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
 
   // Handle both single URI and multiple URIs
   const uris = Array.isArray(subjectUris) ? subjectUris : [subjectUris]
@@ -309,22 +334,21 @@ export async function getProposals(
   const allParams = [uriParams, ...filterParams].join('&')
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
-  const headers: Record<string, string> = {}
-  if (auth?.accessJwt) {
-    headers.Authorization = `Bearer ${auth.accessJwt}`
-  }
-
   try {
-    const response = await fetch(url, {
-      method: 'GET',
-      headers,
-    })
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'GET',
+      },
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
         const errorData: unknown = await response.json()
-        errorMessage = messageFromUnknownJson(errorData, errorMessage)
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -346,66 +370,70 @@ export async function getProposals(
       throw error
     }
     throw new Error(
-      `Network error while fetching proposals: ${stringifyUnknown(error)}`,
+      `Network error while fetching proposals: ${unknownErrorText(error)}`,
     )
   }
 }
 
 // Legacy functions for backward compatibility - these will be removed
 export async function createNoteRating(
-  auth: CommunityNotesAuth,
+  agent: ServiceAuthAgent,
   note: {uri: string; cid?: string},
   value: VoteValue,
   reasons: string[],
 ) {
   // Map to new API
-  const result = await vote(auth, note.uri, value, reasons)
+  const result = await vote(agent, note.uri, value, reasons)
   return {
     uri: result.rating.uri,
   }
 }
 
 export async function updateNoteRating(
-  auth: CommunityNotesAuth,
+  agent: ServiceAuthAgent,
   ratingUri: string,
   note: {uri: string; cid?: string},
   value: VoteValue,
   reasons: string[],
 ) {
   // For updates, we still call vote with the note URI
-  const result = await vote(auth, note.uri, value, reasons)
+  const result = await vote(agent, note.uri, value, reasons)
   return result
 }
 
 export async function deleteNoteRating(
-  auth: CommunityNotesAuth,
+  agent: ServiceAuthAgent,
   noteUri: string,
 ) {
-  if (!auth.accessJwt) {
+  if (!agent?.session && !agent?.isOauthSession && !agent?.oauthSession) {
     throw new Error('Must be logged in to delete a rating')
   }
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(agent))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${auth.accessJwt}`,
-        'Content-Type': 'application/json',
+    const response = await fetchWithAgentAuth(
+      agent,
+      url,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          uri: noteUri,
+          delete: true, // Use delete flag instead of empty val
+        }),
       },
-      body: JSON.stringify({
-        uri: noteUri,
-        delete: true, // Use delete flag instead of empty val
-      }),
-    })
+      {lxm: NOTES_LXM.vote, requireAuth: true},
+    )
 
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
         const errorData: unknown = await response.json()
-        errorMessage = messageFromUnknownJson(errorData, errorMessage)
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -427,7 +455,7 @@ export async function deleteNoteRating(
       throw error
     }
     throw new Error(
-      `Network error while deleting rating: ${stringifyUnknown(error)}`,
+      `Network error while deleting rating: ${unknownErrorText(error)}`,
     )
   }
 }

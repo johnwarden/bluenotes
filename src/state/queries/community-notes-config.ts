@@ -1,15 +1,37 @@
 import {useQuery} from '@tanstack/react-query'
 
-import {type CommunityNotesAuth} from '#/lib/api/community-notes'
+import {
+  type ServiceAuthAgent,
+  type ServiceAuthPdsClient,
+} from '#/lib/api/community-notes-auth'
 import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
 import {STALE} from '#/state/queries'
-import {useSession} from '#/state/session'
+import {useMaybePdsClient, useSession} from '#/state/session'
 
-export function useCommunityNotesAuth(): CommunityNotesAuth {
+function serviceUrlOf(agent: ServiceAuthAgent): string {
+  const service = agent?.service
+  if (!service) {
+    return DEFAULT_SERVICE
+  }
+  return typeof service === 'string' ? service : service.toString()
+}
+
+/**
+ * 1.133 replacement for `useAgent()` used by notes XRPC helpers.
+ * Password sessions expose `accessJwt`. After merge with rebrand,
+ * OAuth sessions set `isOauthSession` and mint via `pdsClient`.
+ */
+export function useCommunityNotesAuth(): ServiceAuthAgent {
   const {currentAccount} = useSession()
+  const pdsClient = useMaybePdsClient()
   return {
     service: currentAccount?.service ?? DEFAULT_SERVICE,
-    accessJwt: currentAccount?.accessJwt,
+    session: {accessJwt: currentAccount?.accessJwt},
+    pdsClient: (pdsClient ?? undefined) as ServiceAuthPdsClient | undefined,
+    isOauthSession: Boolean(
+      (currentAccount as {isOauthSession?: boolean} | undefined)
+        ?.isOauthSession,
+    ),
   }
 }
 
@@ -29,9 +51,11 @@ export function useCommunityNotesConfig() {
   const auth = useCommunityNotesAuth()
 
   return useQuery<CommunityNotesConfig>({
-    queryKey: [...RQKEY(), auth.service],
+    queryKey: [...RQKEY(), serviceUrlOf(auth)],
     queryFn: async () => {
-      const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(auth.service)
+      const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
+        serviceUrlOf(auth),
+      )
 
       // Fetch basic config
       const configResponse = await fetch(

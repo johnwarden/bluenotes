@@ -23,3 +23,9 @@ export interface CommunityNote {
   uri: string
   author: NoteAuthor
 }
+
+export interface NoteRatingState {
+  uri?: string
+  val: 'helpful' | 'somewhat_helpful' | 'not_helpful' | null
+  reasons: string[]
+}
