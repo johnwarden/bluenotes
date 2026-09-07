@@ -17,38 +17,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'yarn'
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
-      # Advanced caching for faster builds
-      - name: Cache dependencies
-        uses: actions/cache@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          path: |
-            node_modules
-            ~/.cache/yarn
-            .yarn/cache
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          node-version-file: package.json
+          cache: pnpm
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Compile i18n
-        run: yarn intl:compile
+        run: pnpm intl:build
 
       - name: Lint
-        run: yarn lint --quiet
+        run: pnpm lint
 
       - name: Type check
-        run: yarn typecheck
+        run: pnpm typecheck
 
       - name: Build test
-        run: yarn build-web
+        run: pnpm build-web
 
   deploy:
     name: Deploy to Fly.io
