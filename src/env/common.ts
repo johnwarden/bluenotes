@@ -1,5 +1,5 @@
-import {type DidString} from '@atproto/syntax'
 import Constants from 'expo-constants'
+import {type DidString} from '@atproto/syntax'
 
 import packageJson from '#/../package.json'
 

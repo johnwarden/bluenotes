@@ -23,7 +23,7 @@ function filterCommunityNotesLabels(
   cause: ModerationCause | Pills.AppModerationCause,
 ): boolean {
   if (cause.type === 'label') {
-    const labelVal = (cause as any).label?.val
+    const labelVal = cause.label.val
     return (
       labelVal !== COMMUNITY_NOTES_LABELS.NOTE &&
       labelVal !== COMMUNITY_NOTES_LABELS.PROPOSED_NOTE
@@ -56,7 +56,9 @@ export function PostAlerts({
 
   // Filter out community notes labels since they have their own specialized UI
   const alerts = modui.alerts.filter(unique).filter(filterCommunityNotesLabels)
-  const informs = modui.informs.filter(unique).filter(filterCommunityNotesLabels)
+  const informs = modui.informs
+    .filter(unique)
+    .filter(filterCommunityNotesLabels)
   /*
    * The "+n" pill surfaces labels for the author to review and appeal, so it
    * only applies when the viewer is the author, and only in expanded views.

@@ -11,10 +11,11 @@ type TaskQueue<TState> = {
   queuedTask: Task<TState> | null
 }
 
-function AbortError() {
-  const e = new Error()
-  e.name = 'AbortError'
-  return e
+class AbortError extends Error {
+  constructor() {
+    super()
+    this.name = 'AbortError'
+  }
 }
 
 export function useComplexMutationQueue<TState>({
@@ -54,7 +55,7 @@ export function useComplexMutationQueue<TState>({
           prevTask &&
           JSON.stringify(prevTask.state) === JSON.stringify(nextTask.state)
         ) {
-          prevTask.reject(new (AbortError as any)())
+          prevTask.reject(new AbortError())
           continue
         }
 
@@ -78,10 +79,10 @@ export function useComplexMutationQueue<TState>({
     return new Promise((resolve, reject) => {
       // Replace any existing queued task with the new one
       if (queue.queuedTask) {
-        queue.queuedTask.reject(new (AbortError as any)())
+        queue.queuedTask.reject(new AbortError())
       }
       queue.queuedTask = {state, resolve, reject}
-      processQueue()
+      void processQueue()
     })
   }
 

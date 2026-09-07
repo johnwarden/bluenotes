@@ -464,7 +464,7 @@ let PostFeed = ({
 
           for (const uri of batch) {
             const notes = byTarget.get(uri) ?? []
-            ;(notes as { _viewerRatings?: unknown })._viewerRatings = notes.map(
+            ;(notes as {_viewerRatings?: unknown})._viewerRatings = notes.map(
               n => ({
                 noteUri: n.uri,
                 viewerRating: ratingByNoteUri.get(n.uri),
