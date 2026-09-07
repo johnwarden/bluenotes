@@ -112,7 +112,10 @@ module.exports = async function (env, argv) {
      * exists. App ESM `import {z} from 'zod'` still works because
      * index.cjs exports the named `z`.
      */
-    zod: require.resolve('zod/index.cjs'),
+    zod: path.join(
+      path.dirname(require.resolve('zod/package.json')),
+      'index.cjs',
+    ),
   })
 
   /*
