@@ -1,7 +1,7 @@
 import React from 'react'
 import {Linking, Text, View} from 'react-native'
 import Svg, {G, Path} from 'react-native-svg'
-import {msg} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect} from '@react-navigation/native'
 

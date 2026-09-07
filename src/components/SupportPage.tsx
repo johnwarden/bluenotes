@@ -1,7 +1,7 @@
 import React from 'react'
 import {Linking, useWindowDimensions, View} from 'react-native'
 import RenderHtml from 'react-native-render-html'
-import {msg} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
 import {useFocusEffect, useNavigation} from '@react-navigation/native'
 

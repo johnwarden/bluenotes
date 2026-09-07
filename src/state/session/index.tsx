@@ -21,6 +21,11 @@ import {com} from '#/lexicons'
 import {emitSessionDropped} from '../events'
 import {getPublicAppviewClient} from './clients'
 import {createSessionBundleAndCreateAccount} from './create-account'
+import {
+  createOauthSessionBundle,
+  resumeOauthSessionBundle,
+} from './oauth-agent'
+import {revokeOAuthSessionsForLogout} from './oauth-session-lifecycle'
 import {pickExpiryRescueCandidate} from './expiry-rescue'
 import {type Action, getInitialState, reducer, type State} from './reducer'
 import {
@@ -44,6 +49,7 @@ import {
 } from './logging'
 export type {SessionAccount} from '#/state/session/types'
 
+import {shouldDiscardSessionLogin} from '#/lib/oauth/oauth-init-policy'
 import {clearPersistedQueryStorage} from '#/lib/persisted-query-storage'
 import {
   type SessionApiContext,
@@ -307,12 +313,16 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
     async (params, logContext) => {
       addSessionDebugLog({type: 'method:start', method: 'login'})
       const signal = cancelPendingTask()
-      const {bundle, account} = await createSessionBundleAndLogin(
-        params,
-        onSessionChange,
-      )
+      const {bundle, account} = params.oauthSession
+        ? await createOauthSessionBundle(params.oauthSession, onSessionChange)
+        : await createSessionBundleAndLogin(params, onSessionChange)
 
-      if (signal.aborted) {
+      if (
+        shouldDiscardSessionLogin({
+          aborted: signal.aborted,
+          isOauthSession: Boolean(params.oauthSession),
+        })
+      ) {
         // The factory returns an armed bundle, so a superseded login must dispose it.
         disposeBundle(bundle)
         return
@@ -324,7 +334,7 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       })
       ax.metric(
         'account:loggedIn',
-        {logContext, withPassword: true},
+        {logContext, withPassword: !params.oauthSession},
         {session: utils.accountToSessionMetadata(account)},
       )
       addSessionDebugLog({
@@ -343,6 +353,11 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
       const prevState = store.getState()
+      revokeOAuthSessionsForLogout(
+        prevState.accounts,
+        'current',
+        prevState.currentBundleState.did,
+      )
       store.dispatch({
         type: 'logged-out-current-account',
       })
@@ -377,6 +392,11 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       addSessionDebugLog({type: 'method:start', method: 'logout'})
       cancelPendingTask()
       const prevState = store.getState()
+      revokeOAuthSessionsForLogout(
+        prevState.accounts,
+        'every',
+        prevState.currentBundleState.did,
+      )
       store.dispatch({
         type: 'logged-out-every-account',
       })
@@ -410,10 +430,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
         account: redactAccount(storedAccount),
       })
       const signal = cancelPendingTask()
-      const {bundle, account} = await createSessionBundleAndResume(
-        storedAccount,
-        onSessionChange,
-      )
+      const {bundle, account} = storedAccount.isOauthSession
+        ? await resumeOauthSessionBundle(storedAccount, onSessionChange)
+        : await createSessionBundleAndResume(storedAccount, onSessionChange)
 
       if (signal.aborted) {
         // The factory returns an armed bundle, so a superseded resume must dispose it.
@@ -423,11 +442,15 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
       /*
        * A cross-tab logout may clear or remove the account while resume is in
        * flight. Check the account entry rather than the current did so ordinary
-       * account switching remains valid.
+       * account switching remains valid. OAuth sessions have no refreshJwt;
+       * presence of the account + isOauthSession is enough.
        */
       const latest = store.getState()
       const latestEntry = latest.accounts.find(a => a.did === account.did)
-      if (!latestEntry || !latestEntry.refreshJwt) {
+      if (
+        !latestEntry ||
+        (!latestEntry.isOauthSession && !latestEntry.refreshJwt)
+      ) {
         disposeBundle(bundle)
         return
       }
@@ -458,8 +481,15 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
      * holding a disposed bundle, whose clients dispatch through a disabled
      * fetch.
      */
-    const bundle = store.getState().currentBundleState
-      .bundle as unknown as SessionBundle
+    const live = store.getState()
+    const bundle = live.currentBundleState.bundle as unknown as SessionBundle
+    const liveAccount = live.accounts.find(
+      a => a.did === live.currentBundleState.did,
+    )
+    if (liveAccount?.isOauthSession) {
+      // PDS getSession 401s DPoP tokens and would delStored the OAuth session.
+      return
+    }
     const signal = cancelPendingTask()
     /* getSession targets the PDS; only the persisted account fields are patched. */
     const data = await bundle.pdsClient.call(com.atproto.server.getSession, {})

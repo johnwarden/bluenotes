@@ -3,13 +3,19 @@ import {Keyboard, type TextInput, View} from 'react-native'
 import {LexAuthFactorError} from '@atproto/lex-password-session'
 import {Trans, useLingui} from '@lingui/react/macro'
 
+import {isOauthSignInAvailable} from '#/lib/oauth/config'
 import {DEFAULT_SERVICE, HITSLOP_10, HITSLOP_20} from '#/lib/constants'
 import {useRequestNotificationsPermission} from '#/lib/notifications/notifications'
 import {cleanError, isNetworkError} from '#/lib/strings/errors'
 import {createFullHandle} from '#/lib/strings/handles'
 import {isBlueskyHostedUrl, toNiceHostingUrl} from '#/lib/strings/url-helpers'
 import {logger} from '#/logger'
+import {
+  useOauthSignIn,
+  useSetOauthSignInEnabled,
+} from '#/state/preferences/oauth-sign-in'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
+import {signInWithOAuth} from '#/state/session/oauth-client'
 import {
   type HostingProviderState,
   useHostingProvider,
@@ -31,7 +37,7 @@ import {Ticket_Stroke2_Corner0_Rounded as TicketIcon} from '#/components/icons/T
 import {createStaticClick, InlineLinkText} from '#/components/Link'
 import {Loader} from '#/components/Loader'
 import {Text} from '#/components/Typography'
-import {IS_IOS, IS_NATIVE} from '#/env'
+import {IS_IOS, IS_NATIVE, IS_WEB} from '#/env'
 import {type com} from '#/lexicons'
 import {ConfirmHostingProviderDialog} from './components/ConfirmHostingProviderDialog'
 import {HostingProviderDialog} from './components/HostingProviderDialog'
@@ -39,7 +45,148 @@ import {FormContainer} from './FormContainer'
 
 type ServiceDescription = com.atproto.server.describeServer.$OutputBody
 
-export const LoginForm = ({
+type LoginFormProps = {
+  error: string
+  serviceUrl: string
+  serviceDescription: ServiceDescription | undefined
+  initialHandle: string
+  setError: (v: string) => void
+  setServiceUrl: (v: string) => void
+  onPressRetryConnect: () => void
+  onPressBack: () => void
+  onPressForgotPassword: () => void
+  onAttemptSuccess: () => void
+  onAttemptFailed: () => void
+  onPressCreateAccount: () => void
+}
+
+export const LoginForm = (props: LoginFormProps) => {
+  const oauthEnabled = useOauthSignIn()
+  if (oauthEnabled && IS_WEB && isOauthSignInAvailable()) {
+    return <OAuthLoginFormInner {...props} />
+  }
+  return <PasswordLoginForm {...props} />
+}
+
+function OAuthLoginFormInner({
+  error,
+  initialHandle,
+  onPressBack,
+  setError,
+  onAttemptFailed,
+}: LoginFormProps) {
+  const {t: l} = useLingui()
+  const [isProcessing, setIsProcessing] = useState(false)
+  const identifierValueRef = useRef(initialHandle || '')
+  const setOauthSignInEnabled = useSetOauthSignInEnabled()
+
+  const onPressNext = async () => {
+    if (isProcessing) return
+    const identifier = identifierValueRef.current.toLowerCase().trim()
+    if (!identifier) {
+      setError(l`Please enter your handle`)
+      return
+    }
+    if (identifier.includes('@')) {
+      setError(
+        l`Enter your handle (for example, name.bsky.social), not an email address.`,
+      )
+      return
+    }
+    setError('')
+    setIsProcessing(true)
+    try {
+      await signInWithOAuth(identifier)
+    } catch (e: unknown) {
+      logger.error(e instanceof Error ? e : String(e), {
+        message: 'oauth: sign-in redirect failed',
+      })
+      onAttemptFailed()
+      setError(l`An error occurred during authentication.`)
+      setIsProcessing(false)
+    }
+  }
+
+  return (
+    <FormContainer testID="loginForm" titleText={<Trans>Sign in</Trans>}>
+      <View>
+        <TextField.LabelText>
+          <Trans>Handle</Trans>
+        </TextField.LabelText>
+        <View style={[a.gap_sm]}>
+          <TextField.Root>
+            <TextField.Icon icon={AtIcon} />
+            <TextField.Input
+              testID="loginUsernameInput"
+              label={l`Handle`}
+              autoCapitalize="none"
+              autoFocus
+              autoCorrect={false}
+              autoComplete="username"
+              returnKeyType="go"
+              textContentType="username"
+              defaultValue={initialHandle || ''}
+              onChangeText={v => {
+                identifierValueRef.current = v
+              }}
+              onSubmitEditing={onPressNext}
+              blurOnSubmit={false}
+              editable={!isProcessing}
+              accessibilityHint={l`Enter the Bluesky handle you use to sign in`}
+            />
+          </TextField.Root>
+        </View>
+      </View>
+      {error ? (
+        <Admonition.Outer type="error">
+          <Admonition.Text>{error}</Admonition.Text>
+        </Admonition.Outer>
+      ) : null}
+      <View style={[a.flex_row, a.align_center, a.pt_md]}>
+        <Button
+          label={l`Back`}
+          variant="solid"
+          color="secondary"
+          size="large"
+          onPress={onPressBack}>
+          <ButtonText>
+            <Trans>Back</Trans>
+          </ButtonText>
+        </Button>
+        <View style={a.flex_1} />
+        <Button
+          testID="loginNextButton"
+          label={l`Continue`}
+          accessibilityHint={l`Starts Bluesky OAuth sign-in`}
+          variant="solid"
+          color="primary"
+          size="large"
+          onPress={onPressNext}>
+          <ButtonText>
+            <Trans>Continue</Trans>
+          </ButtonText>
+          {isProcessing && <ButtonIcon icon={Loader} />}
+        </Button>
+      </View>
+      {isOauthSignInAvailable() && (
+        <View style={[a.pt_md, a.align_center]}>
+          <Button
+            label={l`Use password instead`}
+            variant="ghost"
+            color="secondary"
+            size="small"
+            onPress={() => setOauthSignInEnabled(false)}>
+            <ButtonText>
+              <Trans>Use password instead</Trans>
+            </ButtonText>
+          </Button>
+        </View>
+      )}
+    </FormContainer>
+  )
+}
+
+const PasswordLoginForm = ({
   error,
   serviceUrl,
   serviceDescription,
@@ -86,6 +233,7 @@ export const LoginForm = ({
   const {t: l} = useLingui()
   const {login} = useSessionApi()
   const {accounts} = useSession()
+  const setOauthSignInEnabled = useSetOauthSignInEnabled()
   const requestNotificationsPermission = useRequestNotificationsPermission()
   const {setShowLoggedOut} = useLoggedOutViewControls()
   const setHasCheckedForStarterPack = useSetHasCheckedForStarterPack()
@@ -577,6 +725,21 @@ export const LoginForm = ({
             </InlineLinkText>
           </Trans>
         </Text>
+      )}
+
+      {IS_WEB && isOauthSignInAvailable() && (
+        <View style={[a.pt_md, a.align_center]}>
+          <Button
+            label={l`Sign in with OAuth`}
+            variant="ghost"
+            color="secondary"
+            size="small"
+            onPress={() => setOauthSignInEnabled(true)}>
+            <ButtonText>
+              <Trans>Sign in with OAuth</Trans>
+            </ButtonText>
+          </Button>
+        </View>
       )}
 
       {!gtMobile && (

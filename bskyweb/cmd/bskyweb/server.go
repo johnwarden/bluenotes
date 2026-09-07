@@ -67,6 +67,15 @@ type Config struct {
 	staticCDNHost string
 }
 
+// serveOAuthClientMetadata serves a metadata file from the same FileServer used
+// for /static/* (embedded StaticFS in production, local disk in debug).
+func serveOAuthClientMetadata(staticHandler http.Handler) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		c.Response().Header().Set("Cache-Control", "public, max-age=300")
+		return echo.WrapHandler(staticHandler)(c)
+	}
+}
+
 func serve(cctx *cli.Context) error {
 	debug := cctx.Bool("debug")
 	httpAddress := cctx.String("http-address")
@@ -268,6 +277,9 @@ func serve(cctx *cli.Context) error {
 	} else {
 		e.GET("/robots.txt", echo.WrapHandler(staticHandler))
 	}
+
+	e.GET("/oauth-client-metadata.json", serveOAuthClientMetadata(staticHandler))
+	e.GET("/oauth-client-metadata.native.json", serveOAuthClientMetadata(staticHandler))
 
 	e.GET("/iframe/*", echo.WrapHandler(staticHandler))
 	e.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", staticHandler)), func(next echo.HandlerFunc) echo.HandlerFunc {
