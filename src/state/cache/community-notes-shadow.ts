@@ -3,15 +3,13 @@ import {useEffect, useMemo, useState} from 'react'
 import EventEmitter from 'eventemitter3'
 
 import {batchedUpdates} from '#/lib/batchedUpdates'
-import {type CommunityNote} from '#/lib/community-notes/types'
+import {
+  type CommunityNote,
+  type NoteRatingState,
+} from '#/lib/community-notes/types'
 import {castAsShadow, type Shadow} from './types'
 export type {Shadow} from './types'
-
-export interface NoteRatingState {
-  uri?: string // AT-URI of the org.opencommunitynotes.rating record. Present after creation.
-  val: 'helpful' | 'somewhat_helpful' | 'not_helpful' | null
-  reasons: string[]
-}
+export type {NoteRatingState}
 
 export interface NoteShadow {
   rating: NoteRatingState
