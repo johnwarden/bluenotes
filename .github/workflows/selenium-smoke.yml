@@ -1,0 +1,63 @@
+# Community Notes Selenium smoke.
+# Default PR job is offline assertions only (no Chrome, no live app).
+# Live product smoke needs a browser + BASE_URL and is workflow_dispatch.
+# ubuntu-latest does not ship Chrome; the live job installs it.
+# Maestro (__e2e__) and Jest are unchanged.
+name: Selenium CN smoke
+
+on:
+  pull_request:
+    paths:
+      - 'selenium/**'
+      - 'scripts/run-selenium.sh'
+      - '.github/workflows/selenium-smoke.yml'
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Live BASE_URL (empty = assertions only)'
+        required: false
+        default: ''
+
+jobs:
+  assertions:
+    name: Offline chrome-only assertions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Run assertion tests
+        run: ./scripts/run-selenium.sh selenium/test_assertions.py
+
+  live:
+    name: Live web smoke
+    if: github.event_name == 'workflow_dispatch' && inputs.base_url != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@48ad923757ca74d66703209fe939badbdf80f2f4 # v2.2.0
+        id: chrome
+        with:
+          chrome-version: stable
+          install-dependencies: true
+      - name: Confirm Chrome
+        run: ${{ steps.chrome.outputs.chrome-path }} --version
+      - name: Run live Selenium smoke
+        env:
+          BASE_URL: ${{ inputs.base_url }}
+          SELENIUM_HEADLESS: '1'
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+        run: ./scripts/run-selenium.sh
