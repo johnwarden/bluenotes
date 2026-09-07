@@ -131,6 +131,37 @@ export function mapApiRatingToNoteRatingState(
   }
 }
 
+function messageFromJsonBody(data: unknown, fallback: string): string {
+  if (data && typeof data === 'object') {
+    const record = data as {message?: unknown; error?: unknown}
+    if (typeof record.message === 'string' && record.message.length > 0) {
+      return record.message
+    }
+    if (typeof record.error === 'string' && record.error.length > 0) {
+      return record.error
+    }
+  }
+  return fallback
+}
+
+function jsonErrorCode(data: unknown): string | undefined {
+  if (data && typeof data === 'object' && 'error' in data) {
+    const error = (data as {error?: unknown}).error
+    return typeof error === 'string' ? error : undefined
+  }
+  return undefined
+}
+
+function unknownErrorText(error: unknown): string {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (typeof error === 'number' || typeof error === 'boolean') {
+    return String(error)
+  }
+  return 'Unknown error'
+}
+
 function serviceUrlOf(agent: ServiceAuthAgent): string {
   const service = agent?.service
   if (!service) {
@@ -176,8 +207,8 @@ export async function vote(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -199,7 +230,9 @@ export async function vote(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while rating note: ${error}`)
+    throw new Error(
+      `Network error while rating note: ${unknownErrorText(error)}`,
+    )
   }
 }
 
@@ -213,9 +246,7 @@ export async function propose(
     throw new Error('Must be logged in to create a note')
   }
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
-    serviceUrlOf(agent),
-  )
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(agent))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.propose`
 
   const requestBody: CreateProposalRequest = {
@@ -243,11 +274,11 @@ export async function propose(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        if (errorData.error === 'DuplicateProposal') {
+        const errorData: unknown = await response.json()
+        if (jsonErrorCode(errorData) === 'DuplicateProposal') {
           throw new Error('You have already created a note for this post')
         }
-        errorMessage = errorData.message || errorData.error || errorMessage
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch (parseError) {
         if (
           parseError instanceof Error &&
@@ -273,7 +304,9 @@ export async function propose(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while creating note: ${error}`)
+    throw new Error(
+      `Network error while creating note: ${unknownErrorText(error)}`,
+    )
   }
 }
 
@@ -314,8 +347,8 @@ export async function getProposals(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -336,7 +369,9 @@ export async function getProposals(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while fetching proposals: ${error}`)
+    throw new Error(
+      `Network error while fetching proposals: ${unknownErrorText(error)}`,
+    )
   }
 }
 
@@ -397,8 +432,8 @@ export async function deleteNoteRating(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromJsonBody(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -419,7 +454,9 @@ export async function deleteNoteRating(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while deleting rating: ${error}`)
+    throw new Error(
+      `Network error while deleting rating: ${unknownErrorText(error)}`,
+    )
   }
 }
 

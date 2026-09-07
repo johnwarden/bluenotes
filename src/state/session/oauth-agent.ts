@@ -6,15 +6,11 @@ import {
 import {type OAuthSession} from '@atproto/oauth-client-browser'
 import {type DidString, type HandleString} from '@atproto/syntax'
 
-import {prefetchAgeAssuranceServerData} from '#/ageAssurance/data'
-import {features} from '#/analytics'
 import {BSKY_SERVICE, PUBLIC_BSKY_SERVICE} from '#/lib/constants'
 import {logger} from '#/logger'
-import {
-  buildAppviewClient,
-  buildChatClient,
-  buildPdsClient,
-} from './clients'
+import {prefetchAgeAssuranceServerData} from '#/ageAssurance/data'
+import {features} from '#/analytics'
+import {buildAppviewClient, buildChatClient, buildPdsClient} from './clients'
 import {addSessionErrorLog} from './logging'
 import {configureModerationForAccount} from './moderation'
 import {
@@ -115,7 +111,7 @@ export async function oauthSessionToAccount(
   const service = session.serverMetadata.issuer || BSKY_SERVICE
   return {
     service,
-    did: did as DidString,
+    did: did,
     handle,
     email: undefined,
     emailConfirmed: undefined,
@@ -211,7 +207,7 @@ export async function createOauthSessionBundle(
       }
       return session.fetchHandler(path, init)
     },
-    async refresh() {
+    refresh() {
       // Token rotation lives inside OAuthSession.fetchHandler / IndexedDB.
       // Return the same object so refreshSession() treats this as a no-op.
       return snapshot

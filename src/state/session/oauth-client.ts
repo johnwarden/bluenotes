@@ -14,24 +14,29 @@ export function getOAuthClient(): never {
   throw new Error('AT Protocol OAuth is not available in this native build')
 }
 
-export async function initOAuthClient(): Promise<OauthInitResult | undefined> {
-  return undefined
+export function initOAuthClient(): Promise<OauthInitResult | undefined> {
+  return Promise.resolve(undefined)
 }
 
 export function hasPendingOauthCallback(): boolean {
   return false
 }
 
-export async function signInWithOAuth(_identifier: string): Promise<void> {
-  throw new Error('AT Protocol OAuth is not available in this native build')
+export function signInWithOAuth(_identifier: string): Promise<void> {
+  return Promise.reject(
+    new Error('AT Protocol OAuth is not available in this native build'),
+  )
 }
 
-export async function restoreOAuthSession(_did: string): Promise<never> {
-  throw new Error('AT Protocol OAuth is not available in this native build')
+export function restoreOAuthSession(_did: string): Promise<never> {
+  return Promise.reject(
+    new Error('AT Protocol OAuth is not available in this native build'),
+  )
 }
 
-export async function revokeOAuthSession(_did: string): Promise<void> {
+export function revokeOAuthSession(_did: string): Promise<void> {
   // Native OAuth is not launched; nothing to revoke at the AS.
+  return Promise.resolve()
 }
 
 export function isLocalOAuthRevokeInProgress(_did: string): boolean {
@@ -68,6 +73,6 @@ export function shouldReportSilentAnonymousPaint(): boolean {
   return false
 }
 
-export async function peekOauthSessionAlive(_did: string): Promise<boolean> {
-  return false
+export function peekOauthSessionAlive(_did: string): Promise<boolean> {
+  return Promise.resolve(false)
 }

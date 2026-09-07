@@ -1,4 +1,4 @@
-import React from 'react'
+import {forwardRef} from 'react'
 import {StyleSheet, type TextProps} from 'react-native'
 import Svg, {
   Defs,
@@ -11,32 +11,36 @@ import Svg, {
 import {Image} from 'expo-image'
 
 import {colors} from '#/lib/styles'
-import {useKawaiiMode} from '#/state/preferences/kawaii'
+import {useLogoVariant} from '#/view/icons/useLogoVariant'
 
 const ratio = 0.882
 
 type Props = {
+  allowVariants?: boolean
   fill?: PathProps['fill']
   style?: TextProps['style']
 } & Omit<SvgProps, 'style'>
 
-export const Logo = React.forwardRef(function LogoImpl(props: Props, ref) {
-  const {fill, ...rest} = props
+export const Logo = forwardRef(function LogoImpl(props: Props, ref) {
+  const {allowVariants = true, fill, ...rest} = props
   const gradient = fill === 'sky'
   const styles = StyleSheet.flatten(props.style)
   const _fill = gradient ? 'url(#sky)' : fill || styles?.color || colors.blue3
   // @ts-ignore it's fiiiiine
   const size = parseInt(rest.width || 32)
 
-  const isKawaii = useKawaiiMode()
+  const logoVariant = useLogoVariant(allowVariants)
 
-  if (isKawaii) {
+  if (logoVariant !== 'default') {
+    const isJapanLogo = logoVariant === 'japan'
     return (
       <Image
         source={
-          size > 100
-            ? require('../../../assets/kawaii.png')
-            : require('../../../assets/kawaii_smol.png')
+          isJapanLogo
+            ? require('../../../assets/icons/custom_logo_japan.svg')
+            : size > 100
+              ? require('../../../assets/kawaii.png')
+              : require('../../../assets/kawaii_smol.png')
         }
         accessibilityLabel="Bluenotes"
         accessibilityHint=""

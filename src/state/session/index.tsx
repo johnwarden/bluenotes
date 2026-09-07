@@ -21,12 +21,9 @@ import {com} from '#/lexicons'
 import {emitSessionDropped} from '../events'
 import {getPublicAppviewClient} from './clients'
 import {createSessionBundleAndCreateAccount} from './create-account'
-import {
-  createOauthSessionBundle,
-  resumeOauthSessionBundle,
-} from './oauth-agent'
-import {revokeOAuthSessionsForLogout} from './oauth-session-lifecycle'
 import {pickExpiryRescueCandidate} from './expiry-rescue'
+import {createOauthSessionBundle, resumeOauthSessionBundle} from './oauth-agent'
+import {revokeOAuthSessionsForLogout} from './oauth-session-lifecycle'
 import {type Action, getInitialState, reducer, type State} from './reducer'
 import {
   type AtpSessionEvent,

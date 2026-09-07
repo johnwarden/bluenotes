@@ -1,9 +1,8 @@
-import React from 'react'
+import {type ReactNode} from 'react'
 import {Linking, Text, View} from 'react-native'
 import Svg, {G, Path} from 'react-native-svg'
 import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
@@ -11,21 +10,20 @@ import {
   type NativeStackScreenProps,
 } from '#/lib/routes/types'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import * as Layout from '#/components/Layout'
 import {ViewHeader} from '../com/util/ViewHeader'
 
 interface LinkProps {
   href: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
-const Link: React.FC<LinkProps> = ({href, children}) => {
+function Link({href, children}: LinkProps) {
   const pal = usePalette('default')
 
   const handlePress = () => {
-    Linking.openURL(href)
+    void Linking.openURL(href)
   }
 
   return (
@@ -38,38 +36,44 @@ const Link: React.FC<LinkProps> = ({href, children}) => {
 }
 
 // Icon components
-const PenIcon: React.FC<{color: string; size: number}> = ({color, size}) => (
-  <Svg viewBox="0 0 24 24" width={size} height={size}>
-    <G>
-      <Path
-        d="M21.15 6.232c.97.977.97 2.559 0 3.536L9.91 21H3v-6.914L14.23 2.854c.98-.977 2.56-.977 3.54 0l3.38 3.378zM14.75 19l-2 2H21v-2h-6.25z"
-        fill={color}
-      />
-    </G>
-  </Svg>
-)
+function PenIcon({color, size}: {color: string; size: number}) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size}>
+      <G>
+        <Path
+          d="M21.15 6.232c.97.977.97 2.559 0 3.536L9.91 21H3v-6.914L14.23 2.854c.98-.977 2.56-.977 3.54 0l3.38 3.378zM14.75 19l-2 2H21v-2h-6.25z"
+          fill={color}
+        />
+      </G>
+    </Svg>
+  )
+}
 
-const StarIcon: React.FC<{color: string; size: number}> = ({color, size}) => (
-  <Svg viewBox="0 0 24 24" width={size} height={size}>
-    <G>
-      <Path
-        d="M12.013 1l3.527 7.15 7.886 1.14-5.707 5.56 1.347 7.86L12.013 19 4.96 22.71l1.347-7.86L.6 9.29l7.886-1.14L12.013 1z"
-        fill={color}
-      />
-    </G>
-  </Svg>
-)
+function StarIcon({color, size}: {color: string; size: number}) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size}>
+      <G>
+        <Path
+          d="M12.013 1l3.527 7.15 7.886 1.14-5.707 5.56 1.347 7.86L12.013 19 4.96 22.71l1.347-7.86L.6 9.29l7.886-1.14L12.013 1z"
+          fill={color}
+        />
+      </G>
+    </Svg>
+  )
+}
 
-const PeopleIcon: React.FC<{color: string; size: number}> = ({color, size}) => (
-  <Svg viewBox="0 0 24 24" width={size} height={size}>
-    <G>
-      <Path
-        d="M5.73 12.02c-.03.04-.05.07-.08.1-1.26 1.6-2.04 3.63-2.42 5.88H.65l.1-1.09c.13-1.4.57-2.62 1.35-3.51.8-.91 1.89-1.4 3.15-1.4.16 0 .32.01.48.02zM23.35 18l-.1-1.09c-.13-1.4-.57-2.62-1.35-3.51-.8-.91-1.89-1.4-3.15-1.4-.16 0-.32.01-.48.02.08.1.16.2.24.31 1.17 1.56 1.9 3.51 2.26 5.67h2.58zM12 11c-1.94 0-3.59.86-4.78 2.36-1.26 1.59-2 3.86-2.22 6.56L4.92 21h14.16L19 19.92c-.21-2.62-.91-4.82-2.09-6.39C15.7 11.92 14.02 11 12 11zm0-8c-1.93 0-3.5 1.57-3.5 3.5S10.07 10 12 10s3.5-1.57 3.5-3.5S13.93 3 12 3zM5.25 5.5C3.73 5.5 2.5 6.73 2.5 8.25S3.73 11 5.25 11 8 9.77 8 8.25 6.77 5.5 5.25 5.5zm13.5 0C17.23 5.5 16 6.73 16 8.25S17.23 11 18.75 11s2.75-1.23 2.75-2.75-1.23-2.75-2.75-2.75z"
-        fill={color}
-      />
-    </G>
-  </Svg>
-)
+function PeopleIcon({color, size}: {color: string; size: number}) {
+  return (
+    <Svg viewBox="0 0 24 24" width={size} height={size}>
+      <G>
+        <Path
+          d="M5.73 12.02c-.03.04-.05.07-.08.1-1.26 1.6-2.04 3.63-2.42 5.88H.65l.1-1.09c.13-1.4.57-2.62 1.35-3.51.8-.91 1.89-1.4 3.15-1.4.16 0 .32.01.48.02zM23.35 18l-.1-1.09c-.13-1.4-.57-2.62-1.35-3.51-.8-.91-1.89-1.4-3.15-1.4-.16 0-.32.01-.48.02.08.1.16.2.24.31 1.17 1.56 1.9 3.51 2.26 5.67h2.58zM12 11c-1.94 0-3.59.86-4.78 2.36-1.26 1.59-2 3.86-2.22 6.56L4.92 21h14.16L19 19.92c-.21-2.62-.91-4.82-2.09-6.39C15.7 11.92 14.02 11 12 11zm0-8c-1.93 0-3.5 1.57-3.5 3.5S10.07 10 12 10s3.5-1.57 3.5-3.5S13.93 3 12 3zM5.25 5.5C3.73 5.5 2.5 6.73 2.5 8.25S3.73 11 5.25 11 8 9.77 8 8.25 6.77 5.5 5.25 5.5zm13.5 0C17.23 5.5 16 6.73 16 8.25S17.23 11 18.75 11s2.75-1.23 2.75-2.75-1.23-2.75-2.75-2.75z"
+          fill={color}
+        />
+      </G>
+    </Svg>
+  )
+}
 
 export const AboutCommunityNotesScreen = ({}: NativeStackScreenProps<
   CommonNavigatorParams,
@@ -77,13 +81,6 @@ export const AboutCommunityNotesScreen = ({}: NativeStackScreenProps<
 >) => {
   const pal = usePalette('default')
   const {_} = useLingui()
-  const setMinimalShellMode = useSetMinimalShellMode()
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
 
   const styles = {
     container: {

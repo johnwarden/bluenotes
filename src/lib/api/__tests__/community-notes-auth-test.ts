@@ -23,6 +23,16 @@ const NOTES_PROPOSE = `${NOTES_ORIGIN}/xrpc/${NOTES_LXM.propose}`
 const NOTES_DID = 'did:plc:jqzvhkz7gxovq55fa7ibs6px'
 const SERVICE_JWT = 'service-auth-jwt-for-notes'
 
+function requestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') {
+    return input
+  }
+  if (input instanceof URL) {
+    return input.href
+  }
+  return input.url
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -54,16 +64,20 @@ function oauthAgent(opts?: {
 }): ServiceAuthAgent {
   const fetchHandler =
     opts?.fetchHandler ??
-    jest.fn(async () => {
-      throw new Error(
-        'OAuthSession.fetchHandler must not be used against the notes URL',
-      )
-    })
+    jest.fn(() =>
+      Promise.reject(
+        new Error(
+          'OAuthSession.fetchHandler must not be used against the notes URL',
+        ),
+      ),
+    )
   const getServiceAuth =
     opts?.getServiceAuth ??
-    jest.fn(async (params: ServiceAuthParams) => ({
-      data: {token: `${SERVICE_JWT}:${params.aud}:${params.lxm}`},
-    }))
+    jest.fn((params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: `${SERVICE_JWT}:${params.aud}:${params.lxm}`},
+      }),
+    )
   return {
     service: {toString: () => 'https://bsky.social'},
     session: {accessJwt: opts?.accessJwt ?? ''},
@@ -77,36 +91,42 @@ function oauthAgent(opts?: {
 }
 
 function notesFetchMock() {
-  return jest.fn(async (input: RequestInfo | URL) => {
-    const url = String(input)
+  return jest.fn((input: RequestInfo | URL): Promise<Response> => {
+    const url = requestUrl(input)
     if (url.includes(NOTES_LXM.getConfig)) {
-      return notesConfigResponse()
+      return Promise.resolve(notesConfigResponse())
     }
     if (url.includes(NOTES_LXM.getProposals)) {
-      return jsonResponse({
-        proposals: [{uri: NOTES_NOTE_URI, note: 'context from the service'}],
-      })
+      return Promise.resolve(
+        jsonResponse({
+          proposals: [{uri: NOTES_NOTE_URI, note: 'context from the service'}],
+        }),
+      )
     }
     if (url.includes(NOTES_LXM.propose)) {
-      return jsonResponse({
-        uri: NOTES_NOTE_URI,
-        cid: 'bafy',
-        proposal: {uri: NOTES_NOTE_URI},
-      })
+      return Promise.resolve(
+        jsonResponse({
+          uri: NOTES_NOTE_URI,
+          cid: 'bafy',
+          proposal: {uri: NOTES_NOTE_URI},
+        }),
+      )
     }
     if (url.includes(NOTES_LXM.vote)) {
-      return jsonResponse({
-        success: true,
-        rating: {
-          uri: 'at://did:plc:note/org.opencommunitynotes.rating/1',
-          targetUri: NOTES_NOTE_URI,
-          cts: '2026-01-01T00:00:00.000Z',
-          val: 1,
-          reasons: [],
-        },
-      })
+      return Promise.resolve(
+        jsonResponse({
+          success: true,
+          rating: {
+            uri: 'at://did:plc:note/org.opencommunitynotes.rating/1',
+            targetUri: NOTES_NOTE_URI,
+            cts: '2026-01-01T00:00:00.000Z',
+            val: 1,
+            reasons: [],
+          },
+        }),
+      )
     }
-    return jsonResponse({}, 404)
+    return Promise.resolve(jsonResponse({}, 404))
   })
 }
 
@@ -143,7 +163,7 @@ describe('getPasswordAccessJwt', () => {
 
 describe('getOauthSessionFromAgent', () => {
   it('returns the session object when present', () => {
-    const fetchHandler = async () => jsonResponse({})
+    const fetchHandler = () => Promise.resolve(jsonResponse({}))
     expect(getOauthSessionFromAgent({oauthSession: {fetchHandler}})).toEqual({
       fetchHandler,
     })
@@ -177,7 +197,7 @@ describe('getNotesServiceAudience', () => {
 
   beforeEach(() => {
     resetNotesConfigCache()
-    globalThis.fetch = jest.fn(async () => notesConfigResponse())
+    globalThis.fetch = jest.fn(() => Promise.resolve(notesConfigResponse()))
   })
 
   afterEach(() => {
@@ -198,8 +218,8 @@ describe('getNotesServiceAudience', () => {
   })
 
   it('rejects a getConfig body without a DID', async () => {
-    globalThis.fetch = jest.fn(async () =>
-      jsonResponse({version: '1', labelerDid: 'did:plc:x'}),
+    globalThis.fetch = jest.fn(() =>
+      Promise.resolve(jsonResponse({version: '1', labelerDid: 'did:plc:x'})),
     )
     await expect(getNotesServiceAudience(NOTES_GET)).rejects.toThrow(
       'getConfig.feedGeneratorDid is not a DID',
@@ -209,13 +229,13 @@ describe('getNotesServiceAudience', () => {
 
 describe('mintNotesServiceAuth', () => {
   it('calls PDS getServiceAuth with aud and lxm', async () => {
-    const getServiceAuth = jest.fn(async (params: ServiceAuthParams) => {
+    const getServiceAuth = jest.fn((params: ServiceAuthParams) => {
       expect(params.aud).toBe(NOTES_DID)
       expect(params.lxm).toBe(NOTES_LXM.propose)
-      return {data: {token: SERVICE_JWT}}
+      return Promise.resolve({data: {token: SERVICE_JWT}})
     })
     const agent: ServiceAuthAgent = {
-      oauthSession: {fetchHandler: async () => jsonResponse({})},
+      oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))},
       com: {atproto: {server: {getServiceAuth}}},
     }
 
@@ -228,7 +248,7 @@ describe('mintNotesServiceAuth', () => {
   it('throws when getServiceAuth is missing', async () => {
     await expect(
       mintNotesServiceAuth(
-        {oauthSession: {fetchHandler: async () => jsonResponse({})}},
+        {oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))}},
         {aud: NOTES_DID, lxm: NOTES_LXM.vote},
       ),
     ).rejects.toThrow('getServiceAuth is missing')
@@ -241,9 +261,9 @@ describe('mintNotesServiceAuth', () => {
     // leaves `this` undefined → TypeError → signed-in soft-anon omit.
     const server = {
       _client: {
-        call: async () => ({data: {token: SERVICE_JWT}}),
+        call: () => Promise.resolve({data: {token: SERVICE_JWT}}),
       },
-      async getServiceAuth(
+      getServiceAuth(
         this: {_client?: {call: () => Promise<{data: {token: string}}>}},
         _params: ServiceAuthParams,
       ) {
@@ -258,7 +278,7 @@ describe('mintNotesServiceAuth', () => {
     }
     const agent: ServiceAuthAgent = {
       session: {accessJwt: ''},
-      oauthSession: {fetchHandler: async () => jsonResponse({})},
+      oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))},
       com: {atproto: {server}},
     }
 
@@ -319,12 +339,14 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('OAuth mints service-auth and sends Bearer, not notes-URL DPoP', async () => {
-    const fetchHandler = jest.fn(async () => {
-      throw new Error('must not DPoP notes')
-    })
-    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
-      data: {token: SERVICE_JWT},
-    }))
+    const fetchHandler = jest.fn(() =>
+      Promise.reject(new Error('must not DPoP notes')),
+    )
+    const getServiceAuth = jest.fn((_params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
     const agent: ServiceAuthAgent = {
       session: {accessJwt: ''},
       oauthSession: {fetchHandler},
@@ -354,16 +376,18 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('never takes the password-JWT path when oauthSession is present', async () => {
-    const getServiceAuth = jest.fn(async () => ({
-      data: {token: SERVICE_JWT},
-    }))
+    const getServiceAuth = jest.fn(() =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
     await fetchWithAgentAuth(
       {
         session: {accessJwt: 'leftover-password-jwt'},
         oauthSession: {
-          fetchHandler: jest.fn(async () => {
-            throw new Error('must not DPoP notes')
-          }),
+          fetchHandler: jest.fn(() =>
+            Promise.reject(new Error('must not DPoP notes')),
+          ),
         },
         com: {atproto: {server: {getServiceAuth}}},
       },
@@ -383,9 +407,9 @@ describe('fetchWithAgentAuth', () => {
   it('OAuth still sends Bearer when getServiceAuth is this-bound (not TypeError soft-anon)', async () => {
     const server = {
       _client: {
-        call: async () => ({data: {token: SERVICE_JWT}}),
+        call: () => Promise.resolve({data: {token: SERVICE_JWT}}),
       },
-      async getServiceAuth(
+      getServiceAuth(
         this: {_client?: {call: () => Promise<{data: {token: string}}>}},
         _params: ServiceAuthParams,
       ) {
@@ -400,7 +424,7 @@ describe('fetchWithAgentAuth', () => {
     await fetchWithAgentAuth(
       {
         session: {accessJwt: ''},
-        oauthSession: {fetchHandler: async () => jsonResponse({})},
+        oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))},
         com: {atproto: {server}},
       },
       NOTES_GET,
@@ -413,13 +437,13 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('getProposals falls back to soft-anon when service-auth mint fails', async () => {
-    const getServiceAuth = jest.fn(async () => {
-      throw new Error('PDS getServiceAuth failed')
-    })
+    const getServiceAuth = jest.fn(() =>
+      Promise.reject(new Error('PDS getServiceAuth failed')),
+    )
     await fetchWithAgentAuth(
       {
         session: {accessJwt: ''},
-        oauthSession: {fetchHandler: async () => jsonResponse({})},
+        oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))},
         com: {atproto: {server: {getServiceAuth}}},
       },
       NOTES_GET,
@@ -432,14 +456,14 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('throws when requireAuth mint fails (propose/vote)', async () => {
-    const getServiceAuth = jest.fn(async () => {
-      throw new Error('PDS getServiceAuth failed')
-    })
+    const getServiceAuth = jest.fn(() =>
+      Promise.reject(new Error('PDS getServiceAuth failed')),
+    )
     await expect(
       fetchWithAgentAuth(
         {
           session: {accessJwt: ''},
-          oauthSession: {fetchHandler: async () => jsonResponse({})},
+          oauthSession: {fetchHandler: () => Promise.resolve(jsonResponse({}))},
           com: {atproto: {server: {getServiceAuth}}},
         },
         NOTES_VOTE,
@@ -448,7 +472,7 @@ describe('fetchWithAgentAuth', () => {
       ),
     ).rejects.toThrow('PDS getServiceAuth failed')
     const notesCalls = (globalThis.fetch as jest.Mock).mock.calls.filter(
-      ([url]) => String(url).includes(NOTES_LXM.vote),
+      ([url]) => requestUrl(url as RequestInfo | URL).includes(NOTES_LXM.vote),
     )
     expect(notesCalls).toHaveLength(0)
   })
@@ -485,12 +509,14 @@ describe('community notes API auth', () => {
   })
 
   it('getProposals mints service-auth for an OAuth session (viewer context)', async () => {
-    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
-      data: {token: SERVICE_JWT},
-    }))
-    const fetchHandler = jest.fn(async () => {
-      throw new Error('must not DPoP notes')
-    })
+    const getServiceAuth = jest.fn((_params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
+    const fetchHandler = jest.fn(() =>
+      Promise.reject(new Error('must not DPoP notes')),
+    )
     const result = await getProposals(
       oauthAgent({getServiceAuth, fetchHandler}),
       NOTES_POST_URI,
@@ -508,12 +534,14 @@ describe('community notes API auth', () => {
   })
 
   it('propose mints service-auth for an OAuth session', async () => {
-    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
-      data: {token: SERVICE_JWT},
-    }))
-    const fetchHandler = jest.fn(async () => {
-      throw new Error('must not DPoP notes')
-    })
+    const getServiceAuth = jest.fn((_params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
+    const fetchHandler = jest.fn(() =>
+      Promise.reject(new Error('must not DPoP notes')),
+    )
     await propose(
       oauthAgent({getServiceAuth, fetchHandler}),
       NOTES_POST_URI,
@@ -536,12 +564,14 @@ describe('community notes API auth', () => {
   })
 
   it('vote mints service-auth for an OAuth session', async () => {
-    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
-      data: {token: SERVICE_JWT},
-    }))
-    const fetchHandler = jest.fn(async () => {
-      throw new Error('must not DPoP notes')
-    })
+    const getServiceAuth = jest.fn((_params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
+    const fetchHandler = jest.fn(() =>
+      Promise.reject(new Error('must not DPoP notes')),
+    )
     await vote(
       oauthAgent({getServiceAuth, fetchHandler}),
       NOTES_NOTE_URI,
@@ -564,13 +594,15 @@ describe('community notes API auth', () => {
   })
 
   it('propose sends Bearer for a password session and does not mint service-auth', async () => {
-    const getServiceAuth = jest.fn(async () => ({
-      data: {token: SERVICE_JWT},
-    }))
+    const getServiceAuth = jest.fn(() =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
     const agent = {
       ...passwordAgent('password-jwt'),
       com: {atproto: {server: {getServiceAuth}}},
-    } as unknown as BskyAgent
+    } as ServiceAuthAgent
 
     await propose(agent, NOTES_POST_URI, 'context', [])
 
@@ -580,38 +612,47 @@ describe('community notes API auth', () => {
   })
 
   it('propose fails closed when OAuth service-auth mint fails', async () => {
-    const getServiceAuth = jest.fn(async () => {
-      throw new Error('PDS getServiceAuth failed')
-    })
+    const getServiceAuth = jest.fn(() =>
+      Promise.reject(new Error('PDS getServiceAuth failed')),
+    )
     await expect(
       propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', []),
     ).rejects.toThrow('PDS getServiceAuth failed')
     const proposeCalls = (globalThis.fetch as jest.Mock).mock.calls.filter(
-      ([url]) => String(url).includes(NOTES_LXM.propose),
+      ([url]) =>
+        requestUrl(url as RequestInfo | URL).includes(NOTES_LXM.propose),
     )
     expect(proposeCalls).toHaveLength(0)
   })
 
   it('accepts did#serviceId audience from getConfig as getServiceAuth aud', async () => {
     const aud = `${NOTES_DID}#atproto_pds`
-    globalThis.fetch = jest.fn(async (input: RequestInfo | URL) => {
-      const url = String(input)
-      if (url.includes(NOTES_LXM.getConfig)) {
-        return jsonResponse({
-          version: '1',
-          labelerDid: 'did:plc:labeler',
-          feedGeneratorDid: aud,
-        })
-      }
-      return jsonResponse({
-        uri: NOTES_NOTE_URI,
-        cid: 'bafy',
-        proposal: {uri: NOTES_NOTE_URI},
-      })
-    })
-    const getServiceAuth = jest.fn(async (_params: ServiceAuthParams) => ({
-      data: {token: SERVICE_JWT},
-    }))
+    globalThis.fetch = jest.fn(
+      (input: RequestInfo | URL): Promise<Response> => {
+        const url = requestUrl(input)
+        if (url.includes(NOTES_LXM.getConfig)) {
+          return Promise.resolve(
+            jsonResponse({
+              version: '1',
+              labelerDid: 'did:plc:labeler',
+              feedGeneratorDid: aud,
+            }),
+          )
+        }
+        return Promise.resolve(
+          jsonResponse({
+            uri: NOTES_NOTE_URI,
+            cid: 'bafy',
+            proposal: {uri: NOTES_NOTE_URI},
+          }),
+        )
+      },
+    )
+    const getServiceAuth = jest.fn((_params: ServiceAuthParams) =>
+      Promise.resolve({
+        data: {token: SERVICE_JWT},
+      }),
+    )
 
     await propose(oauthAgent({getServiceAuth}), NOTES_POST_URI, 'context', [])
 

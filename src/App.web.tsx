@@ -8,6 +8,7 @@ import {SafeAreaProvider} from 'react-native-safe-area-context'
 import {useLingui} from '@lingui/react/macro'
 import * as Sentry from '@sentry/react-native'
 
+import {Provider as HotkeysProvider} from '#/lib/hotkeys'
 import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
 import {
   decideOauthLoginEstablishedAfterPeek,
@@ -19,7 +20,6 @@ import {
   shouldPaintAppAfterOauthLaunch,
   wrapBootstrapOauthInit,
 } from '#/lib/oauth/oauth-init-policy'
-import {Provider as HotkeysProvider} from '#/lib/hotkeys'
 import {QueryProvider} from '#/lib/react-query'
 import {ThemeProvider} from '#/lib/ThemeContext'
 import {Provider as TranslateOnDeviceProvider} from '#/lib/translation'

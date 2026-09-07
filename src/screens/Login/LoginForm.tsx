@@ -3,9 +3,9 @@ import {Keyboard, type TextInput, View} from 'react-native'
 import {LexAuthFactorError} from '@atproto/lex-password-session'
 import {Trans, useLingui} from '@lingui/react/macro'
 
-import {isOauthSignInAvailable} from '#/lib/oauth/config'
 import {DEFAULT_SERVICE, HITSLOP_10, HITSLOP_20} from '#/lib/constants'
 import {useRequestNotificationsPermission} from '#/lib/notifications/notifications'
+import {isOauthSignInAvailable} from '#/lib/oauth/config'
 import {cleanError, isNetworkError} from '#/lib/strings/errors'
 import {createFullHandle} from '#/lib/strings/handles'
 import {isBlueskyHostedUrl, toNiceHostingUrl} from '#/lib/strings/url-helpers'
@@ -15,12 +15,12 @@ import {
   useSetOauthSignInEnabled,
 } from '#/state/preferences/oauth-sign-in'
 import {useSetHasCheckedForStarterPack} from '#/state/preferences/used-starter-packs'
-import {signInWithOAuth} from '#/state/session/oauth-client'
 import {
   type HostingProviderState,
   useHostingProvider,
 } from '#/state/queries/pds-detection'
 import {useSession, useSessionApi} from '#/state/session'
+import {signInWithOAuth} from '#/state/session/oauth-client'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
 import {atoms as a, native, tokens, useBreakpoints, useTheme} from '#/alf'
 import * as Admonition from '#/components/Admonition'

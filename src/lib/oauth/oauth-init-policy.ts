@@ -124,7 +124,7 @@ export function describeOauthDeletedCause(cause: unknown): {
   causeName: string
 } {
   if (cause && typeof cause === 'object' && 'name' in cause) {
-    const name = (cause as {name: unknown}).name
+    const name = cause.name
     if (typeof name === 'string' && name.length > 0 && name.length < 80) {
       return {causeName: name}
     }
@@ -143,12 +143,7 @@ export function shouldDiscardSessionLogin(args: {
 }
 
 export type OauthExchangeErrorKind =
-  | 'cors'
-  | 'dpop'
-  | 'redirect_uri'
-  | 'pkce_state'
-  | 'token'
-  | 'other'
+  'cors' | 'dpop' | 'redirect_uri' | 'pkce_state' | 'token' | 'other'
 
 /** Classify token-exchange failures without logging secrets. */
 export function classifyOauthExchangeError(error: unknown): {
@@ -258,9 +253,7 @@ export function oauthErrorHttpStatus(error: unknown): number | null {
  * (`redirect_uri` mismatch never entered the token request).
  */
 export type OauthExchangeAttempt =
-  | 'never_ran'
-  | 'ran_and_failed'
-  | 'ran_and_succeeded'
+  'never_ran' | 'ran_and_failed' | 'ran_and_succeeded'
 
 export type OauthExchangeNeverRanReason =
   | 'no_callback_params'

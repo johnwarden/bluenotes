@@ -1,4 +1,11 @@
-import React from 'react'
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from 'react'
 
 import {isOauthEnvForced, isOauthSignInAvailable} from '#/lib/oauth/config'
 import * as persisted from '#/state/persisted'
@@ -8,13 +15,13 @@ type SetContext = (v: boolean) => void
 
 const defaultEnabled = isOauthSignInAvailable()
 
-const stateContext = React.createContext<StateContext>(defaultEnabled)
+const stateContext = createContext<StateContext>(defaultEnabled)
 stateContext.displayName = 'OauthSignInStateContext'
-const setContext = React.createContext<SetContext>((_: boolean) => {})
+const setContext = createContext<SetContext>((_: boolean) => {})
 setContext.displayName = 'OauthSignInSetContext'
 
-export function Provider({children}: {children: React.ReactNode}) {
-  const [state, setState] = React.useState<boolean>(() => {
+export function Provider({children}: {children: ReactNode}) {
+  const [state, setState] = useState<boolean>(() => {
     if (!isOauthSignInAvailable()) {
       return false
     }
@@ -25,12 +32,12 @@ export function Provider({children}: {children: React.ReactNode}) {
     return stored ?? defaultEnabled
   })
 
-  const setStateWrapped = React.useCallback((oauthSignInEnabled: boolean) => {
+  const setStateWrapped = useCallback((oauthSignInEnabled: boolean) => {
     setState(oauthSignInEnabled)
-    persisted.write('oauthSignInEnabled', oauthSignInEnabled)
+    void persisted.write('oauthSignInEnabled', oauthSignInEnabled)
   }, [])
 
-  React.useEffect(() => {
+  useEffect(() => {
     return persisted.onUpdate('oauthSignInEnabled', next => {
       if (!isOauthSignInAvailable()) {
         setState(false)
@@ -53,8 +60,8 @@ export function Provider({children}: {children: React.ReactNode}) {
   )
 }
 
-export const useOauthSignInEnabled = () => React.useContext(stateContext)
-export const useSetOauthSignInEnabled = () => React.useContext(setContext)
+export const useOauthSignInEnabled = () => useContext(stateContext)
+export const useSetOauthSignInEnabled = () => useContext(setContext)
 
 export function useOauthSignIn(): boolean {
   const preferenceEnabled = useOauthSignInEnabled()

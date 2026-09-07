@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react'
 
-import {isWeb} from '#/platform/detection'
 import {useSession} from '#/state/session'
+import {IS_WEB} from '#/env'
 
 export function useBluenotesBetaModal() {
   const {hasSession} = useSession()
@@ -21,7 +21,7 @@ export function useBluenotesBetaModal() {
     // 1. User is not logged in
     // 2. We're on the web (this is a web-only feature)
     // 3. User hasn't seen the modal in this session
-    if (isWeb && !hasSession && typeof window !== 'undefined') {
+    if (IS_WEB && !hasSession && typeof window !== 'undefined') {
       const hasUserSeenModal =
         sessionStorage.getItem('bluenotesBetaModalSeen') === 'true'
 
