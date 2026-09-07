@@ -318,7 +318,7 @@ const ThreadItemPostInner = memo(function ThreadItemPostInner({
                 ]}
               />
               <DebugLabels post={post} />
-              <PostAlerts>
+              <PostAlerts
                 post={post}
                 modui={moderation.ui('contentList')}
                 style={[a.pb_2xs]}
