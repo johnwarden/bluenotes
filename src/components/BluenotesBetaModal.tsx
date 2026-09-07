@@ -1,8 +1,9 @@
 import {useEffect, useState} from 'react'
 import {Pressable, View} from 'react-native'
 import {ImageBackground} from 'expo-image'
-import {msg, Trans} from '@lingui/macro'
+import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
+import {Trans} from '@lingui/react/macro'
 import {FocusGuards, FocusScope} from 'radix-ui/internal'
 
 import {logger} from '#/logger'
@@ -40,23 +41,23 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
 
   useEffect(() => {
     if (control.isOpen) {
-      logger.metric('bluenotesBetaModal:presented', {})
+      logger.info('bluenotesBetaModal:presented')
     }
   }, [control.isOpen])
 
   const onPressCreateAccount = () => {
-    logger.metric('bluenotesBetaModal:signupClicked', {})
+    logger.info('bluenotesBetaModal:signupClicked')
     control.close()
     requestSwitchToAccount({requestedAccount: 'new'})
   }
 
   const onPressExplore = () => {
-    logger.metric('bluenotesBetaModal:exploreClicked', {})
+    logger.info('bluenotesBetaModal:exploreClicked')
     fadeOutAndClose()
   }
 
   const onPressSignIn = () => {
-    logger.metric('bluenotesBetaModal:signinClicked', {})
+    logger.info('bluenotesBetaModal:signinClicked')
     control.close()
     requestSwitchToAccount({requestedAccount: 'existing'})
   }
@@ -253,7 +254,7 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
               ]}
               hoverStyle={[a.bg_transparent]}
               onPress={() => {
-                logger.metric('bluenotesBetaModal:dismissed', {})
+                logger.info('bluenotesBetaModal:dismissed')
                 fadeOutAndClose()
               }}
               color="secondary"

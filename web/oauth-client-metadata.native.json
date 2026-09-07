@@ -1,0 +1,12 @@
+{
+  "client_id": "https://bluenotes.social/oauth-client-metadata.native.json",
+  "client_name": "Blue Notes (native)",
+  "client_uri": "https://bluenotes.social",
+  "redirect_uris": ["bluenotes://oauth/callback"],
+  "scope": "atproto transition:generic transition:email transition:chat.bsky",
+  "token_endpoint_auth_method": "none",
+  "response_types": ["code"],
+  "grant_types": ["authorization_code", "refresh_token"],
+  "application_type": "native",
+  "dpop_bound_access_tokens": true
+}

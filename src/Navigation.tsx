@@ -68,8 +68,12 @@ import {PostThreadScreen} from '#/view/screens/PostThread'
 import {PrivacyPolicyScreen} from '#/view/screens/PrivacyPolicy'
 import {ProfileScreen} from '#/view/screens/Profile'
 import {StorybookScreen} from '#/view/screens/Storybook'
+import {AboutCommunityNotesScreen} from '#/view/screens/AboutCommunityNotes'
+import {BetaGuideScreen} from '#/view/screens/BetaGuide'
+import {GovernmentTermsOfServiceScreen} from '#/view/screens/GovernmentTermsOfService'
 import {SupportScreen} from '#/view/screens/Support'
 import {TermsOfServiceScreen} from '#/view/screens/TermsOfService'
+import {AuthCallback} from '#/screens/Login/AuthCallback'
 import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
 import {BookmarksScreen} from '#/screens/Bookmarks'
@@ -375,6 +379,26 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
         name="CopyrightPolicy"
         getComponent={() => CopyrightPolicyScreen}
         options={{title: title(msg`Copyright Policy`)}}
+      />
+      <Stack.Screen
+        name="GovernmentTermsOfService"
+        getComponent={() => GovernmentTermsOfServiceScreen}
+        options={{title: title(msg`Government Terms of Service`)}}
+      />
+      <Stack.Screen
+        name="BetaGuide"
+        getComponent={() => BetaGuideScreen}
+        options={{title: title(msg`Beta Guide`)}}
+      />
+      <Stack.Screen
+        name="AboutCommunityNotes"
+        getComponent={() => AboutCommunityNotesScreen}
+        options={{title: title(msg`About Community Notes`)}}
+      />
+      <Stack.Screen
+        name="AuthCallback"
+        getComponent={() => AuthCallback}
+        options={{title: title(msg`Signing in`)}}
       />
       <Stack.Screen
         name="AppPasswords"

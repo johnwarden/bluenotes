@@ -40,6 +40,10 @@ const accountSchema = z.object({
   status: z.string().optional(),
   pdsUrl: z.string().optional(),
   isSelfHosted: z.boolean().optional(),
+  /**
+   * OAuth tokens live in the browser OAuth client store, not in these JWTs.
+   */
+  isOauthSession: z.boolean().optional(),
 })
 export type PersistedAccount = z.infer<typeof accountSchema>
 
@@ -141,6 +145,11 @@ const schema = z.object({
   mutedThreads: z.array(z.string()),
   trendingDisabled: z.boolean().optional(),
   trendingVideoDisabled: z.boolean().optional(),
+  /**
+   * When true (default on web), the login form starts AT Protocol OAuth.
+   * Password login remains available as a fallback.
+   */
+  oauthSignInEnabled: z.boolean().optional(),
 })
 export type Schema = z.infer<typeof schema>
 
@@ -188,6 +197,7 @@ export const defaults: Schema = {
   subtitlesEnabled: true,
   trendingDisabled: false,
   trendingVideoDisabled: false,
+  oauthSignInEnabled: true,
 }
 
 export function tryParse(rawData: string): Schema | undefined {

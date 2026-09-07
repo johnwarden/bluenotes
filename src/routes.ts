@@ -68,11 +68,18 @@ export const router = new Router<AllNavigatableRoutes>({
   ActivityNotificationSettings: '/settings/notifications/activity',
   FindContactsSettings: '/settings/find-contacts',
   // support
-  Support: '/support',
-  PrivacyPolicy: '/support/privacy',
-  TermsOfService: '/support/tos',
-  CommunityGuidelines: '/support/community-guidelines',
-  CopyrightPolicy: '/support/copyright',
+  Support: ['/support', '/about/support'],
+  PrivacyPolicy: ['/support/privacy', '/about/support/privacy-policy'],
+  TermsOfService: ['/support/tos', '/about/support/tos'],
+  CommunityGuidelines: [
+    '/support/community-guidelines',
+    '/about/support/community-guidelines',
+  ],
+  CopyrightPolicy: ['/support/copyright', '/about/support/copyright'],
+  GovernmentTermsOfService: '/about/support/tos-gov',
+  BetaGuide: '/about/support/beta',
+  AboutCommunityNotes: '/about/support/community-notes',
+  AuthCallback: '/auth/web/callback',
   // hashtags
   Hashtag: '/hashtag/:tag',
   Topic: '/topic/:topic',

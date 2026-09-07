@@ -1,3 +1,4 @@
+import '#/lib/oauth/callback-snapshot'
 import '#/logger/sentry/setup' // must be near top
 import './style.css'
 
@@ -7,6 +8,17 @@ import {SafeAreaProvider} from 'react-native-safe-area-context'
 import {useLingui} from '@lingui/react/macro'
 import * as Sentry from '@sentry/react-native'
 
+import {shouldEstablishAppSessionFromOauthInit} from '#/lib/oauth/loopback-callback'
+import {
+  decideOauthLoginEstablishedAfterPeek,
+  describeOauthInitResult,
+  leftoverGrantBlocksSoftGatePass,
+  OAUTH_BREADCRUMB,
+  oauthConsoleBreadcrumb,
+  shouldEmitOauthLoginEstablishedBreadcrumb,
+  shouldPaintAppAfterOauthLaunch,
+  wrapBootstrapOauthInit,
+} from '#/lib/oauth/oauth-init-policy'
 import {Provider as HotkeysProvider} from '#/lib/hotkeys'
 import {QueryProvider} from '#/lib/react-query'
 import {ThemeProvider} from '#/lib/ThemeContext'
@@ -37,6 +49,17 @@ import {
   useSession,
   useSessionApi,
 } from '#/state/session'
+import {
+  clearOauthCallbackUrl,
+  hasLeftoverOauthGrantInUrl,
+  hasPendingOauthCallback,
+  initOAuthClient,
+  peekLastOauthInitError,
+  peekLeftoverOauthGrantKeys,
+  peekOauthSessionAlive,
+  reportOauthFailureDiagnosis,
+  shouldReportSilentAnonymousPaint,
+} from '#/state/session/oauth-client'
 import {readLastActiveAccount} from '#/state/session/util'
 import {Provider as ShellStateProvider} from '#/state/shell'
 import {Provider as ComposerProvider} from '#/state/shell/composer'
@@ -89,28 +112,133 @@ void prefetchAppConfig()
 function InnerApp() {
   const [isReady, setIsReady] = useState(false)
   const {currentAccount} = useSession()
-  const {resumeSession} = useSessionApi()
+  const {login, resumeSession} = useSessionApi()
   const theme = useColorModeTheme()
   const {t: l} = useLingui()
   const hasCheckedLanding = useLandingEntry()
 
   // init
   useEffect(() => {
+    async function establishOauthAppSession(
+      account?: SessionAccount,
+    ): Promise<boolean> {
+      const oauthResult = await initOAuthClient()
+      if (
+        shouldEstablishAppSessionFromOauthInit(oauthResult, Boolean(account))
+      ) {
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginStarting)
+        logger.warn(OAUTH_BREADCRUMB.loginStarting)
+        try {
+          await login(
+            {
+              service: '',
+              identifier: '',
+              password: '',
+              oauthSession: oauthResult.session,
+            },
+            'LoginForm',
+          )
+        } catch (e) {
+          oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginFailed)
+          reportOauthFailureDiagnosis(e)
+          throw e
+        }
+        const afterLogin = decideOauthLoginEstablishedAfterPeek(
+          peekLeftoverOauthGrantKeys(),
+        )
+        if (afterLogin.emitLeftoverGrant) {
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+          return true
+        }
+        if (afterLogin.clearCallbackUrl) {
+          clearOauthCallbackUrl()
+        }
+        return true
+      }
+      if (hasPendingOauthCallback()) {
+        logger.warn(`oauth: login() skipped on callback load`, {
+          ...describeOauthInitResult(oauthResult),
+        })
+      }
+      return false
+    }
+
     async function onLaunch(account?: SessionAccount) {
+      let established = false
+      let retriesExhausted = false
       try {
-        if (account) {
+        established = await establishOauthAppSession(account)
+        if (!established && account) {
           await resumeSession(account)
-        } else {
+        } else if (!established) {
           await features.init
         }
       } catch (e) {
-        logger.warn('session: resumeSession failed', {message: e})
+        logger.warn('session: launch failed', {message: e})
+        if (hasPendingOauthCallback()) {
+          try {
+            logger.warn(`oauth: retrying callback session establishment`)
+            established = await establishOauthAppSession(account)
+          } catch (retryErr) {
+            logger.error(`oauth: callback session retry failed`, {
+              message: retryErr,
+            })
+            reportOauthFailureDiagnosis(retryErr)
+            retriesExhausted = true
+          }
+        }
       }
-      setIsReady(true)
+      if (
+        shouldPaintAppAfterOauthLaunch({
+          establishedAppSession: established,
+          hasCallbackParams: hasPendingOauthCallback(),
+          retriesExhausted,
+        })
+      ) {
+        if (
+          hasPendingOauthCallback() ||
+          hasLeftoverOauthGrantInUrl() ||
+          shouldReportSilentAnonymousPaint()
+        ) {
+          reportOauthFailureDiagnosis(peekLastOauthInitError())
+        }
+        setIsReady(true)
+      }
     }
     const account = readLastActiveAccount()
     void onLaunch(account)
-  }, [resumeSession])
+  }, [login, resumeSession])
+
+  useEffect(() => {
+    if (!isReady) {
+      return
+    }
+    const leftover = peekLeftoverOauthGrantKeys()
+    if (leftoverGrantBlocksSoftGatePass(leftover)) {
+      reportOauthFailureDiagnosis(peekLastOauthInitError())
+      return
+    }
+    void (async () => {
+      const oauthSessionAlive = currentAccount
+        ? await peekOauthSessionAlive(currentAccount.did)
+        : false
+      if (
+        shouldEmitOauthLoginEstablishedBreadcrumb({
+          hasCurrentAccount: Boolean(currentAccount),
+          leftoverGrantInUrl: leftover.length > 0,
+          oauthSessionAlive,
+        })
+      ) {
+        oauthConsoleBreadcrumb(OAUTH_BREADCRUMB.loginEstablished)
+        logger.warn(OAUTH_BREADCRUMB.loginEstablished)
+      } else if (
+        hasPendingOauthCallback() ||
+        shouldReportSilentAnonymousPaint()
+      ) {
+        reportOauthFailureDiagnosis(peekLastOauthInitError())
+      }
+    })()
+  }, [isReady, currentAccount])
 
   useEffect(() => {
     return listenSessionDropped(() => {
@@ -196,9 +324,27 @@ function App() {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    void Promise.all([initPersistedState(), Geo.resolve(), setupDeviceId]).then(
-      () => setIsReady(true),
+    const oauthBoot = wrapBootstrapOauthInit(
+      initOAuthClient(),
+      hasPendingOauthCallback(),
+      error => {
+        logger.error(`oauth: bootstrap init failed`, {message: error})
+      },
     )
+    void Promise.all([
+      initPersistedState(),
+      Geo.resolve(),
+      setupDeviceId,
+      oauthBoot,
+    ])
+      .then(() => setIsReady(true))
+      .catch(error => {
+        logger.error(`oauth: bootstrap failed with callback params`, {
+          message: error,
+        })
+        reportOauthFailureDiagnosis(error)
+        setIsReady(true)
+      })
   }, [])
 
   if (!isReady) {
