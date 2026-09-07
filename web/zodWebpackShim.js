@@ -1,13 +1,16 @@
 'use strict'
 
 /*
- * Zod 3.25 is a dual ESM/CJS package. Webpack may expose:
- *   - the CJS module `{z, default, ...}`
- *   - the `z` namespace (`.string`, `.unknown`)
- *   - an interop wrapper `{default: namespace}` with no `.z`
+ * Zod 3.25 is a dual ESM/CJS package (`"type": "module"`, `exports.import`
+ * = index.js, `exports.require` = index.cjs). Expo webpack prefers the ESM
+ * build. CJS @atproto packages then do `require("zod").z.string()` /
+ * `.unknown()` at module init; ESM interop often yields the `z` namespace
+ * (has `.string`, no `.z`) or `{default: namespace}`, so `.z` is undefined.
  *
- * CJS atproto packages do `require("zod").z.string()` / `.unknown()` at
- * module init. Export the real namespace on both `.z` and `.default`.
+ * Do not require `index.cjs` here: webpack's file-loader treats unknown
+ * `.cjs` as a media URL, so the shim would receive a string. Load the ESM
+ * entry (parsed as JS) and export a real namespace on both `.z` and
+ * `.default`.
  */
 
 /**
@@ -32,7 +35,7 @@ function asZodNamespace(mod) {
   return undefined
 }
 
-const raw = require('../node_modules/zod/index.cjs')
+const raw = require('../node_modules/zod/index.js')
 const z = asZodNamespace(raw)
 if (!z) {
   throw new Error('zod webpack shim: could not resolve z namespace')
