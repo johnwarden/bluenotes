@@ -1,6 +1,13 @@
-import {type OAuthSession} from '@atproto/oauth-client-browser'
-
 import {com} from '#/lexicons'
+
+/**
+ * Notes auth only needs fetchHandler. Avoid importing
+ * `@atproto/oauth-client-browser` so this module can live on
+ * community-notes-feature without that rebrand OAuth dependency.
+ */
+type NotesOauthFetchHandler = {
+  fetchHandler: (url: string, init?: RequestInit) => Promise<Response>
+}
 
 /**
  * Agent shape used for Community Notes (and similar non-PDS) fetches.
@@ -34,7 +41,7 @@ export type ServiceAuthAgent = {
   session?: {accessJwt?: string} | null
   isOauthSession?: boolean
   service?: {toString(): string} | string
-  oauthSession?: Pick<OAuthSession, 'fetchHandler'>
+  oauthSession?: Pick<NotesOauthFetchHandler, 'fetchHandler'>
   pdsClient?: ServiceAuthPdsClient
   com?: {
     atproto: {
@@ -82,7 +89,7 @@ export function resetNotesConfigCache() {
 
 export function getOauthSessionFromAgent(
   agent: ServiceAuthAgent,
-): Pick<OAuthSession, 'fetchHandler'> | undefined {
+): Pick<NotesOauthFetchHandler, 'fetchHandler'> | undefined {
   return agent?.oauthSession
 }
 
