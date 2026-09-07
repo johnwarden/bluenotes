@@ -15,6 +15,19 @@ function serviceUrlOf(auth: CommunityNotesAuth | null | undefined) {
   return auth?.service ?? DEFAULT_SERVICE
 }
 
+function messageFromUnknownJson(data: unknown, fallback: string) {
+  if (data && typeof data === 'object') {
+    const rec = data as {message?: unknown; error?: unknown}
+    if (typeof rec.message === 'string' && rec.message) return rec.message
+    if (typeof rec.error === 'string' && rec.error) return rec.error
+  }
+  return fallback
+}
+
+function stringifyUnknown(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
 type VoteValue = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
 function mapVoteValue(value: VoteValue): 1 | 0 | -1 {
@@ -170,8 +183,8 @@ export async function vote(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromUnknownJson(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -193,7 +206,9 @@ export async function vote(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while rating note: ${error}`)
+    throw new Error(
+      `Network error while rating note: ${stringifyUnknown(error)}`,
+    )
   }
 }
 
@@ -231,11 +246,16 @@ export async function propose(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        if (errorData.error === 'DuplicateProposal') {
+        const errorData: unknown = await response.json()
+        if (
+          errorData &&
+          typeof errorData === 'object' &&
+          'error' in errorData &&
+          errorData.error === 'DuplicateProposal'
+        ) {
           throw new Error('You have already created a note for this post')
         }
-        errorMessage = errorData.message || errorData.error || errorMessage
+        errorMessage = messageFromUnknownJson(errorData, errorMessage)
       } catch (parseError) {
         if (
           parseError instanceof Error &&
@@ -261,7 +281,9 @@ export async function propose(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while creating note: ${error}`)
+    throw new Error(
+      `Network error while creating note: ${stringifyUnknown(error)}`,
+    )
   }
 }
 
@@ -301,8 +323,8 @@ export async function getProposals(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromUnknownJson(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -323,7 +345,9 @@ export async function getProposals(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while fetching proposals: ${error}`)
+    throw new Error(
+      `Network error while fetching proposals: ${stringifyUnknown(error)}`,
+    )
   }
 }
 
@@ -380,8 +404,8 @@ export async function deleteNoteRating(
     if (!response.ok) {
       let errorMessage = `HTTP ${response.status}`
       try {
-        const errorData = await response.json()
-        errorMessage = errorData.message || errorData.error || errorMessage
+        const errorData: unknown = await response.json()
+        errorMessage = messageFromUnknownJson(errorData, errorMessage)
       } catch {
         const errorText = await response.text()
         errorMessage = errorText || errorMessage
@@ -402,7 +426,9 @@ export async function deleteNoteRating(
     if (error instanceof Error) {
       throw error
     }
-    throw new Error(`Network error while deleting rating: ${error}`)
+    throw new Error(
+      `Network error while deleting rating: ${stringifyUnknown(error)}`,
+    )
   }
 }
 

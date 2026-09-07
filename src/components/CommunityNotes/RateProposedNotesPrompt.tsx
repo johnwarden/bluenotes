@@ -1,15 +1,14 @@
 // import {useState} from 'react' // Unused after removing hover state
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
 import {atoms as a, useTheme} from '#/alf'
-import {type app} from '#/lexicons'
 import {ArrowRight_Stroke2_Corner0_Rounded as ArrowRightIcon} from '#/components/icons/Arrow'
 import {CommunityNotes as CommunityIcon} from '#/components/icons/CommunityNotes'
 import {Link} from '#/components/Link'
 import {Text} from '#/components/Typography'
+import {type app} from '#/lexicons'
 
 function RateProposedNotesPromptContent() {
   const t = useTheme()
@@ -31,7 +30,7 @@ export function RateProposedNotesPromptDefault({
   post: app.bsky.feed.defs.PostView
   parentHover?: boolean
 }) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const t = useTheme()
   // const [promptHover, setPromptHover] = useState(false) // Unused after removing hover handlers
 
@@ -67,7 +66,7 @@ export function RateProposedNotesPromptDefault({
       to={`/profile/${post.author.handle}/post/${post.uri
         .split('/')
         .pop()}/community-notes`}
-      label={_(msg`Rate proposed community notes`)}
+      label={l`Rate proposed community notes`}
       style={[
         a.mt_md,
         a.rounded_lg,
@@ -108,7 +107,7 @@ export function RateProposedNotesPromptEmbedded({
   post: app.bsky.feed.defs.PostView
   parentHover?: boolean
 }) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const t = useTheme()
   // const [promptHover, setPromptHover] = useState(false) // Unused after removing hover handlers
 
@@ -144,7 +143,7 @@ export function RateProposedNotesPromptEmbedded({
       to={`/profile/${post.author.handle}/post/${post.uri
         .split('/')
         .pop()}/community-notes`}
-      label={_(msg`Rate proposed community notes`)}
+      label={l`Rate proposed community notes`}
       style={[a.py_md, a.px_lg, a.relative, t.atoms.bg]}
       onPress={e => {
         // Stop propagation to prevent post navigation

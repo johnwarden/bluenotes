@@ -98,7 +98,9 @@ function isCommunityNotesLabeler(labelerDid: string): boolean {
 
   // If no dynamic labeler DID is configured, fallback to hardcoded values
   // This provides backward compatibility when the config endpoint is not available
-  return Object.values(COMMUNITY_NOTES_LABELER_DID).includes(labelerDid as any)
+  return (Object.values(COMMUNITY_NOTES_LABELER_DID) as string[]).includes(
+    labelerDid,
+  )
 }
 
 /**

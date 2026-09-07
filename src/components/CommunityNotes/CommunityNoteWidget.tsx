@@ -1,9 +1,15 @@
 import {useState} from 'react'
-import {Pressable, View} from 'react-native'
-import {Trans} from '@lingui/macro'
+import {
+  type GestureResponderEvent,
+  Pressable,
+  type StyleProp,
+  type TextStyle,
+  View,
+  type ViewStyle,
+} from 'react-native'
+import {Trans} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
-import {isWeb} from '#/platform/detection'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotes as CommunityNotesIcon} from '#/components/icons/CommunityNotes'
@@ -11,7 +17,7 @@ import {EyeSlash_Stroke2_Corner0_Rounded as EyeSlashIcon} from '#/components/ico
 import {Link, useLink} from '#/components/Link'
 import {TextWithLinks} from '#/components/TextWithLinks'
 import {Text} from '#/components/Typography'
-import {APP_NAME} from '#/env'
+import {APP_NAME, IS_WEB} from '#/env'
 import {type app} from '#/lexicons'
 
 type DisplayMode = 'rated_helpful' | 'needs_more_ratings' | 'embedded'
@@ -145,10 +151,11 @@ export function CommunityNoteWidget({
   }
 
   // Smart click handler that detects if an inner link was clicked
-  const handlePress = (e: any) => {
-    if (isWeb) {
+  const handlePress = (e: GestureResponderEvent) => {
+    if (IS_WEB) {
       // On web, check if we clicked on or inside an anchor tag
-      const target = e.target as HTMLElement
+      const target = (e as GestureResponderEvent & {target?: HTMLElement})
+        .target
       const clickedLink = target?.closest?.('a')
 
       if (clickedLink) {
@@ -213,7 +220,7 @@ export function CommunityNoteWidget({
       accessibilityRole="button"
       accessibilityLabel="Community Notes"
       accessibilityHint="Opens community notes page"
-      style={[containerStyles, isWeb && {cursor: 'pointer'}]}>
+      style={[containerStyles, IS_WEB && {cursor: 'pointer'}]}>
       {/* Base background for note body (always present) */}
       <View style={baseBackgroundStyle} />
       {/* Hover overlay */}
@@ -239,8 +246,8 @@ function Header({
 }: {
   title: string
   statusIndicator?: 'needs_more_ratings'
-  backgroundStyle?: any
-  hoverOverlayStyle: any
+  backgroundStyle?: StyleProp<ViewStyle>
+  hoverOverlayStyle: StyleProp<ViewStyle>
 }) {
   const t = useTheme()
 
@@ -261,7 +268,7 @@ function Header({
         },
       ]}>
       {/* Header hover overlay */}
-      {backgroundStyle && <View style={hoverOverlayStyle} />}
+      {backgroundStyle ? <View style={hoverOverlayStyle} /> : null}
 
       <View style={[a.flex_row, a.align_center, a.gap_sm]}>
         <CommunityNotesIcon size="sm" style={{color: t.palette.primary_500}} />
@@ -286,7 +293,13 @@ function Header({
   )
 }
 
-function Content({note, textColor}: {note: CommunityNote; textColor?: any}) {
+function Content({
+  note,
+  textColor,
+}: {
+  note: CommunityNote
+  textColor?: StyleProp<TextStyle>
+}) {
   return (
     <View style={[a.px_md, a.py_sm, a.w_full]}>
       <NoteContent note={note} textColor={textColor} />
@@ -367,7 +380,7 @@ function Disclaimer() {
 // NoteContent component (simplified since we only show one note)
 interface NoteContentProps {
   note: CommunityNote
-  textColor?: any
+  textColor?: StyleProp<TextStyle>
 }
 
 function NoteContent({note, textColor}: NoteContentProps) {

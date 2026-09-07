@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react'
 import {ActivityIndicator, Pressable, StyleSheet, View} from 'react-native'
 import {type MessageDescriptor} from '@lingui/core'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {msg} from '@lingui/core/macro'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
 import {
@@ -64,7 +64,7 @@ type Vote = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
 export function RateNoteForm({note}: {note: CommunityNote}) {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const noteWithShadow = useNoteShadow(note)
   const submitRating = useNoteRatingMutationQueue(note)
 
@@ -83,7 +83,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   // Only populate form when explicitly entering edit mode (and only once)
   useEffect(() => {
     if (isEditing && currentRating && !formInitialized) {
-      setVoted(currentRating.val as Vote)
+      if (currentRating.val) setVoted(currentRating.val)
       setReasons(currentRating.reasons || [])
       setFormInitialized(true)
     }
@@ -134,9 +134,9 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       setReasons([])
       setIsEditing(false)
       setFormInitialized(false)
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        Toast.show(_(msg`Failed to submit your rating. Please try again.`))
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        Toast.show(l`Failed to submit your rating. Please try again.`)
       }
     } finally {
       setIsSubmitting(false)
@@ -159,9 +159,9 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       setReasons([])
       setIsEditing(false)
       setFormInitialized(false)
-    } catch (e: any) {
-      if (e?.name !== 'AbortError') {
-        Toast.show(_(msg`Failed to delete your rating. Please try again.`))
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name !== 'AbortError') {
+        Toast.show(l`Failed to delete your rating. Please try again.`)
       }
     } finally {
       setIsSubmitting(false)
@@ -182,13 +182,13 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
       <View style={styles.reasonsContainer}>
         {(voted === 'helpful' || voted === 'somewhat_helpful') && (
           <ReasonsGroup
-            title={_(msg`What was helpful about it?`)}
+            title={l`What was helpful about it?`}
             reasons={HELPFUL_REASONS}
           />
         )}
         {(voted === 'not_helpful' || voted === 'somewhat_helpful') && (
           <ReasonsGroup
-            title={_(msg`What was unhelpful about it?`)}
+            title={l`What was unhelpful about it?`}
             reasons={NOT_HELPFUL_REASONS}
           />
         )}
@@ -200,7 +200,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   const SubmitButton = () => (
     <View style={styles.submitButtonContainer}>
       <Button
-        label={_(msg`Submit`)}
+        label={l`Submit`}
         onPress={handleSubmit}
         variant="ghost"
         disabled={isSubmitting}
@@ -234,10 +234,10 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
           <Toggle.Item
             key={reason.key}
             name={reason.key}
-            label={_(reason.label)}
+            label={l(reason.label)}
             style={styles.reasonItem}>
             <Toggle.LabelText style={{fontSize: 15, fontWeight: 'normal'}}>
-              {_(reason.label)}
+              {l(reason.label)}
             </Toggle.LabelText>
             <Toggle.Checkbox />
           </Toggle.Item>
@@ -247,9 +247,9 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
   )
 
   const getVoteText = (vote: Vote | null) => {
-    if (vote === 'helpful') return _(msg`Helpful`)
-    if (vote === 'somewhat_helpful') return _(msg`Somewhat Helpful`)
-    if (vote === 'not_helpful') return _(msg`Not Helpful`)
+    if (vote === 'helpful') return l`Helpful`
+    if (vote === 'somewhat_helpful') return l`Somewhat Helpful`
+    if (vote === 'not_helpful') return l`Not Helpful`
     return ''
   }
 
@@ -421,7 +421,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
             <Text style={t.atoms.text_contrast_low}>·</Text>
             <Pressable
               onPress={() => noteDetailsControl.open()}
-              accessibilityLabel={_(msg`View Details`)}
+              accessibilityLabel={l`View Details`}
               accessibilityHint="">
               <Text style={t.atoms.text_contrast_high}>
                 <Trans>View details</Trans>
@@ -467,7 +467,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
             <Text style={t.atoms.text_contrast_low}>·</Text>
             <Pressable
               onPress={() => noteDetailsControl.open()}
-              accessibilityLabel={_(msg`View Details`)}
+              accessibilityLabel={l`View Details`}
               accessibilityHint="">
               <Text style={t.atoms.text_contrast_high}>
                 <Trans>View details</Trans>
@@ -491,7 +491,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
             <Text style={styles.question}>Is this note helpful?</Text>
             <Button
               variant="ghost"
-              label={_(msg`Rate as helpful`)}
+              label={l`Rate as helpful`}
               onPress={() => handleSelectVote('helpful')}
               style={[styles.button, voted === 'helpful' && styles.selected]}>
               <ButtonText
@@ -500,12 +500,12 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
                     ? styles.selectedButtonText
                     : styles.unselectedButtonText
                 }>
-                {_(msg`Yes`)}
+                {l`Yes`}
               </ButtonText>
             </Button>
             <Button
               variant="ghost"
-              label={_(msg`Rate as somewhat helpful`)}
+              label={l`Rate as somewhat helpful`}
               onPress={() => handleSelectVote('somewhat_helpful')}
               style={[
                 styles.button,
@@ -517,12 +517,12 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
                     ? styles.selectedButtonText
                     : styles.unselectedButtonText
                 }>
-                {_(msg`Somewhat`)}
+                {l`Somewhat`}
               </ButtonText>
             </Button>
             <Button
               variant="ghost"
-              label={_(msg`Rate as not helpful`)}
+              label={l`Rate as not helpful`}
               onPress={() => handleSelectVote('not_helpful')}
               style={[
                 styles.button,
@@ -534,7 +534,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
                     ? styles.selectedButtonText
                     : styles.unselectedButtonText
                 }>
-                {_(msg`No`)}
+                {l`No`}
               </ButtonText>
             </Button>
           </View>
@@ -547,18 +547,20 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
             <Text style={styles.votedText}>
               <Trans>You rated this note as</Trans>{' '}
               <Text style={styles.votedTextBold}>
-                {getVoteText(currentRating.val as Vote)}
+                {getVoteText(currentRating.val)}
               </Text>
               .
             </Text>
-            <MenuTriggerButton label={_(msg`Rated note options menu`)} />
+            <MenuTriggerButton label={l`Rated note options menu`} />
           </View>
           <Menu.Outer>
             <Menu.Group>
               <Menu.Item
                 key="delete"
-                label={_(msg`Delete rating`)}
-                onPress={handleDelete}
+                label={l`Delete rating`}
+                onPress={() => {
+                  void handleDelete()
+                }}
                 disabled={isSubmitting}
                 style={styles.menuItem}>
                 <TrashIcon size="sm" style={styles.menuItemIconDelete} />
@@ -568,7 +570,7 @@ export function RateNoteForm({note}: {note: CommunityNote}) {
               </Menu.Item>
               <Menu.Item
                 key="edit"
-                label={_(msg`Edit rating`)}
+                label={l`Edit rating`}
                 onPress={handleEdit}
                 disabled={isSubmitting}
                 style={styles.menuItem}>

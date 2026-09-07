@@ -1,6 +1,5 @@
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
 import {atoms as a, useTheme} from '#/alf'
@@ -23,7 +22,7 @@ export function NoteSubmittedDialog({
   onRefresh,
 }: NoteSubmittedDialogProps) {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const noteDetailsControl = Dialog.useDialogControl()
 
   const handleDone = () => {
@@ -46,7 +45,7 @@ export function NoteSubmittedDialog({
     <>
       <Dialog.Outer control={control} onClose={handleClose}>
         <Dialog.Handle />
-        <Dialog.ScrollableInner label={_(msg`Note submitted`)}>
+        <Dialog.ScrollableInner label={l`Note submitted`}>
           <Dialog.Close />
           <View style={[a.px_2xl, a.py_2xl]}>
             {/* Main Heading */}
@@ -87,7 +86,7 @@ export function NoteSubmittedDialog({
               <Button
                 variant="outline"
                 color="secondary"
-                label={_(msg`Note Details`)}
+                label={l`Note Details`}
                 style={[
                   a.flex_1,
                   {
@@ -101,7 +100,7 @@ export function NoteSubmittedDialog({
               <Button
                 variant="outline"
                 color="secondary"
-                label={_(msg`Done`)}
+                label={l`Done`}
                 style={[
                   a.flex_1,
                   {

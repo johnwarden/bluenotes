@@ -1,10 +1,10 @@
-import React from 'react'
+import {forwardRef} from 'react'
 import Svg, {Path} from 'react-native-svg'
 
 import {useTheme} from '#/alf'
 import {type Props, useCommonSVGProps} from '#/components/icons/common'
 
-export const RatedCheckmark = React.forwardRef<Svg, Props>(
+export const RatedCheckmark = forwardRef<Svg, Props>(
   function RatedCheckmarkImpl(props, ref) {
     const {size, style, ...rest} = useCommonSVGProps(props)
     const t = useTheme()

@@ -3,7 +3,7 @@ import {Pressable, type StyleProp, type ViewStyle} from 'react-native'
 import {HITSLOP_10} from '#/lib/constants'
 import {atoms as a, useTheme} from '#/alf'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
-import {DotGrid_Stroke2_Corner0_Rounded as DotsHorizontal} from '#/components/icons/DotGrid'
+import {DotGrid3x1_Stroke2_Corner0_Rounded as DotsHorizontal} from '#/components/icons/DotGrid'
 import * as Menu from '#/components/Menu'
 
 export function MenuTriggerButton({

@@ -1,19 +1,16 @@
-import React, {useCallback, useMemo} from 'react'
+import {memo, useCallback, useEffect, useMemo, useState} from 'react'
 import {StyleSheet, View} from 'react-native'
 import {useAnimatedRef} from 'react-native-reanimated'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 import {useIsFocused, useNavigation} from '@react-navigation/native'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
 import {useSetTitle} from '#/lib/hooks/useSetTitle'
-import {ComposeIcon2} from '#/lib/icons'
 import {type NavigationProp} from '#/lib/routes/types'
 import {makeRecordUri} from '#/lib/strings/url-helpers'
 import {s} from '#/lib/styles'
-import {isNative} from '#/platform/detection'
 import {listenSoftReset} from '#/state/events'
 import {FeedFeedbackProvider, useFeedFeedback} from '#/state/feed-feedback'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
@@ -32,12 +29,17 @@ import {PostFeed} from '#/view/com/posts/PostFeed'
 import {EmptyState} from '#/view/com/util/EmptyState'
 import {FAB} from '#/view/com/util/fab/FAB'
 import {Button} from '#/view/com/util/forms/Button'
+import {type ListRef} from '#/view/com/util/List'
 import {LoadLatestBtn} from '#/view/com/util/load-latest/LoadLatestBtn'
 import {PostFeedLoadingPlaceholder} from '#/view/com/util/LoadingPlaceholder'
 import {Text} from '#/view/com/util/text/Text'
 import {CustomFeedHeader} from '#/screens/CustomFeed/components/CustomFeedHeader'
+import {useTheme} from '#/alf'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
+import {EditBig_Stroke2_Corner2_Rounded as EditBigIcon} from '#/components/icons/EditBig'
+import {HashtagWide_Stroke1_Corner0_Rounded as HashtagWideIcon} from '#/components/icons/Hashtag'
 import * as Layout from '#/components/Layout'
+import {IS_NATIVE} from '#/env'
 import {type CommunityNotesFeedTab} from './constants'
 
 interface Props {
@@ -53,7 +55,7 @@ export function CommunityNotesFeedScreen({tab}: Props) {
   const rkey = tab
 
   const pal = usePalette('default')
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const navigation = useNavigation<NavigationProp>()
 
   const uri = useMemo(
@@ -64,8 +66,8 @@ export function CommunityNotesFeedScreen({tab}: Props) {
 
   useSetTitle(
     profile?.displayName
-      ? _(msg`${profile.displayName} (Community Notes)`)
-      : _(msg`Community Notes`),
+      ? l`${profile.displayName} (Community Notes)`
+      : l`Community Notes`,
   )
 
   if (error) {
@@ -83,8 +85,8 @@ export function CommunityNotesFeedScreen({tab}: Props) {
             <View style={{flexDirection: 'row'}}>
               <Button
                 type="default"
-                accessibilityLabel={_(msg`Go back`)}
-                accessibilityHint={_(msg`Returns to Community Notes`)}
+                accessibilityLabel={l`Go back`}
+                accessibilityHint={l`Returns to Community Notes`}
                 onPress={() =>
                   navigation.replace('CommunityNotes', {tab: 'feeds'})
                 }
@@ -123,13 +125,13 @@ function CommunityNotesFeedScreenInner({
 }) {
   const {hasSession} = useSession()
   const {data: preferences} = usePreferencesQuery()
-  const {_} = useLingui()
-  const navigation = useNavigation<NavigationProp>()
+  const {t: l} = useLingui()
+  const theme = useTheme()
   const queryClient = useQueryClient()
   const isFocused = useIsFocused()
 
-  const scrollElRef = useAnimatedRef<any>()
-  const [hasNew, setHasNew] = React.useState(false)
+  const scrollElRef = useAnimatedRef() as ListRef
+  const [hasNew, setHasNew] = useState(false)
 
   const {data: info} = useFeedSourceInfoQuery({uri})
   const feedFeedback = useFeedFeedback(info, hasSession)
@@ -145,11 +147,11 @@ function CommunityNotesFeedScreenInner({
 
   const onScrollToTop = useCallback(() => {
     scrollElRef.current?.scrollToOffset({
-      animated: isNative,
+      animated: IS_NATIVE,
       offset: -1,
     })
     if (feedDesc) {
-      truncateAndInvalidate(queryClient, FEED_RQKEY(feedDesc))
+      void truncateAndInvalidate(queryClient, FEED_RQKEY(feedDesc))
     }
     setHasNew(false)
   }, [scrollElRef, queryClient, feedDesc, setHasNew])
@@ -159,7 +161,7 @@ function CommunityNotesFeedScreenInner({
     openComposer({})
   }, [openComposer])
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isFocused) {
       return
     }
@@ -167,8 +169,14 @@ function CommunityNotesFeedScreenInner({
   }, [onScrollToTop, isFocused])
 
   const renderEmptyState = useCallback(() => {
-    return <EmptyState icon="feed" message={_(msg`This feed is empty.`)} />
-  }, [_])
+    return (
+      <EmptyState
+        icon={HashtagWideIcon}
+        iconSize="2xl"
+        message={l`This feed is empty.`}
+      />
+    )
+  }, [l])
 
   return (
     <>
@@ -197,7 +205,7 @@ function CommunityNotesFeedScreenInner({
       {hasNew && (
         <LoadLatestBtn
           onPress={onScrollToTop}
-          label={_(msg`Load new posts`)}
+          label={l`Load new posts`}
           showIndicator
         />
       )}
@@ -205,20 +213,14 @@ function CommunityNotesFeedScreenInner({
         <FAB
           testID="composeFAB"
           onPress={onPressCompose}
-          icon={
-            <ComposeIcon2
-              strokeWidth={1.5}
-              size={29}
-              style={{color: 'white'}}
-            />
-          }
+          icon={<EditBigIcon size="lg" fill={theme.palette.white} />}
         />
       )}
     </>
   )
 }
 
-const FeedFooter = React.memo(function FeedFooterImpl() {
+const FeedFooter = memo(function FeedFooterImpl() {
   return (
     <View style={styles.endOfFeed}>
       <Text type="sm" style={styles.endOfFeedText}>

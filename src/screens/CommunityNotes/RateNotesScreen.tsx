@@ -1,7 +1,6 @@
 import {useMemo} from 'react'
 import {ActivityIndicator, FlatList, View} from 'react-native'
-import {msg} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {useLingui} from '@lingui/react/macro'
 import {type RouteProp, useRoute} from '@react-navigation/native'
 
 import {COMMUNITY_NOTES_LABELS} from '#/lib/community-notes/labels'
@@ -29,7 +28,7 @@ type RateNotesScreenRouteProp = RouteProp<
 
 export function RateNotesScreen() {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const route = useRoute<RateNotesScreenRouteProp>()
   const {name, rkey} = route.params
   const uri = `at://${name}/app.bsky.feed.post/${rkey}`
@@ -61,7 +60,7 @@ export function RateNotesScreen() {
     }
   }, [post])
 
-  useSetTitle(_(msg`Rate notes`))
+  useSetTitle(l`Rate notes`)
 
   const renderItem = ({item}: {item: CommunityNote}) => (
     <RateNoteForm note={item} />

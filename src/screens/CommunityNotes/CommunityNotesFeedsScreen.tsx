@@ -1,13 +1,11 @@
-import {useCallback, useMemo} from 'react'
+import {type ReactNode, useCallback, useMemo} from 'react'
 import {View} from 'react-native'
 import {AtUri} from '@atproto/syntax'
-import {Trans} from '@lingui/macro'
-import {useFocusEffect} from '@react-navigation/native'
-import type React from 'react'
+import {Trans} from '@lingui/react/macro'
 
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {useFeedSourceInfoQuery} from '#/state/queries/feed'
-import {useSetMinimalShellMode} from '#/state/shell'
+import {useEnableMinimalShellMode} from '#/state/shell'
 import {FeedSourceCard} from '#/view/com/feeds/FeedSourceCard'
 import {atoms as a, useTheme} from '#/alf'
 import {CommunityNotesRightPane} from '#/components/CommunityNotes/CommunityNotesRightPane'
@@ -19,7 +17,7 @@ import {type CommunityNotesFeedTab} from './constants'
 
 const FEED_ITEMS: Array<{
   key: CommunityNotesFeedTab
-  description: React.ReactNode
+  description: ReactNode
 }> = [
   {
     key: 'needs_your_help',
@@ -54,14 +52,9 @@ const FEED_ITEMS: Array<{
 
 export function CommunityNotesFeedsScreen() {
   const t = useTheme()
-  const setMinimalShellMode = useSetMinimalShellMode()
   const {data: config, isLoading: configLoading} = useCommunityNotesConfig()
-
-  useFocusEffect(
-    useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
+  // Keep the full app shell on this screen (1.133 replaced setMinimalShellMode(false)).
+  useEnableMinimalShellMode({enabled: false})
 
   const getFeedUri = useCallback(
     (tab: CommunityNotesFeedTab): string | null => {
@@ -125,7 +118,7 @@ function FeedListItem({
   description,
 }: {
   feedUri: string
-  description: React.ReactNode
+  description: ReactNode
 }) {
   const t = useTheme()
   const {data: feedInfo} = useFeedSourceInfoQuery({uri: feedUri})

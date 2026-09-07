@@ -1,7 +1,6 @@
 import {View} from 'react-native'
 import Svg, {Circle, Line, Path} from 'react-native-svg'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Button, ButtonText} from '#/components/Button'
@@ -140,7 +139,7 @@ function PeopleIcon({
 
 export function ValuesModal({control, onContinue}: ValuesModalProps) {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
 
   const handleContinue = () => {
     control.close()
@@ -150,7 +149,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
   return (
     <Dialog.Outer control={control}>
       <Dialog.Handle />
-      <Dialog.ScrollableInner label={_(msg`Community Notes values`)}>
+      <Dialog.ScrollableInner label={l`Community Notes values`}>
         <Dialog.Close />
         <View style={[{paddingHorizontal: 64, paddingVertical: 48}]}>
           {/* Main Heading */}
@@ -169,7 +168,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
           <View style={[a.gap_2xl, a.mb_4xl]}>
             {/* Value 1 */}
             <View style={[a.flex_row, a.gap_md, a.align_end]}>
-              <SunIcon size={24} color={t.atoms.text.color as string} />
+              <SunIcon size={24} color={t.atoms.text.color} />
               <Text
                 style={[
                   a.text_lg,
@@ -182,10 +181,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
 
             {/* Value 2 */}
             <View style={[a.flex_row, a.gap_md, a.align_end]}>
-              <HeartSparkleIcon
-                size={24}
-                color={t.atoms.text.color as string}
-              />
+              <HeartSparkleIcon size={24} color={t.atoms.text.color} />
               <Text
                 style={[
                   a.text_lg,
@@ -198,7 +194,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
 
             {/* Value 3 */}
             <View style={[a.flex_row, a.gap_md, a.align_end]}>
-              <PeopleIcon size={24} color={t.atoms.text.color as string} />
+              <PeopleIcon size={24} color={t.atoms.text.color} />
               <Text
                 style={[
                   a.text_lg,
@@ -215,7 +211,7 @@ export function ValuesModal({control, onContinue}: ValuesModalProps) {
             variant="solid"
             color="primary"
             size="large"
-            label={_(msg`Continue`)}
+            label={l`Continue`}
             style={[
               {
                 borderRadius: 32,
