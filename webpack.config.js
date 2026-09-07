@@ -101,21 +101,11 @@ module.exports = async function (env, argv) {
       'node_modules/react-native-reanimated/lib/module/ReanimatedModule/js-reanimated/webUtils',
     )]: path.join(__dirname, 'web/reanimatedWebUtilsShim.js'),
     /*
-     * zod 3.25 is a dual package (`"type": "module"`, exports.import =
-     * index.js, exports.require = index.cjs). Webpack prefers the ESM
-     * build. CJS dependents such as `@atproto/oauth-types` then evaluate
-     * `require("zod").z.string()` at module init (uri.ts:15,
-     * dangerousUriSchema). Webpack's ESM interop returns the default
-     * export - the `z` namespace - which has `.string` but not `.z`, so
-     * `.z` is undefined and the static web SPA throws before React
-     * mounts (butterfly splash). Pin the CJS entry so `require("zod").z`
-     * exists. App ESM `import {z} from 'zod'` still works because
-     * index.cjs exports the named `z`.
+     * Dual-shape shim: ESM `import {z} from 'zod'` and CJS
+     * `require("zod").z.string()` (used by @atproto/oauth-types at
+     * module init). See web/zodWebpackShim.js.
      */
-    zod: path.join(
-      path.dirname(require.resolve('zod/package.json')),
-      'index.cjs',
-    ),
+    zod: path.join(__dirname, 'web/zodWebpackShim.js'),
   })
 
   /*
