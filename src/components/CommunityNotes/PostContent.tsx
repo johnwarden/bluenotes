@@ -23,7 +23,6 @@ import {PreviewableUserAvatar} from '#/view/com/util/UserAvatar'
 import {atoms as a} from '#/alf'
 import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {ContentHider} from '#/components/moderation/ContentHider'
-import {LabelsOnMyPost} from '#/components/moderation/LabelsOnMe'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import {Embed, PostEmbedViewContext} from '#/components/Post/Embed'
 import {PostRepliedTo} from '#/components/Post/PostRepliedTo'
@@ -145,7 +144,6 @@ function PostContentInner({
           {replyAuthorDid !== '' && (
             <PostRepliedTo parentAuthor={replyAuthorDid} />
           )}
-          <LabelsOnMyPost post={post} />
           <DebugLabels post={post} />
           <ContentHider
             modui={moderation.ui('contentView')}

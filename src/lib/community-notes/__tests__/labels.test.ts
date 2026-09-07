@@ -1,3 +1,5 @@
+import {type DidString} from '@atproto/syntax'
+
 import {type app, type com} from '#/lexicons'
 import {
   COMMUNITY_NOTES_LABELS,
@@ -13,36 +15,50 @@ const TEST_LABELER_DIDS = {
   DEV: 'did:plc:test-dev-community-notes',
   STAGING: 'did:plc:test-staging-community-notes',
   PROD: 'did:plc:test-prod-community-notes',
-}
+} as const satisfies Record<string, DidString>
 
-// Mock post factory
+const TEST_AUTHOR_DID = 'did:plc:testauthor' satisfies DidString
+const OTHER_LABELER_DID = 'did:web:other-labeler.com' satisfies DidString
+
+const POST_URI =
+  `at://${TEST_AUTHOR_DID}/app.bsky.feed.post/123` as app.bsky.feed.defs.PostView['uri']
+const POST_CID =
+  'bafyreibxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx' as app.bsky.feed.defs.PostView['cid']
+const INDEXED_AT =
+  '2024-01-01T00:00:00.000Z' as app.bsky.feed.defs.PostView['indexedAt']
+
 function createMockPost(
   labels: com.atproto.label.defs.Label[] = [],
 ): app.bsky.feed.defs.PostView {
   return {
-    uri: 'at://did:example/app.bsky.feed.post/123',
-    cid: 'bafyreibxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    $type: 'app.bsky.feed.defs#postView',
+    uri: POST_URI,
+    cid: POST_CID,
     author: {
-      did: 'did:example',
+      $type: 'app.bsky.actor.defs#profileViewBasic',
+      did: TEST_AUTHOR_DID,
       handle: 'test.bsky.social',
       displayName: 'Test User',
     },
-    record: {},
-    indexedAt: '2024-01-01T00:00:00.000Z',
+    record: {
+      $type: 'app.bsky.feed.post',
+      text: 'test',
+      createdAt: '2024-01-01T00:00:00.000Z',
+    },
+    indexedAt: INDEXED_AT,
     labels,
-  } as app.bsky.feed.defs.PostView
+  }
 }
 
-// Mock label factory
 function createMockLabel(
-  src: string,
+  src: DidString,
   val: string,
 ): com.atproto.label.defs.Label {
   return {
     src,
-    uri: 'at://did:example/app.bsky.feed.post/123',
+    uri: POST_URI,
     val,
-    cts: '2024-01-01T00:00:00.000Z',
+    cts: INDEXED_AT,
   }
 }
 
@@ -82,10 +98,7 @@ describe('Community Notes Labels', () => {
 
     it('should return false when label is from different labeler', () => {
       const post = createMockPost([
-        createMockLabel(
-          'did:web:other-labeler.com',
-          COMMUNITY_NOTES_LABELS.NOTE,
-        ),
+        createMockLabel(OTHER_LABELER_DID, COMMUNITY_NOTES_LABELS.NOTE),
       ])
 
       expect(hasLabel(post, COMMUNITY_NOTES_LABELS.NOTE)).toBe(false)
@@ -142,7 +155,7 @@ describe('Community Notes Labels', () => {
           TEST_LABELER_DIDS.DEV,
           COMMUNITY_NOTES_LABELS.PROPOSED_NOTE,
         ),
-        createMockLabel('did:web:other-labeler.com', 'other-label'),
+        createMockLabel(OTHER_LABELER_DID, 'other-label'),
       ])
 
       const communityNotesLabels = getCommunityNotesLabels(post)
@@ -156,7 +169,7 @@ describe('Community Notes Labels', () => {
 
     it('should return empty array when post has no Community Notes labels', () => {
       const post = createMockPost([
-        createMockLabel('did:web:other-labeler.com', 'other-label'),
+        createMockLabel(OTHER_LABELER_DID, 'other-label'),
       ])
 
       expect(getCommunityNotesLabels(post)).toEqual([])

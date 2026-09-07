@@ -780,9 +780,7 @@ let PostMenuItems = ({
                     onPress={() =>
                       requireSignIn(() => valuesModalControl.open())
                     }>
-                    <Menu.ItemText>
-                      {l`Write a Community Note`}
-                    </Menu.ItemText>
+                    <Menu.ItemText>{l`Write a Community Note`}</Menu.ItemText>
                     <Menu.ItemIcon icon={CommunityNotes} position="right" />
                   </Menu.Item>
 

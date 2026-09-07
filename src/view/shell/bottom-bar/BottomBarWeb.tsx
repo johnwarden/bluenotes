@@ -49,12 +49,7 @@ import {useAnalytics} from '#/analytics'
 import {styles} from './BottomBarStyles'
 
 type NavItemValue =
-  | 'home'
-  | 'search'
-  | 'communityNotes'
-  | 'chat'
-  | 'notifications'
-  | 'profile'
+  'home' | 'search' | 'communityNotes' | 'chat' | 'notifications' | 'profile'
 
 export function BottomBarWeb() {
   const {_} = useLingui()
