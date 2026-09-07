@@ -103,7 +103,8 @@ module.exports = async function (env, argv) {
     /*
      * Dual-shape shim: ESM `import {z} from 'zod'` and CJS
      * `require("zod").z.string()` (used by @atproto/oauth-types at
-     * module init). See web/zodWebpackShim.js.
+     * module init). The shim must load zod's ESM `.js` entry - webpack
+     * file-loader emits `.cjs` as a media URL. See web/zodWebpackShim.js.
      */
     zod: path.join(__dirname, 'web/zodWebpackShim.js'),
   })
