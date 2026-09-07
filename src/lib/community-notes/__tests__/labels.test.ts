@@ -1,5 +1,4 @@
 import {type app, type com} from '#/lexicons'
-
 import {
   COMMUNITY_NOTES_LABELS,
   getCommunityNotesLabels,
@@ -35,7 +34,10 @@ function createMockPost(
 }
 
 // Mock label factory
-function createMockLabel(src: string, val: string): com.atproto.label.defs.Label {
+function createMockLabel(
+  src: string,
+  val: string,
+): com.atproto.label.defs.Label {
   return {
     src,
     uri: 'at://did:example/app.bsky.feed.post/123',

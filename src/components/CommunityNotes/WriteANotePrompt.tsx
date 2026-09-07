@@ -1,6 +1,5 @@
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
@@ -18,7 +17,7 @@ export function WriteANotePrompt({
   postUri: string
 }) {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const writeNoteControl = Dialog.useDialogControl()
 
   return (
@@ -46,7 +45,7 @@ export function WriteANotePrompt({
       <Button
         variant="solid"
         color="primary"
-        label={_(msg`Write a note`)}
+        label={l`Write a note`}
         style={[
           {
             borderRadius: 20,

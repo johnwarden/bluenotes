@@ -275,7 +275,7 @@ export function QuoteEmbed({
       return {
         ...post,
         $type: 'app.bsky.feed.defs#postView',
-      } as $Typed<app.bsky.feed.defs.PostView>
+      }
     }
     return {
       ...embed!.view,

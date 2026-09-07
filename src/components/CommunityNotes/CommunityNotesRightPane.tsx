@@ -1,6 +1,5 @@
 import {View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {useWebMediaQueries} from '#/lib/hooks/useWebMediaQueries'
 import {
@@ -16,7 +15,7 @@ import {Text} from '#/components/Typography'
 
 export function CommunityNotesRightPane() {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const {isDesktop} = useWebMediaQueries()
   const gutters = useGutters(['base', 0, 'base', 'wide'])
   const {rightNavVisible, centerColumnOffset} = useLayoutBreakpoints()
@@ -120,18 +119,16 @@ export function CommunityNotesRightPane() {
 
       {/* Footer Links - Same as main app */}
       <Text style={[a.leading_snug, t.atoms.text_contrast_low]}>
-        <InlineLinkText
-          to="/about/support/privacy-policy"
-          label={_(msg`Privacy`)}>
-          {_(msg`Privacy`)}
+        <InlineLinkText to="/about/support/privacy-policy" label={l`Privacy`}>
+          {l`Privacy`}
         </InlineLinkText>
         {' • '}
-        <InlineLinkText to="/about/support/tos" label={_(msg`Terms`)}>
-          {_(msg`Terms`)}
+        <InlineLinkText to="/about/support/tos" label={l`Terms`}>
+          {l`Terms`}
         </InlineLinkText>
         {' • '}
-        <InlineLinkText to="/about/support" label={_(msg`Help`)}>
-          {_(msg`Help`)}
+        <InlineLinkText to="/about/support" label={l`Help`}>
+          {l`Help`}
         </InlineLinkText>
       </Text>
     </View>

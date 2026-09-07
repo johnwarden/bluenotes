@@ -1,6 +1,5 @@
 import {StyleSheet, View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {Trans, useLingui} from '@lingui/react/macro'
 
 import {type CommunityNote} from '#/lib/community-notes/types'
 import {niceDate} from '#/lib/strings/time'
@@ -19,7 +18,7 @@ export function NoteDetailsContent({
   showTitle?: boolean
 }) {
   const t = useTheme()
-  const {i18n, _} = useLingui()
+  const {i18n, t: l} = useLingui()
 
   const styles = StyleSheet.create({
     container: {
@@ -106,7 +105,7 @@ export function NoteDetailsContent({
         </Text>
         <Link
           to="https://communitynotes.x.com/guide/en/contributing/notes-on-twitter"
-          label={_(msg`Learn more about community notes`)}>
+          label={l`Learn more about community notes`}>
           <Text style={t.atoms.text_contrast_high}>
             <Trans>Learn more</Trans>
           </Text>
@@ -127,7 +126,7 @@ export function NoteDetailsContent({
         </Text>
         {/* <Link
           to={note.author.profileUrl}
-          label={_(msg`View profile of ${note.author.pseudonym}`)}>
+          label={l`View profile of ${note.author.pseudonym}`}>
           <Text style={t.palette.link}>
             <Trans>View profile</Trans>
           </Text>
@@ -153,12 +152,12 @@ export function NoteDetailsDialog({
   control: Dialog.DialogControlProps
   note: CommunityNote
 }) {
-  const {_} = useLingui()
+  const {t: l} = useLingui()
 
   return (
     <Dialog.Outer control={control}>
       <Dialog.Handle />
-      <Dialog.Inner label={_(msg`Note Details`)}>
+      <Dialog.Inner label={l`Note Details`}>
         <Dialog.Close />
         <NoteDetailsContent note={note} showTitle={true} />
       </Dialog.Inner>

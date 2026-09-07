@@ -17,6 +17,16 @@ export interface CommunityNoteView extends CommunityNote {
   }
 }
 
+type ViewerRatingRow = {
+  noteUri: string
+  viewerRating:
+    NonNullable<apilib.CommunityNoteAPIResponse['viewer']>['rating'] | undefined
+}
+
+type NotesWithViewerRatings = CommunityNote[] & {
+  _viewerRatings?: ViewerRatingRow[]
+}
+
 // Hook for fetching Community Notes proposals with optional status filtering
 export function useProposalsQuery(
   subjectUri: string,
@@ -36,15 +46,13 @@ export function useProposalsQuery(
       // Map the response to notes
       const notes = response.proposals.map(apiNote => {
         return apilib.mapProposalApiResponseToCommunityNote(apiNote)
-      })
+      }) as NotesWithViewerRatings
 
       // Store the rating data for later processing
-      const viewerRatings = response.proposals.map(apiNote => ({
+      notes._viewerRatings = response.proposals.map(apiNote => ({
         noteUri: apiNote.uri,
         viewerRating: apiNote.viewer?.rating,
       }))
-
-      ;(notes as any)._viewerRatings = viewerRatings
 
       return notes
     },
@@ -54,7 +62,8 @@ export function useProposalsQuery(
   // Update shadow cache after the query has succeeded and cache is populated
   useEffect(() => {
     if (query.isSuccess && query.data) {
-      const viewerRatings = (query.data as any)._viewerRatings
+      const viewerRatings = (query.data as NotesWithViewerRatings)
+        ._viewerRatings
       if (viewerRatings) {
         for (const ratingData of viewerRatings) {
           if (ratingData.viewerRating) {

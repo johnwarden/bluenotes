@@ -44,14 +44,28 @@ export function useCommunityNotesConfig() {
         )
       }
 
-      const config = await configResponse.json()
-
-      // Validate the basic config structure
-      if (!config.version || !config.labelerDid || !config.feedGeneratorDid) {
+      const config: unknown = await configResponse.json()
+      if (!config || typeof config !== 'object') {
+        throw new Error('Invalid Community Notes config response')
+      }
+      const rec = config as Record<string, unknown>
+      const {version, labelerDid, feedGeneratorDid, feeds} = rec
+      if (
+        typeof version !== 'string' ||
+        typeof labelerDid !== 'string' ||
+        typeof feedGeneratorDid !== 'string'
+      ) {
         throw new Error('Invalid Community Notes config response')
       }
 
-      return config as CommunityNotesConfig
+      return {
+        version,
+        labelerDid,
+        feedGeneratorDid,
+        ...(Array.isArray(feeds)
+          ? {feeds: feeds as CommunityNotesConfig['feeds']}
+          : {}),
+      }
     },
     // Config rarely changes - keep it fresh for the entire session
     staleTime: Infinity, // Never becomes stale during session

@@ -1,6 +1,5 @@
 import {useState} from 'react'
 import {Pressable, View} from 'react-native'
-import {type app} from '#/lexicons'
 
 import {
   getCommunityNotesLabelerDid,
@@ -12,6 +11,7 @@ import {atoms as a, useTheme} from '#/alf'
 import {ChevronBottom_Stroke2_Corner0_Rounded as ChevronDownIcon} from '#/components/icons/Chevron'
 import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {Text} from '#/components/Typography'
+import {type app} from '#/lexicons'
 
 interface DebugLabelsProps {
   post: app.bsky.feed.defs.PostView

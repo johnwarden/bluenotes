@@ -162,6 +162,7 @@ export type AllNavigatorParams = CommonNavigatorParams & {
   SearchTab: undefined
   Search: SearchParams
   Feeds: undefined
+  CommunityNotesTab: undefined
   NotificationsTab: undefined
   Notifications: undefined
   MyProfileTab: undefined

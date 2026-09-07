@@ -1,14 +1,13 @@
-import {useMemo, useRef, useState} from 'react'
-import {ActivityIndicator, ScrollView, type TextInput, View} from 'react-native'
-import {msg, Trans} from '@lingui/macro'
-import {useLingui} from '@lingui/react'
+import {useMemo, useState} from 'react'
+import {ActivityIndicator, ScrollView, View} from 'react-native'
+import {Trans, useLingui} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 import Graphemer from 'graphemer'
 
 import * as apilib from '#/lib/api/community-notes'
 import {updatePostShadow} from '#/state/cache/post-shadow'
-import {usePostQuery} from '#/state/queries/post'
 import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
+import {usePostQuery} from '#/state/queries/post'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
@@ -118,7 +117,7 @@ interface WriteNoteDialogProps {
 
 export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const t = useTheme()
-  const {_} = useLingui()
+  const {t: l} = useLingui()
   const auth = useCommunityNotesAuth()
   const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<string[]>([])
@@ -129,9 +128,10 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submissionError, setSubmissionError] = useState<string>('')
   const [submittedNoteUri, setSubmittedNoteUri] = useState<string>('')
-  const [submittedNote, setSubmittedNote] = useState<any>(null)
+  const [submittedNote, setSubmittedNote] = useState<ReturnType<
+    typeof apilib.mapProposalApiResponseToCommunityNote
+  > | null>(null)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
-  const textInputRef = useRef<TextInput>(null)
 
   const {data: post} = usePostQuery(postUri)
   const submittedDialogControl = Dialog.useDialogControl()
@@ -177,7 +177,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
   const handleRefresh = () => {
     // Invalidate the notes query to refresh the list
-    queryClient.invalidateQueries({
+    void queryClient.invalidateQueries({
       queryKey: ['community-notes-proposals', postUri],
     })
   }
@@ -223,9 +223,6 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       // Clear form and close dialog
       setSelectedReasons([])
       setNoteText('')
-      if (textInputRef.current) {
-        textInputRef.current.clear()
-      }
       setHasReliableSources(null)
       setHasAttemptedSubmit(false)
       control.close()
@@ -254,7 +251,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
     <>
       <Dialog.Outer control={control} onClose={handleClose}>
         <Dialog.Handle />
-        <Dialog.ScrollableInner label={_(msg`Add a note`)}>
+        <Dialog.ScrollableInner label={l`Add a note`}>
           <Dialog.Close />
           <View style={[a.flex_1]}>
             {/* Header */}
@@ -307,7 +304,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                 <Button
                   variant="ghost"
                   size="small"
-                  label={_(msg`See examples`)}
+                  label={l`See examples`}
                   style={[a.self_start, a.mb_md]}
                   onPress={() => {
                     window.open(
@@ -331,7 +328,6 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
                     <TextField.Input
                       label="Your explanation"
                       placeholder="Your explanation"
-                      inputRef={textInputRef}
                       defaultValue=""
                       onChangeText={setNoteText}
                       multiline
@@ -441,7 +437,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
               <Button
                 variant="solid"
                 color="primary"
-                label={_(msg`Submit note`)}
+                label={l`Submit note`}
                 disabled={isSubmitting}
                 style={[
                   a.w_full,
@@ -465,7 +461,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
       <NoteSubmittedDialog
         control={submittedDialogControl}
         noteUri={submittedNoteUri}
-        note={submittedNote}
+        note={submittedNote ?? undefined}
         onRefresh={handleRefresh}
       />
     </>

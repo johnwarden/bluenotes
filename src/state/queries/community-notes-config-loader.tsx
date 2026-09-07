@@ -1,4 +1,4 @@
-import React from 'react'
+import {useEffect} from 'react'
 
 import {updateCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
 import {logger} from '#/logger'
@@ -14,7 +14,7 @@ export function CommunityNotesConfigLoader() {
   const {data: communityNotesConfig, error: communityNotesConfigError} =
     useCommunityNotesConfig()
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (communityNotesConfig?.labelerDid) {
       logger.info('[CommunityNotes] Config loaded, updating labeler DID', {
         labelerDid: communityNotesConfig.labelerDid,
