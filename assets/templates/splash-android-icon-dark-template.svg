@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="568" height="501" viewBox="0 0 568 501" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android splash icon - dark version -->
+  <rect width="568" height="501" fill="transparent"/>
+  
+  <!-- Centered logo in white with proper scaling and minimal margins -->
+    <path fill="#000000" d="$(PATH_DATA)" transform="scale(1.136)"/>
+</svg>

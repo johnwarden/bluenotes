@@ -1,0 +1,9 @@
+import {createSupportPageScreen} from '#/components/SupportPage'
+
+// HTML content for the {{PAGE_TITLE}}
+const supportPageHTML = `{{HTML_CONTENT}}`;
+
+export const {{COMPONENT_NAME}}Screen = createSupportPageScreen(
+  '{{PAGE_TITLE}}',
+  supportPageHTML,
+)
