@@ -1,4 +1,4 @@
-import {useCallback, useEffect} from 'react'
+import {useEffect} from 'react'
 import {useQuery, useQueryClient} from '@tanstack/react-query'
 
 import * as apilib from '#/lib/api/community-notes'
@@ -167,16 +167,5 @@ export function useNoteRatingMutationQueue(
     },
   })
 
-  const queueRatingWrap = useCallback(
-    (newState: NoteRatingState) => {
-      console.log('🔍 Debug: queueRatingWrap called', {
-        noteUri,
-        newState,
-      })
-      return queueRating(newState)
-    },
-    [queueRating, noteUri],
-  )
-
-  return queueRatingWrap
+  return queueRating
 }
