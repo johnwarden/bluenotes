@@ -21,7 +21,7 @@ from assertions import (
     page_shows_widget_chrome,
 )
 
-AuthMode = Literal["omit", "dpop"]
+AuthMode = Literal["omit", "service_auth"]
 
 # Anywhere a post with a note is shown — CN-tab Explore alone is not enough.
 NOTE_BODY_SURFACES = (
@@ -370,7 +370,15 @@ def authorization_is_empty_bearer(value: str | None) -> bool:
 
 
 def authorization_is_dpop(value: str | None) -> bool:
+    """True when Authorization uses the DPoP scheme (wrong for notes)."""
     return bool(value) and value.strip().lower().startswith("dpop ")
+
+
+def authorization_is_service_auth_bearer(value: str | None) -> bool:
+    """True for a non-empty Bearer JWT (service-auth or password accessJwt)."""
+    if not value or authorization_is_empty_bearer(value):
+        return False
+    return value.strip().lower().startswith("bearer ")
 
 
 def assert_getproposals_auth(
@@ -397,7 +405,8 @@ def assert_getproposals_auth(
             raise AssertionError(
                 "App sent Authorization: Bearer  (empty). "
                 "fetchWithAgentAuth must omit the header (soft-anon) or send "
-                f"DPoP / a real JWT. url={url}"
+                "a service-auth Bearer JWT (getServiceAuth). "
+                f"url={url}"
             )
         status = event.get("status")
         if status is not None and status != 200:
@@ -408,10 +417,13 @@ def assert_getproposals_auth(
                 "Soft-anon Explore must omit Authorization on getProposals "
                 f"(observed {observed}). url={url}"
             )
-        if mode == "dpop" and not authorization_is_dpop(auth):
+        if mode == "service_auth" and not authorization_is_service_auth_bearer(
+            auth
+        ):
             raise AssertionError(
-                "Signed-in OAuth getProposals must use Authorization: DPoP "
-                "<token> (fetchWithAgentAuth). Observed "
+                "Signed-in OAuth getProposals must use Authorization: Bearer "
+                "<service-auth jwt> from PDS getServiceAuth "
+                "(fetchWithAgentAuth). Notes-URL DPoP is wrong. Observed "
                 f"{observed}. url={url}"
             )
 

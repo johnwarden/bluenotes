@@ -4,8 +4,9 @@ Auth follows `fetchWithAgentAuth` in src/lib/api/community-notes-auth.ts:
 
 - Password session: send ``Authorization: Bearer <accessJwt>`` only when the
   JWT is non-empty.
-- OAuth / DPoP: not implemented here (browser DPoP is out of scope). Do not
-  invent an empty Bearer.
+- OAuth service-auth: not minted here (browser ``getServiceAuth`` /
+  ``fetchWithAgentAuth`` is out of scope). Do not invent an empty Bearer
+  or send notes-URL DPoP.
 - Soft-anon getProposals / getConfig: omit the Authorization header entirely.
 
 The notes service treats ``Authorization: Bearer `` (empty token) as a hard
