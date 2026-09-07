@@ -1,5 +1,6 @@
 import {Client} from '@atproto/lex'
 
+import {getCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
 import {device} from '#/storage'
 
 export const BR_LABELER = 'did:plc:ekitcvx7uwnauoqy5oest3hm' // Brazil
@@ -84,10 +85,16 @@ export function configureAdditionalModerationAuthorities() {
 
   /*
    * Merge with whatever is already on the static rather than replacing it, so
-   * `switchToBskyAppLabeler`'s entry survives.
+   * `switchToBskyAppLabeler`'s entry survives. Also attach the Community Notes
+   * labeler when config has loaded.
    */
+  const communityNotesLabelerDid = getCommunityNotesLabelerDid()
   const appLabelers = Array.from(
-    new Set<string>([...Client.appLabelers, ...additionalLabelers]),
+    new Set<string>([
+      ...Client.appLabelers,
+      ...additionalLabelers,
+      ...(communityNotesLabelerDid ? [communityNotesLabelerDid] : []),
+    ]),
   )
 
   configureGlobalAppLabelers(appLabelers)
