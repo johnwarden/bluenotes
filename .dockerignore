@@ -49,6 +49,7 @@ bskyweb/bskyweb
 *.log
 npm-debug.log
 yarn-error.log
+pnpm-debug.log
 .metro-health-check*
 stats.json
 justfile
@@ -163,7 +164,7 @@ bskyogcard/src/assets/fonts/noto-*
 
 # Keep essential files (explicit includes)
 !package.json
-!yarn.lock
+!pnpm-lock.yaml
 !babel.config.js
 !metro.config.js
 !webpack.config.js
