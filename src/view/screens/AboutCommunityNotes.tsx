@@ -140,7 +140,7 @@ export const AboutCommunityNotesScreen = ({}: NativeStackScreenProps<
 
   return (
     <Layout.Screen>
-      <ViewHeader title={_(msg({message: 'About Community Notes'}))} />
+      <ViewHeader title={_(msg`About Community Notes`)} />
       <ScrollView style={[s.hContentRegion, pal.view]}>
         <View style={[s.p20]}>
           <View style={styles.container}>

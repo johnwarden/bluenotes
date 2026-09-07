@@ -140,7 +140,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
   return (
     <Layout.Screen>
-      <ViewHeader title={_(msg({message: 'Beta Tester Guide'}))} />
+      <ViewHeader title={_(msg`Beta Tester Guide`)} />
       <ScrollView style={[s.hContentRegion, pal.view]}>
         <View style={[s.p20]}>
           <View style={styles.container}>

@@ -1,8 +1,6 @@
 import {useMemo} from 'react'
 import {Linking, useWindowDimensions, View} from 'react-native'
 import RenderHtml, {type CustomTextualRenderer} from 'react-native-render-html'
-import {msg} from '@lingui/core/macro'
-import {useLingui} from '@lingui/react'
 import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -45,7 +43,6 @@ const SUPPORT_ROUTE_MAP: Record<string, SupportRouteName> = {
 
 export function SupportPage({title, htmlContent}: SupportPageProps) {
   const pal = usePalette('default')
-  const {_} = useLingui()
   const navigation = useNavigation<NavigationProp>()
   const {width} = useWindowDimensions()
 
@@ -168,7 +165,7 @@ export function SupportPage({title, htmlContent}: SupportPageProps) {
 
   return (
     <Layout.Screen>
-      <ViewHeader title={_(msg({message: title}))} />
+      <ViewHeader title={title} />
       <ScrollView style={[s.hContentRegion, pal.view]}>
         <View style={[s.p20]}>
           <RenderHtml
