@@ -6,11 +6,14 @@
  * build. CJS @atproto packages then do `require("zod").z.string()` /
  * `.unknown()` at module init; ESM interop often yields the `z` namespace
  * (has `.string`, no `.z`) or `{default: namespace}`, so `.z` is undefined.
+ * That is both e0f1cb31 throw sites: `@atproto/oauth-types` `uri.ts:15`
+ * (`zod_1.z.string()`) and nested `@atproto/common-web` `types.ts:5`
+ * (`cidSchema = z.unknown()`, compiled as `zod_1.z.unknown()`).
  *
  * Do not require `index.cjs` here: webpack's file-loader treats unknown
- * `.cjs` as a media URL, so the shim would receive a string. Load the ESM
- * entry (parsed as JS) and export a real namespace on both `.z` and
- * `.default`.
+ * `.cjs` as a media URL, so the shim would receive a string and
+ * `exports.z` would still be undefined. Load the ESM entry (parsed as
+ * JS) and export a real namespace on both `.z` and `.default`.
  */
 
 /**
