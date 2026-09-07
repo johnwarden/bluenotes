@@ -1,27 +1,50 @@
 'use strict'
 
 /*
- * Zod 3.25 is a dual ESM/CJS package. Webpack may expose either:
- *   1. the CJS module `{z, default, ...}` so `require("zod").z.string()` works
- *   2. the `z` namespace itself (has `.string` / `.unknown`, no `.z`)
+ * Zod 3.25 is a dual ESM/CJS package. Webpack may expose:
+ *   - the CJS module `{z, default, ...}`
+ *   - the `z` namespace (`.string`, `.unknown`)
+ *   - an interop wrapper `{default: namespace}` with no `.z`
  *
- * `@atproto/oauth-types` and `@atproto/common` CJS do `require("zod").z.*`
- * at module init. If `.z` is missing, the static SPA throws before React
- * mounts. Always export a real namespace on both `.z` and `.default`.
+ * CJS atproto packages do `require("zod").z.string()` / `.unknown()` at
+ * module init. Export the real namespace on both `.z` and `.default`.
  */
 
-/** @type {typeof import('zod') & {z?: typeof import('zod')}} */
-const raw = require('../node_modules/zod/index.cjs')
+/**
+ * @param {unknown} mod
+ * @returns {typeof import('zod') | undefined}
+ */
+function asZodNamespace(mod) {
+  if (!mod || typeof mod !== 'object') {
+    return undefined
+  }
+  const rec = /** @type {Record<string, unknown>} */ (mod)
+  if (typeof rec.string === 'function' && typeof rec.unknown === 'function') {
+    return /** @type {typeof import('zod')} */ (mod)
+  }
+  if (rec.z && typeof rec.z === 'object') {
+    const nested = asZodNamespace(rec.z)
+    if (nested) return nested
+  }
+  if (rec.default && typeof rec.default === 'object') {
+    return asZodNamespace(rec.default)
+  }
+  return undefined
+}
 
-const z = raw && raw.z && typeof raw.z.string === 'function' ? raw.z : raw
+const raw = require('../node_modules/zod/index.cjs')
+const z = asZodNamespace(raw)
+if (!z) {
+  throw new Error('zod webpack shim: could not resolve z namespace')
+}
 
 exports.__esModule = true
 exports.z = z
 exports.default = z
 
-for (const key of Object.keys(raw)) {
+for (const key of Object.keys(z)) {
   if (key === 'default' || key === 'z' || key === '__esModule') {
     continue
   }
-  exports[key] = raw[key]
+  exports[key] = z[key]
 }
