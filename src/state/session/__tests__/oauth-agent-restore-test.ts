@@ -12,6 +12,17 @@ import {
 import {restoreOAuthSession} from '../oauth-client'
 import {type SessionAccount} from '../types'
 
+// oauth-agent imports age-assurance + analytics, which pull session UI and
+// reanimated/worklets (`loadUnpackersWithCode`) under jest-expo/ios.
+jest.mock('#/ageAssurance/data')
+jest.mock('#/analytics', () => ({
+  features: {
+    refresh: () => Promise.resolve(),
+  },
+}))
+jest.mock('../moderation', () => ({
+  configureModerationForAccount: jest.fn(),
+}))
 jest.mock('../oauth-client', () => ({
   restoreOAuthSession: jest.fn(),
   revokeOAuthSession: jest.fn(() => Promise.resolve()),

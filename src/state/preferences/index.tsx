@@ -41,7 +41,9 @@ export function Provider({children}: React.PropsWithChildren<{}>) {
                       <SubtitlesProvider>
                         <TrendingSettingsProvider>
                           <KawaiiProvider>
-                            <OauthSignInProvider>{children}</OauthSignInProvider>
+                            <OauthSignInProvider>
+                              {children}
+                            </OauthSignInProvider>
                           </KawaiiProvider>
                         </TrendingSettingsProvider>
                       </SubtitlesProvider>

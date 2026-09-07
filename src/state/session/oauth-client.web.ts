@@ -479,8 +479,7 @@ export function subscribeOAuthSessionDeleted(
     ) => void
   }
   let eventTargetHandler:
-    | ((event: CustomEvent<OauthDeletedDetail>) => void)
-    | undefined
+    ((event: CustomEvent<OauthDeletedDetail>) => void) | undefined
   if (typeof oauthClient.addEventListener === 'function') {
     eventTargetHandler = (event: CustomEvent<OauthDeletedDetail>) => {
       listener(event.detail)
