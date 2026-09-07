@@ -8,7 +8,7 @@ import Graphemer from 'graphemer'
 import * as apilib from '#/lib/api/community-notes'
 import {updatePostShadow} from '#/state/cache/post-shadow'
 import {usePostQuery} from '#/state/queries/post'
-import {useAgent} from '#/state/session'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {CharProgress} from '#/view/com/composer/char-progress/CharProgress'
 import {atoms as a, useTheme} from '#/alf'
 import {Admonition} from '#/components/Admonition'
@@ -119,7 +119,7 @@ interface WriteNoteDialogProps {
 export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
   const t = useTheme()
   const {_} = useLingui()
-  const agent = useAgent()
+  const auth = useCommunityNotesAuth()
   const queryClient = useQueryClient()
   const [selectedReasons, setSelectedReasons] = useState<string[]>([])
   const [noteText, setNoteText] = useState('')
@@ -202,7 +202,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
 
     try {
       const response = await apilib.propose(
-        agent,
+        auth,
         postUri,
         noteText,
         selectedReasons,

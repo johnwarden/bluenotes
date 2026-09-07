@@ -1,6 +1,6 @@
 import {useState} from 'react'
 import {Pressable, View} from 'react-native'
-import {type AppBskyFeedDefs} from '@atproto/api'
+import {type app} from '#/lexicons'
 
 import {
   getCommunityNotesLabelerDid,
@@ -14,7 +14,7 @@ import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/compon
 import {Text} from '#/components/Typography'
 
 interface DebugLabelsProps {
-  post: AppBskyFeedDefs.PostView
+  post: app.bsky.feed.defs.PostView
 }
 
 const enableDebugLabels = false

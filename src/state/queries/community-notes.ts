@@ -9,7 +9,7 @@ import {
   updateNoteShadow,
   useNoteShadow,
 } from '#/state/cache/community-notes-shadow'
-import {useAgent} from '#/state/session'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 
 export interface CommunityNoteView extends CommunityNote {
   viewer?: {
@@ -23,13 +23,13 @@ export function useProposalsQuery(
   status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful',
   options?: {enabled?: boolean},
 ) {
-  const agent = useAgent()
+  const auth = useCommunityNotesAuth()
   const queryClient = useQueryClient()
 
   const query = useQuery<CommunityNote[]>({
     queryKey: ['community-notes-proposals', subjectUri, status],
     queryFn: async () => {
-      const response = await apilib.getProposals(agent, subjectUri, {
+      const response = await apilib.getProposals(auth, subjectUri, {
         status,
       })
 
@@ -82,7 +82,7 @@ export function useNoteRatingMutationQueue(
   note: CommunityNote,
   _logContext?: string,
 ) {
-  const agent = useAgent()
+  const auth = useCommunityNotesAuth()
   const noteUri = note.uri
   const noteWithShadow = useNoteShadow(note)
 
@@ -103,7 +103,7 @@ export function useNoteRatingMutationQueue(
         // Case 1: Create
 
         const response = await apilib.vote(
-          agent,
+          auth,
           noteUri,
           nextState.val,
           nextState.reasons,
@@ -123,7 +123,7 @@ export function useNoteRatingMutationQueue(
           // Case 2: Update
 
           const response = await apilib.vote(
-            agent,
+            auth,
             noteUri,
             nextState.val,
             nextState.reasons,
@@ -140,7 +140,7 @@ export function useNoteRatingMutationQueue(
       } else if (prevState.val !== null && nextState.val === null) {
         // Case 3: Delete
 
-        await apilib.deleteNoteRating(agent, noteUri)
+        await apilib.deleteNoteRating(auth, noteUri)
         return {
           ...nextState,
           uri: undefined,

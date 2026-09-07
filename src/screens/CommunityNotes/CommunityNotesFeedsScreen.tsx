@@ -1,6 +1,6 @@
 import {useCallback, useMemo} from 'react'
 import {View} from 'react-native'
-import {AtUri} from '@atproto/api'
+import {AtUri} from '@atproto/syntax'
 import {Trans} from '@lingui/macro'
 import {useFocusEffect} from '@react-navigation/native'
 import type React from 'react'

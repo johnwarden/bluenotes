@@ -1,8 +1,19 @@
-import {type BskyAgent} from '@atproto/api'
-
 import {type CommunityNote} from '#/lib/community-notes/types'
-import {COMMUNITY_NOTES_SERVICE} from '#/lib/constants'
+import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
 import {type NoteRatingState} from '#/state/cache/community-notes-shadow'
+
+/**
+ * Session bits CN XRPC calls need after 1.133 removed BskyAgent / useAgent.
+ * `accessJwt` is required for write/vote; getProposals works without it.
+ */
+export type CommunityNotesAuth = {
+  service: string
+  accessJwt?: string
+}
+
+function serviceUrlOf(auth: CommunityNotesAuth | null | undefined) {
+  return auth?.service ?? DEFAULT_SERVICE
+}
 
 type VoteValue = 'helpful' | 'somewhat_helpful' | 'not_helpful'
 
@@ -127,28 +138,26 @@ export function mapApiRatingToNoteRatingState(
 }
 
 export async function vote(
-  agent: BskyAgent,
+  auth: CommunityNotesAuth,
   noteUri: string,
   value: VoteValue,
   reasons: string[],
 ): Promise<RateProposalResponse> {
-  if (!agent.session) {
+  if (!auth.accessJwt) {
     throw new Error('Must be logged in to rate a note')
   }
 
   // Note: Anonymous ID (AID) is generated server-side by the Community Notes service
   // based on the authenticated user's DID. The service uses: 'org.opencommunitynotes:' + sha256(did)
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
-    agent.service.toString(),
-  )
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${agent.session.accessJwt}`,
+        Authorization: `Bearer ${auth.accessJwt}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -189,18 +198,16 @@ export async function vote(
 }
 
 export async function propose(
-  agent: BskyAgent,
+  auth: CommunityNotesAuth,
   targetUri: string,
   noteText: string,
   reasons: string[],
 ): Promise<CreateProposalResponse> {
-  if (!agent.session) {
+  if (!auth.accessJwt) {
     throw new Error('Must be logged in to create a note')
   }
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
-    agent.service.toString(),
-  )
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.propose`
 
   const requestBody: CreateProposalRequest = {
@@ -215,7 +222,7 @@ export async function propose(
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${agent.session.accessJwt}`,
+        Authorization: `Bearer ${auth.accessJwt}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
@@ -259,15 +266,13 @@ export async function propose(
 }
 
 export async function getProposals(
-  agent: BskyAgent | null,
+  auth: CommunityNotesAuth | null,
   subjectUris: string | string[],
   options?: {
     status?: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
   },
 ): Promise<GetProposalsAPIResponse> {
-  // Use the agent's service URL if available, otherwise default to bsky.social
-  const serviceUrl = agent ? agent.service.toString() : 'https://bsky.social'
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrl)
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
 
   // Handle both single URI and multiple URIs
   const uris = Array.isArray(subjectUris) ? subjectUris : [subjectUris]
@@ -283,8 +288,8 @@ export async function getProposals(
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.getProposals?${allParams}`
 
   const headers: Record<string, string> = {}
-  if (agent?.session) {
-    headers.Authorization = `Bearer ${agent.session.accessJwt}`
+  if (auth?.accessJwt) {
+    headers.Authorization = `Bearer ${auth.accessJwt}`
   }
 
   try {
@@ -324,45 +329,46 @@ export async function getProposals(
 
 // Legacy functions for backward compatibility - these will be removed
 export async function createNoteRating(
-  agent: BskyAgent,
+  auth: CommunityNotesAuth,
   note: {uri: string; cid?: string},
   value: VoteValue,
   reasons: string[],
 ) {
   // Map to new API
-  const result = await vote(agent, note.uri, value, reasons)
+  const result = await vote(auth, note.uri, value, reasons)
   return {
     uri: result.rating.uri,
   }
 }
 
 export async function updateNoteRating(
-  agent: BskyAgent,
+  auth: CommunityNotesAuth,
   ratingUri: string,
   note: {uri: string; cid?: string},
   value: VoteValue,
   reasons: string[],
 ) {
   // For updates, we still call vote with the note URI
-  const result = await vote(agent, note.uri, value, reasons)
+  const result = await vote(auth, note.uri, value, reasons)
   return result
 }
 
-export async function deleteNoteRating(agent: BskyAgent, noteUri: string) {
-  if (!agent.session) {
+export async function deleteNoteRating(
+  auth: CommunityNotesAuth,
+  noteUri: string,
+) {
+  if (!auth.accessJwt) {
     throw new Error('Must be logged in to delete a rating')
   }
 
-  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(
-    agent.service.toString(),
-  )
+  const communityNotesServiceUrl = COMMUNITY_NOTES_SERVICE(serviceUrlOf(auth))
   const url = `${communityNotesServiceUrl}/xrpc/org.opencommunitynotes.vote`
 
   try {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${agent.session.accessJwt}`,
+        Authorization: `Bearer ${auth.accessJwt}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
