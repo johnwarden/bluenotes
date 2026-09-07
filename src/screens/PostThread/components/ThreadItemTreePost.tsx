@@ -353,7 +353,7 @@ const ThreadItemTreePostInner = memo(function ThreadItemTreePostInner({
                 <ThreadItemTreeReplyChildReplyLine item={item} />
                 <View style={[a.flex_1, a.pl_2xs]}>
                   <DebugLabels post={post} />
-                  <PostAlerts>
+                  <PostAlerts
                     post={post}
                     modui={moderation.ui('contentList')}
                     style={[a.pb_2xs]}
