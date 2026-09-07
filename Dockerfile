@@ -38,6 +38,20 @@ ARG EXPO_PUBLIC_BUNDLE_IDENTIFIER
 ENV EXPO_PUBLIC_BUNDLE_IDENTIFIER=${EXPO_PUBLIC_BUNDLE_IDENTIFIER:-$RENDER_GIT_COMMIT}
 
 #
+# Proxy DIDs (optional; unset for local PDS)
+#
+ARG EXPO_PUBLIC_CHAT_PROXY_DID
+ENV EXPO_PUBLIC_CHAT_PROXY_DID=${EXPO_PUBLIC_CHAT_PROXY_DID}
+ARG EXPO_PUBLIC_BLUESKY_PROXY_DID
+ENV EXPO_PUBLIC_BLUESKY_PROXY_DID=${EXPO_PUBLIC_BLUESKY_PROXY_DID}
+
+#
+# Geolocation (Bluenotes serves /ipcc; optional override)
+#
+ARG GEOLOCATION_URL
+ENV GEOLOCATION_URL=$GEOLOCATION_URL
+
+#
 # Sentry
 #
 ARG SENTRY_AUTH_TOKEN
@@ -52,7 +66,10 @@ RUN echo "Using bundle identifier: $EXPO_PUBLIC_BUNDLE_IDENTIFIER" && \
   echo "EXPO_PUBLIC_RELEASE_VERSION=$EXPO_PUBLIC_RELEASE_VERSION" >> .env && \
   echo "EXPO_PUBLIC_BUNDLE_IDENTIFIER=$EXPO_PUBLIC_BUNDLE_IDENTIFIER" >> .env && \
   echo "EXPO_PUBLIC_BUNDLE_DATE=$(date -u +"%y%m%d%H")" >> .env && \
-  echo "EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN" >> .env
+  echo "EXPO_PUBLIC_SENTRY_DSN=$EXPO_PUBLIC_SENTRY_DSN" >> .env && \
+  echo "EXPO_PUBLIC_CHAT_PROXY_DID=$EXPO_PUBLIC_CHAT_PROXY_DID" >> .env && \
+  echo "EXPO_PUBLIC_BLUESKY_PROXY_DID=$EXPO_PUBLIC_BLUESKY_PROXY_DID" >> .env && \
+  echo "GEOLOCATION_URL=$GEOLOCATION_URL" >> .env
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
@@ -121,8 +138,8 @@ COPY --from=go-build /bskyweb /usr/bin/bskyweb
 # prints CLI usage and exits, so Fly canaries never bind :8100.
 CMD ["/usr/bin/bskyweb", "serve"]
 
-LABEL org.opencontainers.image.source=https://github.com/bluesky-social/social-app
-LABEL org.opencontainers.image.description="bsky.app Web App"
+LABEL org.opencontainers.image.source=https://github.com/johnwarden/bluenotes
+LABEL org.opencontainers.image.description="Bluenotes Web App"
 LABEL org.opencontainers.image.licenses=MIT
 
 # NOOP

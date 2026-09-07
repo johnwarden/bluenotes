@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Android foreground icon - white logo on transparent background -->
+  <rect width="1024" height="1024" fill="transparent"/>
+  
+  <!-- Centered white logo -->
+  <path fill="white" d="$(PATH_DATA)" transform="translate(293, 337) scale(0.87)"/>
+</svg>
