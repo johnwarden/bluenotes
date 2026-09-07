@@ -585,9 +585,9 @@ describe('shouldPaintAppAfterOauthLaunch', () => {
 describe('createResettableSingleton', () => {
   it('shares one in-flight promise across double initOAuthClient() callers', async () => {
     let starts = 0
-    const singleton = createResettableSingleton(async () => {
+    const singleton = createResettableSingleton(() => {
       starts += 1
-      return {session: {did: 'did:plc:alice'}, state: 'xyz'}
+      return Promise.resolve({session: {did: 'did:plc:alice'}, state: 'xyz'})
     })
     const [a, b] = await Promise.all([singleton.run(), singleton.run()])
     expect(a).toEqual(b)
@@ -596,12 +596,12 @@ describe('createResettableSingleton', () => {
 
   it('resets after rejection so InnerApp can retry a swallowed bootstrap error', async () => {
     let starts = 0
-    const singleton = createResettableSingleton(async () => {
+    const singleton = createResettableSingleton(() => {
       starts += 1
       if (starts === 1) {
-        throw new Error('first fail')
+        return Promise.reject(new Error('first fail'))
       }
-      return 'recovered'
+      return Promise.resolve('recovered')
     })
     await expect(singleton.run()).rejects.toThrow('first fail')
     await expect(singleton.run()).resolves.toBe('recovered')
@@ -617,7 +617,9 @@ describe('createResettableSingleton', () => {
     await expect(locked).rejects.toThrow('bootstrap swallowed')
     await expect(locked).rejects.toThrow('bootstrap swallowed')
 
-    const singleton = createResettableSingleton(async () => 'retried')
+    const singleton = createResettableSingleton(() =>
+      Promise.resolve('retried'),
+    )
     await expect(singleton.run()).resolves.toBe('retried')
   })
 })
@@ -627,13 +629,15 @@ describe('exchangeOrRestoreOauthSession', () => {
   const params = new URLSearchParams({state: 's', code: 'c'})
 
   it('calls initCallback and never library init() when params were snapshotted', async () => {
-    const libraryInit = jest.fn(async () => {
-      throw new Error('init() must not run on a callback load')
-    })
-    const libraryInitCallback = jest.fn(async () => ({
-      session,
-      state: 's',
-    }))
+    const libraryInit = jest.fn(() =>
+      Promise.reject(new Error('init() must not run on a callback load')),
+    )
+    const libraryInitCallback = jest.fn(() =>
+      Promise.resolve({
+        session,
+        state: 's',
+      }),
+    )
 
     const result = await exchangeOrRestoreOauthSession({
       callbackParams: params,
@@ -653,10 +657,8 @@ describe('exchangeOrRestoreOauthSession', () => {
   it('still exchanges when library init() would throw (the #18 hole)', async () => {
     const result = await exchangeOrRestoreOauthSession({
       callbackParams: params,
-      libraryInit: async () => {
-        throw new Error('initRestore leftover sub')
-      },
-      libraryInitCallback: async () => ({session, state: 's'}),
+      libraryInit: () => Promise.reject(new Error('initRestore leftover sub')),
+      libraryInitCallback: () => Promise.resolve({session, state: 's'}),
       resolveRedirectUri: () => 'http://127.0.0.1:19006/',
     })
     expect(result?.session).toEqual(session)
@@ -667,10 +669,9 @@ describe('exchangeOrRestoreOauthSession', () => {
     await expect(
       exchangeOrRestoreOauthSession({
         callbackParams: params,
-        libraryInit: async () => undefined,
-        libraryInitCallback: async () => {
-          throw new Error('token exchange failed')
-        },
+        libraryInit: () => Promise.resolve(undefined),
+        libraryInitCallback: () =>
+          Promise.reject(new Error('token exchange failed')),
         resolveRedirectUri: () => 'http://127.0.0.1:19006/',
       }),
     ).rejects.toThrow('token exchange failed')
@@ -680,8 +681,8 @@ describe('exchangeOrRestoreOauthSession', () => {
     await expect(
       exchangeOrRestoreOauthSession({
         callbackParams: params,
-        libraryInit: async () => ({session}),
-        libraryInitCallback: async () => ({session, state: 's'}),
+        libraryInit: () => Promise.resolve({session}),
+        libraryInitCallback: () => Promise.resolve({session, state: 's'}),
         resolveRedirectUri: () => undefined,
       }),
     ).rejects.toThrow('redirect URI mismatch')
@@ -692,10 +693,10 @@ describe('exchangeOrRestoreOauthSession', () => {
     const order: string[] = []
     await exchangeOrRestoreOauthSession({
       callbackParams: params,
-      libraryInit: async () => undefined,
-      libraryInitCallback: async () => {
+      libraryInit: () => Promise.resolve(undefined),
+      libraryInitCallback: () => {
         order.push('exchange')
-        return {session, state: 's'}
+        return Promise.resolve({session, state: 's'})
       },
       resolveRedirectUri: () => 'http://127.0.0.1:19006/',
       stripCallbackFromAddressBar: () => {
@@ -712,10 +713,9 @@ describe('exchangeOrRestoreOauthSession', () => {
     await expect(
       exchangeOrRestoreOauthSession({
         callbackParams: params,
-        libraryInit: async () => undefined,
-        libraryInitCallback: async () => {
-          throw new Error('token exchange failed')
-        },
+        libraryInit: () => Promise.resolve(undefined),
+        libraryInitCallback: () =>
+          Promise.reject(new Error('token exchange failed')),
         resolveRedirectUri: () => 'http://127.0.0.1:19006/',
         stripCallbackFromAddressBar: strip,
       }),
@@ -724,12 +724,12 @@ describe('exchangeOrRestoreOauthSession', () => {
   })
 
   it('restores via library init() when this load is not a callback', async () => {
-    const libraryInitCallback = jest.fn(
-      async () => ({session, state: null}) as const,
+    const libraryInitCallback = jest.fn(() =>
+      Promise.resolve({session, state: null} as const),
     )
     const result = await exchangeOrRestoreOauthSession({
       callbackParams: null,
-      libraryInit: async () => ({session}),
+      libraryInit: () => Promise.resolve({session}),
       libraryInitCallback,
       resolveRedirectUri: () => 'http://127.0.0.1:19006/',
     })
@@ -742,8 +742,8 @@ describe('exchangeOrRestoreOauthSession', () => {
     await expect(
       exchangeOrRestoreOauthSession({
         callbackParams: params,
-        libraryInit: async () => undefined,
-        libraryInitCallback: async () => ({session, state: 's'}),
+        libraryInit: () => Promise.resolve(undefined),
+        libraryInitCallback: () => Promise.resolve({session, state: 's'}),
         resolveRedirectUri: () => undefined,
         onExchangeAttempt,
       }),
@@ -757,10 +757,9 @@ describe('exchangeOrRestoreOauthSession', () => {
     await expect(
       exchangeOrRestoreOauthSession({
         callbackParams: params,
-        libraryInit: async () => undefined,
-        libraryInitCallback: async () => {
-          throw new Error('token exchange failed')
-        },
+        libraryInit: () => Promise.resolve(undefined),
+        libraryInitCallback: () =>
+          Promise.reject(new Error('token exchange failed')),
         resolveRedirectUri: () => 'http://127.0.0.1:19006/',
         onExchangeAttempt,
       }),

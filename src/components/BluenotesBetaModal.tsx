@@ -165,19 +165,17 @@ export function BluenotesBetaModal({control}: BluenotesBetaModalProps) {
                         : 'transparent',
                     },
                   ]}>
-                  {({hovered}) => (
-                    <Text
-                      style={[
-                        a.text_sm,
-                        a.font_medium,
-                        {
-                          color: '#006AFF',
-                          textDecorationLine: hovered ? 'underline' : 'none',
-                        },
-                      ]}>
-                      <Trans>Read the Phase 1 Beta Tester Guide Here</Trans>
-                    </Text>
-                  )}
+                  <Text
+                    style={[
+                      a.text_sm,
+                      a.font_medium,
+                      {
+                        color: '#006AFF',
+                        textDecorationLine: 'underline',
+                      },
+                    ]}>
+                    <Trans>Read the Phase 1 Beta Tester Guide Here</Trans>
+                  </Text>
                 </Pressable>
               </View>
               <View style={[a.gap_md, a.align_center]}>

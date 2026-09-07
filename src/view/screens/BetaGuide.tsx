@@ -1,8 +1,8 @@
-import React from 'react'
+import {type ReactNode} from 'react'
 import {Image, Linking, Text, View} from 'react-native'
 import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useNavigation} from '@react-navigation/native'
+import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
@@ -10,9 +10,7 @@ import {
   type NativeStackScreenProps,
   type NavigationProp,
 } from '#/lib/routes/types'
-import {getStaticAssetUrl} from '#/lib/strings/url-helpers'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import {createSinglePathSVG} from '#/components/icons/TEMPLATE'
 import * as Layout from '#/components/Layout'
@@ -20,39 +18,49 @@ import {ViewHeader} from '../com/util/ViewHeader'
 
 interface LinkProps {
   href: string
-  children: React.ReactNode
+  children: ReactNode
 }
 
 const CommunityNotesIcon = createSinglePathSVG({
   path: 'M5.5 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm18.25 13.91c-.18-2.01-.78-3.72-1.81-4.96C20.89 10.7 19.45 10 17.75 10c-.35 0-.68.03-1.01.09-.18.54-.45 1.05-.8 1.49.74.46 1.41 1.05 1.99 1.76 1.05 1.3 1.71 2.91 2.06 4.66h3.85l-.09-1.09zM18.5 9c1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3 1.34 3 3 3zM6.07 13.34c.58-.71 1.25-1.3 1.99-1.76-.35-.44-.62-.95-.8-1.49-.33-.06-.66-.09-1.01-.09-1.7 0-3.14.7-4.19 1.95C1.032 13.19.433 14.9.254 16.91L.157 18H4.01c.35-1.75 1.01-3.36 2.06-4.66zM15 8.5c0-1.66-1.34-3-3-3s-3 1.34-3 3 1.34 3 3 3 3-1.34 3-3zm-7.37 6.1c-1.07 1.32-1.69 3.15-1.88 5.31L5.66 21h12.68l-.09-1.09c-.19-2.16-.81-3.99-1.88-5.31-1.08-1.35-2.59-2.1-4.37-2.1s-3.28.75-4.37 2.1z',
 })
 
-const Link: React.FC<LinkProps> = ({href, children}) => {
+type SupportRouteName = Extract<
+  keyof CommonNavigatorParams,
+  | 'TermsOfService'
+  | 'CommunityGuidelines'
+  | 'CopyrightPolicy'
+  | 'PrivacyPolicy'
+  | 'GovernmentTermsOfService'
+  | 'Support'
+  | 'BetaGuide'
+>
+
+const SUPPORT_ROUTE_MAP: Record<string, SupportRouteName> = {
+  '/about/support/tos': 'TermsOfService',
+  '/about/support/community-guidelines': 'CommunityGuidelines',
+  '/about/support/copyright': 'CopyrightPolicy',
+  '/about/support/privacy-policy': 'PrivacyPolicy',
+  '/about/support/tos-gov': 'GovernmentTermsOfService',
+  '/about/support': 'Support',
+  '/about/support/beta': 'BetaGuide',
+}
+
+function Link({href, children}: LinkProps) {
   const pal = usePalette('default')
   const navigation = useNavigation<NavigationProp>()
 
   const handlePress = () => {
     if (href.startsWith('mailto:')) {
-      Linking.openURL(href)
+      void Linking.openURL(href)
     } else if (href.startsWith('http://') || href.startsWith('https://')) {
-      Linking.openURL(href)
+      void Linking.openURL(href)
     } else {
-      // Handle internal navigation to other screens
-      const routeMap: {[key: string]: string} = {
-        '/about/support/tos': 'TermsOfService',
-        '/about/support/community-guidelines': 'CommunityGuidelines',
-        '/about/support/copyright': 'CopyrightPolicy',
-        '/about/support/privacy-policy': 'PrivacyPolicy',
-        '/about/support/tos-gov': 'GovernmentTermsOfService',
-        '/about/support': 'Help',
-        '/about/support/beta': 'BetaGuide',
-      }
-
       const [baseUrl] = href.split('#')
-      const route = routeMap[baseUrl]
+      const route = SUPPORT_ROUTE_MAP[baseUrl]
 
-      if (route && navigation) {
-        navigation.navigate(route as any)
+      if (route) {
+        navigation.navigate(route)
       }
     }
   }
@@ -72,14 +80,6 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 >) => {
   const pal = usePalette('default')
   const {_} = useLingui()
-  const setMinimalShellMode = useSetMinimalShellMode()
-  // const {width} = useWindowDimensions()
-
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
 
   // Calculate content width accounting for sidebars and padding
   // const contentWidth = Math.min(width, 878) // Account for padding and max content width
@@ -146,9 +146,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
           <View style={styles.container}>
             <Image
               source={{
-                uri: getStaticAssetUrl(
-                  'images/bluesky-plus-notes-bluenotes.png',
-                ),
+                uri: '/static/images/bluesky-plus-notes-bluenotes.png',
               }}
               style={styles.image}
               resizeMode="contain"
@@ -261,7 +259,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Image
               source={{
-                uri: getStaticAssetUrl('images/beta/browse-notes.png'),
+                uri: '/static/images/beta/browse-notes.png',
               }}
               style={styles.image}
               // resizeMode="contain"
@@ -281,7 +279,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Image
               source={{
-                uri: getStaticAssetUrl('images/beta/rate-note.png'),
+                uri: '/static/images/beta/rate-note.png',
               }}
               style={styles.image}
               // resizeMode="contain"
@@ -301,7 +299,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Image
               source={{
-                uri: getStaticAssetUrl('images/beta/rated-note.png'),
+                uri: '/static/images/beta/rated-note.png',
               }}
               style={styles.image}
               resizeMode="cover"
@@ -317,7 +315,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Image
               source={{
-                uri: getStaticAssetUrl('images/beta/add-a-note.png'),
+                uri: '/static/images/beta/add-a-note.png',
               }}
               style={styles.image}
               resizeMode="contain"
@@ -349,7 +347,7 @@ export const BetaGuideScreen = ({}: NativeStackScreenProps<
 
             <Image
               source={{
-                uri: getStaticAssetUrl('images/beta/helpful-note.png'),
+                uri: '/static/images/beta/helpful-note.png',
               }}
               style={styles.image}
               resizeMode="contain"

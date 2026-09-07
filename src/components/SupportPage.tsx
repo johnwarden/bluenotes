@@ -1,18 +1,16 @@
-import React from 'react'
+import {useMemo} from 'react'
 import {Linking, useWindowDimensions, View} from 'react-native'
-import RenderHtml from 'react-native-render-html'
+import RenderHtml, {type CustomTextualRenderer} from 'react-native-render-html'
 import {msg} from '@lingui/core/macro'
 import {useLingui} from '@lingui/react'
-import {useFocusEffect, useNavigation} from '@react-navigation/native'
+import {useNavigation} from '@react-navigation/native'
 
 import {usePalette} from '#/lib/hooks/usePalette'
 import {
   type CommonNavigatorParams,
-  type NativeStackScreenProps,
   type NavigationProp,
 } from '#/lib/routes/types'
 import {s} from '#/lib/styles'
-import {useSetMinimalShellMode} from '#/state/shell'
 import {ScrollView} from '#/view/com/util/Views'
 import * as Layout from '#/components/Layout'
 import {ViewHeader} from '../view/com/util/ViewHeader'
@@ -22,77 +20,76 @@ interface SupportPageProps {
   htmlContent: string
 }
 
-export const SupportPage: React.FC<SupportPageProps> = ({
-  title,
-  htmlContent,
-}) => {
+type SupportRouteName = Extract<
+  keyof CommonNavigatorParams,
+  | 'TermsOfService'
+  | 'CommunityGuidelines'
+  | 'CopyrightPolicy'
+  | 'PrivacyPolicy'
+  | 'GovernmentTermsOfService'
+  | 'Support'
+  | 'BetaGuide'
+  | 'AboutCommunityNotes'
+>
+
+const SUPPORT_ROUTE_MAP: Record<string, SupportRouteName> = {
+  '/about/support/tos': 'TermsOfService',
+  '/about/support/community-guidelines': 'CommunityGuidelines',
+  '/about/support/copyright': 'CopyrightPolicy',
+  '/about/support/privacy-policy': 'PrivacyPolicy',
+  '/about/support/tos-gov': 'GovernmentTermsOfService',
+  '/about/support': 'Support',
+  '/about/support/beta': 'BetaGuide',
+  '/about/support/community-notes': 'AboutCommunityNotes',
+}
+
+export function SupportPage({title, htmlContent}: SupportPageProps) {
   const pal = usePalette('default')
   const {_} = useLingui()
   const navigation = useNavigation<NavigationProp>()
-  const setMinimalShellMode = useSetMinimalShellMode()
   const {width} = useWindowDimensions()
 
-  useFocusEffect(
-    React.useCallback(() => {
-      setMinimalShellMode(false)
-    }, [setMinimalShellMode]),
-  )
-
   // Custom renderers for handling links - memoized to avoid "component defined during render" warning
-  const renderers = React.useMemo(
-    () => ({
-      a: ({TDefaultRenderer, ...props}: any) => {
-        const href = props.tnode.attributes.href
+  const renderers = useMemo(() => {
+    const a: CustomTextualRenderer = ({TDefaultRenderer, tnode, ...props}) => {
+      const href = tnode.attributes.href
 
-        const handlePress = () => {
-          if (href) {
-            if (href.startsWith('mailto:')) {
-              Linking.openURL(href)
-            } else if (
-              href.startsWith('http://') ||
-              href.startsWith('https://')
-            ) {
-              Linking.openURL(href)
-            } else {
-              // Handle internal navigation to other screens
-              const routeMap: {[key: string]: string} = {
-                '/about/support/tos': 'TermsOfService',
-                '/about/support/community-guidelines': 'CommunityGuidelines',
-                '/about/support/copyright': 'CopyrightPolicy',
-                '/about/support/privacy-policy': 'PrivacyPolicy',
-                '/about/support/tos-gov': 'GovernmentTermsOfService',
-                '/about/support': 'Help',
-                '/about/support/beta': 'BetaGuide',
-                '/about/support/community-notes': 'AboutCommunityNotes',
-              }
+      const handlePress = () => {
+        if (href) {
+          if (href.startsWith('mailto:')) {
+            void Linking.openURL(href)
+          } else if (
+            href.startsWith('http://') ||
+            href.startsWith('https://')
+          ) {
+            void Linking.openURL(href)
+          } else {
+            const [baseUrl] = href.split('#')
+            const route = SUPPORT_ROUTE_MAP[baseUrl]
 
-              const [baseUrl] = href.split('#')
-              const route = routeMap[baseUrl]
-
-              if (route && navigation) {
-                navigation.navigate(route as any)
-              }
+            if (route) {
+              navigation.navigate(route)
             }
           }
         }
+      }
 
-        // All links should be styled as clickable links
-        const linkStyle = {
-          color: pal.link.color,
-          textDecorationLine: 'underline' as const,
-        }
+      const linkStyle = {
+        color: pal.link.color,
+        textDecorationLine: 'underline' as const,
+      }
 
-        return (
-          <TDefaultRenderer
-            {...props}
-            onPress={handlePress}
-            style={linkStyle}
-          />
-        )
-      },
-    }),
-    [pal.link.color, navigation],
-  )
+      return (
+        <TDefaultRenderer
+          {...props}
+          tnode={tnode}
+          onPress={handlePress}
+          style={linkStyle}
+        />
+      )
+    }
+    return {a}
+  }, [pal.link.color, navigation])
 
   // Custom tag styles
   const tagsStyles = {
@@ -191,11 +188,10 @@ export const SupportPage: React.FC<SupportPageProps> = ({
 }
 
 // Higher-order component to create support page screens
-export const createSupportPageScreen = (title: string, htmlContent: string) => {
-  const SupportPageScreen = ({}: NativeStackScreenProps<
-    CommonNavigatorParams,
-    any
-  >) => <SupportPage title={title} htmlContent={htmlContent} />
+export function createSupportPageScreen(title: string, htmlContent: string) {
+  function SupportPageScreen() {
+    return <SupportPage title={title} htmlContent={htmlContent} />
+  }
   SupportPageScreen.displayName = `${title.replace(/\s+/g, '')}Screen`
   return SupportPageScreen
 }

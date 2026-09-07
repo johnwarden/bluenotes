@@ -1,3 +1,4 @@
+import {type OAuthSession} from '@atproto/oauth-client-browser'
 import {describe, expect, it, jest} from '@jest/globals'
 
 import {
@@ -38,19 +39,20 @@ function oauthSession(overrides?: {
     serverMetadata: {issuer: 'https://bsky.social'},
     getTokenInfo:
       overrides?.getTokenInfo ??
-      (async () => ({
-        aud: 'https://truffle.us-east.host.bsky.network',
-        sub: 'did:plc:alice',
-        scope: 'atproto transition:generic',
-        iss: 'https://bsky.social',
-      })),
+      (() =>
+        Promise.resolve({
+          aud: 'https://truffle.us-east.host.bsky.network',
+          sub: 'did:plc:alice',
+          scope: 'atproto transition:generic',
+          iss: 'https://bsky.social',
+        })),
   }
 }
 
 function mockPublicProfileFetch(handle: string | null, ok = true) {
   return jest.spyOn(globalThis, 'fetch').mockResolvedValue({
     ok,
-    json: async () => (handle ? {handle} : {}),
+    json: () => Promise.resolve(handle ? {handle} : {}),
   } as Response)
 }
 
@@ -62,18 +64,20 @@ describe('oauthAgentToSessionAccount', () => {
       com: {
         atproto: {
           server: {
-            getSession: jest.fn(async () => {
-              throw new Error('getSession must not run for OAuth')
-            }),
+            getSession: jest.fn(() =>
+              Promise.reject(new Error('getSession must not run for OAuth')),
+            ),
           },
         },
       },
       app: {
         bsky: {
           actor: {
-            getProfile: jest.fn(async () => {
-              throw new Error('DPoP getProfile must not run for OAuth')
-            }),
+            getProfile: jest.fn(() =>
+              Promise.reject(
+                new Error('DPoP getProfile must not run for OAuth'),
+              ),
+            ),
           },
         },
       },
@@ -81,8 +85,8 @@ describe('oauthAgentToSessionAccount', () => {
 
     try {
       const account = await oauthAgentToSessionAccount(
-        agent as never,
-        oauthSession() as never,
+        agent,
+        oauthSession() as unknown as OAuthSession,
       )
 
       expect(account).toMatchObject({
@@ -116,9 +120,7 @@ describe('oauthAgentToSessionAccount', () => {
       app: {
         bsky: {
           actor: {
-            getProfile: jest.fn(async () => {
-              throw new Error('Unavailable')
-            }),
+            getProfile: jest.fn(() => Promise.reject(new Error('Unavailable'))),
           },
         },
       },
@@ -126,8 +128,8 @@ describe('oauthAgentToSessionAccount', () => {
 
     try {
       const account = await oauthAgentToSessionAccount(
-        agent as never,
-        oauthSession() as never,
+        agent,
+        oauthSession() as unknown as OAuthSession,
       )
 
       expect(account.did).toBe('did:plc:alice')
@@ -169,9 +171,8 @@ describe('protectOauthSessionFromAppViewGetProfile', () => {
   })
 
   it('routes getProfile through public AppView so DPoP 401 cannot delStored', async () => {
-    const inner = jest.fn(
-      async (_pathname: string, _init?: RequestInit) =>
-        new Response('nope', {status: 401}),
+    const inner = jest.fn((_pathname: string, _init?: RequestInit) =>
+      Promise.resolve(new Response('nope', {status: 401})),
     )
     const session: {
       fetchHandler: (pathname: string, init?: RequestInit) => Promise<Response>
