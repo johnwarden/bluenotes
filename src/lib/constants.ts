@@ -13,7 +13,7 @@ export const BSKY_SERVICE_DID = 'did:web:bsky.social'
 export const PUBLIC_BSKY_SERVICE = 'https://public.api.bsky.app'
 export const DEFAULT_SERVICE = BSKY_SERVICE
 
-export const APP_NAME = 'Bluenotes'
+// Community Notes service URLs
 export const LOCAL_DEV_COMMUNITY_NOTES_SERVICE =
   Platform.OS === 'android' ? 'http://10.0.2.2:2595' : 'http://localhost:2595'
 export const STAGING_COMMUNITY_NOTES_SERVICE = 'https://api.bluenotes.social'
@@ -28,7 +28,6 @@ export function COMMUNITY_NOTES_SERVICE(serviceUrl: string) {
   }
   return LOCAL_DEV_COMMUNITY_NOTES_SERVICE
 }
-
 const HELP_DESK_LANG = 'en-us'
 export const HELP_DESK_URL = `https://blueskyweb.zendesk.com/hc/${HELP_DESK_LANG}`
 export const CHAT_SERVICE = 'https://api.bsky.chat'
@@ -37,6 +36,7 @@ export const EMBED_SCRIPT = `${EMBED_SERVICE}/static/embed.js`
 export const BSKY_DOWNLOAD_URL = 'https://bsky.app/download'
 export const STARTER_PACK_MAX_SIZE = 150
 export const CARD_ASPECT_RATIO = 1200 / 630
+export const APP_NAME = 'Bluenotes'
 
 // HACK
 // Yes, this is exactly what it looks like. It's a hard-coded constant
