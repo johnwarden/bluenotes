@@ -1,8 +1,9 @@
 """Login helpers.
 
 - Soft-anon: dismiss the beta welcome modal via Explore without signing in.
-- OAuth: handle-only form → PDS consent → DPoP session (not “Use password
-  instead”). Skipped by tests when OAUTH_* creds are missing.
+- OAuth: handle-only form → PDS consent → OAuth session (not “Use password
+  instead”). Notes getProposals then uses service-auth Bearer, not
+  notes-URL DPoP. Skipped by tests when OAUTH_* creds are missing.
 - Password: Maestro testIDs, used only for optional propose/vote.
 """
 
@@ -77,7 +78,7 @@ def _fill_first(driver: WebDriver, locators: list[tuple[str, str]], value: str) 
 
 
 def login_with_oauth(driver: WebDriver, settings: Settings, timeout: float = 90) -> bool:
-    """Handle-only OAuth (DPoP). Does not click Use password instead."""
+    """Handle-only OAuth. Does not click Use password instead."""
     if not settings.has_oauth_creds:
         return False
 

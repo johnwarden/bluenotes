@@ -33,9 +33,10 @@ chrome on Community Notes feeds, the **main home feed** (same post card),
 and the **post thread**. Helpful notes must look like “Readers added
 context”, not the rate-proposed prompt; proposed notes must show “Is this
 proposed note helpful?”, not the helpful-context presentation. CN-tab
-Explore alone is not a PASS. The signed-in OAuth/DPoP three-surface test
-skips unless `OAUTH_IDENTIFIER` and `OAUTH_PASSWORD` are set. `propose` /
-`vote` skip unless `BSKY_IDENTIFIER` and `BSKY_APP_PASSWORD` are set (and
+Explore alone is not a PASS. The signed-in OAuth service-auth
+three-surface test skips unless `OAUTH_IDENTIFIER` and `OAUTH_PASSWORD`
+are set. `propose` / `vote` skip unless `BSKY_IDENTIFIER` and
+`BSKY_APP_PASSWORD` are set (and
 `SMOKE_ALLOW_WRITES=1` against non-local URLs). Never send an empty
 `Authorization: Bearer`.
 

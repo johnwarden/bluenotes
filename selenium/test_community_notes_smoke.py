@@ -18,7 +18,7 @@ is never a PASS for the other. Assert both modes when fixtures exist.
 
 Explore on the CN tab alone is not sufficient.
 
-Soft-anon is the default CI gate. Signed-in OAuth/DPoP picks known
+Soft-anon is the default CI gate. Signed-in OAuth service-auth picks known
 noted posts and asserts all three surfaces; it skips when creds are missing.
 """
 
@@ -37,6 +37,7 @@ from conftest import Settings
 from assertions import TAB_NOTE_MODE, NoteMode, infer_note_mode
 from helpers import (
     NOTE_BODY_SURFACES,
+    AuthMode,
     NotedPost,
     assert_getproposals_auth,
     assert_getproposals_returned_note,
@@ -175,7 +176,7 @@ def _assert_surface(
     notes: list[str],
     *,
     surface: str,
-    auth_mode: str,
+    auth_mode: AuthMode,
     auth_required: bool,
     network_note_required: bool,
     mode: NoteMode | None = None,
@@ -202,11 +203,11 @@ def _assert_surface(
 def _require_oauth_creds(settings: Settings) -> None:
     if not settings.has_oauth_creds:
         pytest.skip(
-            "Signed-in OAuth/DPoP three-surface note-body test skipped: set "
-            "OAUTH_IDENTIFIER (or BSKY_IDENTIFIER) and OAUTH_PASSWORD. "
-            "Soft-anon still requires visible note.text on CN feeds, the "
-            "main home feed, and the post thread — not the CN tab alone. "
-            "Never send an empty Bearer."
+            "Signed-in OAuth service-auth three-surface note-body test "
+            "skipped: set OAUTH_IDENTIFIER (or BSKY_IDENTIFIER) and "
+            "OAUTH_PASSWORD. Soft-anon still requires visible note.text on "
+            "CN feeds, the main home feed, and the post thread — not the "
+            "CN tab alone. Never send an empty Bearer."
         )
 
 
@@ -398,12 +399,13 @@ def test_b_soft_anon_note_body_on_feeds_home_and_thread(
 
 @pytest.mark.live
 @pytest.mark.oauth
-def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
+def test_b_signed_in_oauth_service_auth_note_bodies_three_surfaces(
     live_app: Settings, driver: WebDriver
 ) -> None:
     """Signed-in OAuth: known notes on CN feed, home card, and thread.
 
-    getProposals must be DPoP (fetchWithAgentAuth). Skips without OAuth creds.
+    getProposals must be Bearer service-auth (getServiceAuth /
+    fetchWithAgentAuth), not notes-URL DPoP. Skips without OAuth creds.
     Asserts both helpful and proposed when fixtures exist.
     """
     _require_oauth_creds(live_app)
@@ -411,10 +413,10 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
 
     if not login_with_oauth(driver, live_app):
         pytest.fail(
-            "OAuth credentials were set but the handle-only DPoP flow did not "
-            "complete a signed-in session. Check PDS consent (OAUTH_PASSWORD "
-            "must be the account password, not an app password) and that "
-            "Authorization is never an empty Bearer."
+            "OAuth credentials were set but the handle-only OAuth flow did "
+            "not complete a signed-in session. Check PDS consent "
+            "(OAUTH_PASSWORD must be the account password, not an app "
+            "password) and that Authorization is never an empty Bearer."
         )
 
     failures: list[str] = []
@@ -440,7 +442,7 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
                 driver,
                 source_notes,
                 surface=f"/community-notes/{tab} (signed-in OAuth, {tab_mode})",
-                auth_mode="dpop",
+                auth_mode="service_auth",
                 auth_required=True,
                 network_note_required=True,
                 mode=tab_mode,
@@ -498,7 +500,7 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
                 notes_with_modes=probed_pairs or None,
             )
         home_events = probe_proposals(driver)
-        assert_getproposals_auth(home_events, mode="dpop", required=True)
+        assert_getproposals_auth(home_events, mode="service_auth", required=True)
         if probe_notes(home_events):
             assert_getproposals_returned_note(home_events, surface="main home feed")
 
@@ -521,7 +523,7 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
                     f"post thread {post.thread_path} "
                     f"(signed-in OAuth, {post.mode})"
                 ),
-                auth_mode="dpop",
+                auth_mode="service_auth",
                 auth_required=True,
                 network_note_required=True,
                 mode=post.mode,
@@ -532,8 +534,8 @@ def test_b_signed_in_oauth_dpop_note_bodies_three_surfaces(
 
     if failures:
         pytest.fail(
-            "Signed-in OAuth/DPoP: note body or matching helpful/proposed "
-            "chrome missing on one or more surfaces.\n"
+            "Signed-in OAuth service-auth: note body or matching "
+            "helpful/proposed chrome missing on one or more surfaces.\n"
             + "\n".join(f"- {item}" for item in failures)
         )
 
@@ -555,7 +557,7 @@ def test_e_cn_tab_loads_real_posts(
         pytest.skip(
             f"/{tab} presented the signed-out splash. Soft-anon getProposals "
             "is allowed; CN tabs may require a session. Set BSKY_IDENTIFIER "
-            "+ BSKY_APP_PASSWORD, or use the dedicated OAuth/DPoP test."
+            "+ BSKY_APP_PASSWORD, or use the dedicated OAuth service-auth test."
         )
     if surface == "error":
         pytest.fail(
@@ -572,8 +574,9 @@ def _password_jwt(settings: Settings) -> str:
     if not settings.identifier or not settings.password:
         pytest.skip(
             "Write test skipped: set BSKY_IDENTIFIER and BSKY_APP_PASSWORD "
-            "(or BSKY_PASSWORD). Signed-in note-body checks use the OAuth/DPoP "
-            "three-surface test (OAUTH_IDENTIFIER + OAUTH_PASSWORD) instead."
+            "(or BSKY_PASSWORD). Signed-in note-body checks use the OAuth "
+            "service-auth three-surface test (OAUTH_IDENTIFIER + "
+            "OAUTH_PASSWORD) instead."
         )
     if not settings.allow_writes:
         pytest.skip(

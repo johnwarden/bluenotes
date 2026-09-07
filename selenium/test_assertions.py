@@ -26,6 +26,7 @@ from helpers import (
     assert_getproposals_returned_note,
     authorization_is_dpop,
     authorization_is_empty_bearer,
+    authorization_is_service_auth_bearer,
     redact_authorization,
     redact_probe_events,
 )
@@ -145,11 +146,17 @@ def test_auth_headers_omit_empty_bearer() -> None:
     assert auth_headers("password-jwt") == {"Authorization": "Bearer password-jwt"}
 
 
-def test_dpop_and_empty_bearer_detection() -> None:
+def test_service_auth_and_empty_bearer_detection() -> None:
     assert authorization_is_empty_bearer("Bearer ")
     assert authorization_is_empty_bearer("Bearer")
     assert not authorization_is_empty_bearer(None)
     assert not authorization_is_empty_bearer("DPoP abc")
+    assert authorization_is_service_auth_bearer("Bearer abc.def")
+    assert not authorization_is_service_auth_bearer("Bearer ")
+    assert not authorization_is_service_auth_bearer("Bearer")
+    assert not authorization_is_service_auth_bearer("DPoP abc.def")
+    assert not authorization_is_service_auth_bearer(None)
+    # DPoP scheme is still detected so signed-in notes can reject it.
     assert authorization_is_dpop("DPoP abc.def")
     assert not authorization_is_dpop("Bearer abc")
     assert not authorization_is_dpop(None)
@@ -167,6 +174,39 @@ def test_getproposals_auth_omit_rejects_bearer_or_dpop() -> None:
             ],
             mode="omit",
         )
+    with pytest.raises(AssertionError, match="omit"):
+        assert_getproposals_auth(
+            [
+                {
+                    "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
+                    "authorization": "DPoP eyJ",
+                    "status": 200,
+                }
+            ],
+            mode="omit",
+        )
+    with pytest.raises(AssertionError, match="empty"):
+        assert_getproposals_auth(
+            [
+                {
+                    "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
+                    "authorization": "Bearer ",
+                    "status": 200,
+                }
+            ],
+            mode="omit",
+        )
+    assert_getproposals_auth(
+        [
+            {
+                "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
+                "authorization": None,
+                "status": 200,
+            }
+        ],
+        mode="omit",
+    )
+    assert_getproposals_auth([], mode="omit", required=False)
 
 
 def test_helpful_chrome_plus_body_is_not_proposed() -> None:
@@ -275,19 +315,19 @@ def test_getproposals_auth_errors_redact_tokens() -> None:
     assert jwt not in str(omit_exc.value)
     assert "Bearer <redacted>" in str(omit_exc.value)
 
-    with pytest.raises(AssertionError) as dpop_exc:
+    with pytest.raises(AssertionError) as service_auth_exc:
         assert_getproposals_auth(
             [
                 {
                     "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
-                    "authorization": f"Bearer {jwt}",
+                    "authorization": f"DPoP {jwt}",
                     "status": 200,
                 }
             ],
-            mode="dpop",
+            mode="service_auth",
         )
-    assert jwt not in str(dpop_exc.value)
-    assert "Bearer <redacted>" in str(dpop_exc.value)
+    assert jwt not in str(service_auth_exc.value)
+    assert "DPoP <redacted>" in str(service_auth_exc.value)
 
 
 def test_getproposals_returned_note_errors_redact_tokens() -> None:
@@ -311,7 +351,7 @@ def test_getproposals_returned_note_errors_redact_tokens() -> None:
     assert "DPoP <redacted>" in str(exc.value)
 
 
-def test_getproposals_auth_dpop_rejects_empty_or_bearer() -> None:
+def test_getproposals_auth_service_auth_rejects_empty_or_dpop() -> None:
     with pytest.raises(AssertionError, match="empty"):
         assert_getproposals_auth(
             [
@@ -321,26 +361,37 @@ def test_getproposals_auth_dpop_rejects_empty_or_bearer() -> None:
                     "status": 200,
                 }
             ],
-            mode="dpop",
+            mode="service_auth",
         )
-    with pytest.raises(AssertionError, match="DPoP"):
+    with pytest.raises(AssertionError, match="service-auth"):
         assert_getproposals_auth(
             [
                 {
                     "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
-                    "authorization": "Bearer real-jwt",
+                    "authorization": "DPoP eyJ",
                     "status": 200,
                 }
             ],
-            mode="dpop",
+            mode="service_auth",
+        )
+    with pytest.raises(AssertionError, match="service-auth"):
+        assert_getproposals_auth(
+            [
+                {
+                    "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
+                    "authorization": None,
+                    "status": 200,
+                }
+            ],
+            mode="service_auth",
         )
     assert_getproposals_auth(
         [
             {
                 "url": "https://api.bluenotes.social/xrpc/org.opencommunitynotes.getProposals?uris=at://x",
-                "authorization": "DPoP eyJ",
+                "authorization": "Bearer eyJ",
                 "status": 200,
             }
         ],
-        mode="dpop",
+        mode="service_auth",
     )

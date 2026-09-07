@@ -16,7 +16,7 @@ allowed):
 | | Check | Auth |
 | --- | --- | --- |
 | **A** | `org.opencommunitynotes.getConfig` succeeds; `labelerDid` set | unauth |
-| **B** | Visible ``note.text`` **anywhere** a noted post is shown: CN feeds, **main home feed** (same post card), **and** `/profile/…/post/…` thread. Helpful vs proposed must look different (body + matching chrome; one mode is not a PASS for the other) | soft-anon is the default gate; signed-in OAuth/DPoP is a separate test |
+| **B** | Visible ``note.text`` **anywhere** a noted post is shown: CN feeds, **main home feed** (same post card), **and** `/profile/…/post/…` thread. Helpful vs proposed must look different (body + matching chrome; one mode is not a PASS for the other) | soft-anon is the default gate; signed-in OAuth service-auth is a separate test |
 | **C** | `propose` succeeds | optional — skip if credentials missing |
 | **D** | `vote` persists | optional — same |
 | **E** | CN tabs `needs_your_help` / `new` / `rated_helpful` load real posts (not blank/error) | soft-anon or session |
@@ -38,8 +38,9 @@ when fixtures exist; one mode’s chrome is never a PASS for the other.
 **B signed-in OAuth:** pick posts known to have a helpful and/or proposed
 note. Assert CommunityNoteWidget ``note.text`` plus matching mode chrome
 on the CN feed, the main home feed, and the direct thread URL.
-`getProposals` must send `Authorization: DPoP <token>`.
-**Skips** when `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD` are missing.
+`getProposals` must send `Authorization: Bearer <service-auth jwt>`
+from PDS `getServiceAuth` (`fetchWithAgentAuth`). Notes-URL DPoP is
+wrong. **Skips** when `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD` are missing.
 
 `selenium/test_assertions.py` is offline: it fails chrome-only fixtures and
 cross-mode chrome (helpful body under rate-proposed UX, or the reverse) so
@@ -79,7 +80,7 @@ Offline assertions only (no Chrome, no live app):
 | `CHROME_BIN` | (auto) | Chrome binary override |
 | `BSKY_IDENTIFIER` | unset | Handle for optional C/D |
 | `BSKY_APP_PASSWORD` | unset | App password (or `BSKY_PASSWORD`) |
-| `OAUTH_IDENTIFIER` | unset | Handle for signed-in DPoP note-body test |
+| `OAUTH_IDENTIFIER` | unset | Handle for signed-in service-auth note-body test |
 | `OAUTH_PASSWORD` | unset | Account password for PDS OAuth consent (not an app password) |
 | `BSKY_PDS` | `https://bsky.social` | `createSession` host |
 | `SMOKE_ALLOW_WRITES` | `1` on localhost, else `0` | Required for C/D against production |
@@ -110,10 +111,11 @@ on CN feeds, the main home feed, and the post thread. Explore on the CN
 tab alone is not a PASS. As of 2026-09-06 production CN feeds render
 bodies; **home and thread do not** — the live B test fails those
 surfaces on purpose (product gap, not a flaky selector).
-- Signed-in path must use DPoP via `fetchWithAgentAuth`. Set `OAUTH_IDENTIFIER`
-  + `OAUTH_PASSWORD` to run it; otherwise it skips.
+- Signed-in path must use Bearer service-auth via `getServiceAuth` /
+  `fetchWithAgentAuth`. Set `OAUTH_IDENTIFIER` + `OAUTH_PASSWORD` to run
+  it; otherwise it skips. Do not send notes-URL DPoP.
 - C/D use a password session (`createSession` → non-empty Bearer). They do
-  not hand-roll DPoP.
+  not mint service-auth or hand-roll DPoP.
 
 ## CI
 
@@ -127,7 +129,7 @@ Chrome; that job installs stable Chrome and Linux deps via
 `CHROME_BIN` so Selenium Manager can drive it. A self-hosted runner is
 not required. No `AssertionError` path interpolates raw Authorization
 or DPoP: `assert_getproposals_auth` and `assert_getproposals_returned_note`
-redact to scheme-only (`DPoP <redacted>` / `Bearer <redacted>` / `absent`)
+redact to scheme-only (`Bearer <redacted>` / `DPoP <redacted>` / `absent`)
 and raise explicitly so pytest rewriting cannot dump tokens.
 
 Maestro (`yarn e2e:run`) and Jest (`yarn test`) are unchanged.
