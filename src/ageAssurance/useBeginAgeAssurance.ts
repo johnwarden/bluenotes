@@ -38,6 +38,11 @@ export function useBeginAgeAssurance() {
       if (!countryCode) {
         throw new Error(`Geolocation not available, cannot init age assurance.`)
       }
+      if (!BLUESKY_PROXY_DID) {
+        throw new Error(
+          `Bluesky proxy DID not available, cannot init age assurance.`,
+        )
+      }
 
       const {token} = await pdsClient.call(com.atproto.server.getServiceAuth, {
         aud: BLUESKY_PROXY_DID,
