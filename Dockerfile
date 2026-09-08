@@ -134,7 +134,9 @@ ENTRYPOINT ["dumb-init", "--"]
 WORKDIR /bskyweb
 COPY --from=go-build /bskyweb /usr/bin/bskyweb
 
-CMD ["/usr/bin/bskyweb"]
+# Blue Notes' bskyweb still requires the serve subcommand; upstream's bare CMD
+# prints CLI usage and exits, so Fly canaries never bind :8100.
+CMD ["/usr/bin/bskyweb", "serve"]
 
 LABEL org.opencontainers.image.source=https://github.com/johnwarden/bluenotes
 LABEL org.opencontainers.image.description="Bluenotes Web App"
