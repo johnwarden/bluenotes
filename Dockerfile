@@ -17,6 +17,11 @@ ENV CI=1
 # use the pnpm version specified in package.json
 ENV pnpm_config_pm_on_fail=download
 
+# Webpack after the 1.133 rebase exceeds Node's default ~2GB heap on
+# Fly/Depot builders. GHA ubuntu-latest can build-web; Docker cannot.
+# Matches the PR-test NODE_OPTIONS pattern at a higher cap for webpack.
+ENV NODE_OPTIONS=--max-old-space-size=8192
+
 # The latest git hash of the preview branch on render.com
 # https://render.com/docs/docker-secrets#environment-variables-in-docker-builds
 ARG RENDER_GIT_COMMIT
