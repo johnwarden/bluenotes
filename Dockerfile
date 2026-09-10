@@ -17,6 +17,11 @@ ENV CI=1
 # use the pnpm version specified in package.json
 ENV pnpm_config_pm_on_fail=download
 
+# Webpack after the 1.133 rebase exceeds Node's default ~2GB heap on
+# Fly/Depot builders. GHA ubuntu-latest can build-web; Docker cannot.
+# Matches the PR-test NODE_OPTIONS pattern at a higher cap for webpack.
+ENV NODE_OPTIONS=--max-old-space-size=8192
+
 # The latest git hash of the preview branch on render.com
 # https://render.com/docs/docker-secrets#environment-variables-in-docker-builds
 ARG RENDER_GIT_COMMIT
@@ -112,7 +117,9 @@ ENTRYPOINT ["dumb-init", "--"]
 WORKDIR /bskyweb
 COPY --from=go-build /bskyweb /usr/bin/bskyweb
 
-CMD ["/usr/bin/bskyweb"]
+# Blue Notes' bskyweb still requires the serve subcommand; upstream's bare CMD
+# prints CLI usage and exits, so Fly canaries never bind :8100.
+CMD ["/usr/bin/bskyweb", "serve"]
 
 LABEL org.opencontainers.image.source=https://github.com/bluesky-social/social-app
 LABEL org.opencontainers.image.description="bsky.app Web App"
