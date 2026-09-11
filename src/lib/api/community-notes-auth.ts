@@ -1,6 +1,21 @@
 import {com} from '#/lexicons'
 
 /**
+ * Notes service DID used as `com.atproto.server.getServiceAuth` aud.
+ * `org.opencommunitynotes.getConfig.feedGeneratorDid` must match this pin
+ * (bare DID, or `did#serviceId`). Drift is rejected so a compromised notes
+ * host cannot mint a JWT for an attacker audience.
+ *
+ * Documented next to `COMMUNITY_NOTES_LABELER_DID` in
+ * `#/lib/community-notes/labels`.
+ */
+export const COMMUNITY_NOTES_FEED_GENERATOR_DID = {
+  PROD: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+  STAGING: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+  DEV: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+} as const
+
+/**
  * Notes auth only needs fetchHandler. Avoid importing
  * `@atproto/oauth-client-browser` so this module can live on
  * community-notes-feature without that rebrand OAuth dependency.
@@ -126,11 +141,36 @@ export function notesServiceOriginFromUrl(url: string): string {
   return new URL(url).origin
 }
 
+const PINNED_NOTES_SERVICE_DIDS = new Set<string>(
+  Object.values(COMMUNITY_NOTES_FEED_GENERATOR_DID),
+)
+
+/**
+ * Bare DID from a getServiceAuth audience (`did` or `did#serviceId`).
+ */
+export function notesAudienceDid(aud: string): string {
+  const hash = aud.indexOf('#')
+  return hash === -1 ? aud : aud.slice(0, hash)
+}
+
+/**
+ * True when `aud` is the pinned notes service DID, optionally with a
+ * `#serviceId` fragment.
+ */
+export function isPinnedNotesServiceAudience(aud: string): boolean {
+  return (
+    typeof aud === 'string' &&
+    aud.startsWith('did:') &&
+    PINNED_NOTES_SERVICE_DIDS.has(notesAudienceDid(aud))
+  )
+}
+
 /**
  * Notes service DID used as `getServiceAuth.aud`.
  * `org.opencommunitynotes.getConfig.feedGeneratorDid` is a bare DID
  * (or `did#serviceId` if the service ever returns that form). Notes
- * accepts both.
+ * accepts both, but the DID must match `COMMUNITY_NOTES_FEED_GENERATOR_DID`.
+ * A well-formed attacker DID is rejected (audience drift).
  */
 export async function getNotesServiceAudience(
   notesUrl: string,
@@ -152,6 +192,11 @@ export async function getNotesServiceAudience(
   if (typeof aud !== 'string' || !aud.startsWith('did:')) {
     throw new Error('getConfig.feedGeneratorDid is not a DID')
   }
+  if (!isPinnedNotesServiceAudience(aud)) {
+    throw new Error(
+      'getConfig.feedGeneratorDid does not match the pinned notes service DID',
+    )
+  }
 
   notesAudienceCache.set(origin, {aud, fetchedAt: Date.now()})
   return aud
@@ -168,6 +213,12 @@ export async function mintNotesServiceAuth(
   agent: ServiceAuthAgent,
   params: ServiceAuthParams,
 ): Promise<string> {
+  if (!isPinnedNotesServiceAudience(params.aud)) {
+    throw new Error(
+      'getServiceAuth aud does not match the pinned notes service DID',
+    )
+  }
+
   const callParams = {
     aud: params.aud,
     lxm: params.lxm,
@@ -247,7 +298,8 @@ function fetchOmittingAuthorization(
  * (atproto-community-notes PR #9 / tip 6c7f08af):
  *
  * - OAuth (`OauthBskyAppAgent`): mint `com.atproto.server.getServiceAuth`
- *   at the PDS (`aud` = getConfig.feedGeneratorDid, `lxm` = this method)
+ *   at the PDS (`aud` = pinned notes DID confirmed by getConfig, `lxm` =
+ *   this method)
  *   and send `Authorization: Bearer <service-auth jwt>`. Never send
  *   empty-JWKS OAuth DPoP to notes (`OAuthSession.fetchHandler` against
  *   the notes URL). Never replay a notes-bound DPoP proof to the PDS.

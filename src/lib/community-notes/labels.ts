@@ -17,6 +17,14 @@ export const COMMUNITY_NOTES_LABELER_DID = {
   DEV: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
 } as const
 
+/**
+ * Notes service DID used as `com.atproto.server.getServiceAuth` aud.
+ * Defined with the auth pin so `lib/api` does not import this module
+ * (and its post-shadow dependency). Re-exported here next to the
+ * labeler DID.
+ */
+export {COMMUNITY_NOTES_FEED_GENERATOR_DID} from '#/lib/api/community-notes-auth'
+
 // Dynamic labeler DID management
 let currentLabelerDid: string | null = null // null means no labeler configured
 
