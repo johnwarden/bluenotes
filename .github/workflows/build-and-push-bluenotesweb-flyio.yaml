@@ -1,13 +1,21 @@
 name: build-and-push-bskyweb-flyio
 
 on:
+  # Production deploy only. Do not add pull_request or workflow_dispatch;
+  # those would deploy from a PR or a manual click.
   push:
     branches: [release]
 
-# Prevent concurrent deployments
+# Newer release pushes cancel an in-progress deploy so an older SHA cannot
+# finish last.
 concurrency:
   group: production-deployment
-  cancel-in-progress: false
+  cancel-in-progress: true
+
+# Deploy authenticates with FLY_API_TOKEN, not github.token. Read is enough
+# for checkout.
+permissions:
+  contents: read
 
 jobs:
   pre-deployment:
@@ -15,7 +23,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
@@ -47,12 +57,34 @@ jobs:
     environment: production
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Install Fly.io CLI
+        env:
+          # Pin both version and sha256. Bumping requires updating both from
+          # https://github.com/superfly/flyctl/releases (Linux x86_64 tarball).
+          FLYCTL_VERSION: "0.4.102"
+          FLYCTL_SHA256: "94a7219201660d57705d6f92fc4a75199aa0c491c349325fd67dca0b43bc588e"
         run: |
-          curl -L https://fly.io/install.sh | sh
-          echo "$HOME/.fly/bin" >> $GITHUB_PATH
+          set -euo pipefail
+          arch="$(uname -m)"
+          if [ "$arch" != "x86_64" ]; then
+            echo "Unsupported runner architecture: $arch (expected x86_64)"
+            exit 1
+          fi
+          tarball="flyctl_${FLYCTL_VERSION}_Linux_x86_64.tar.gz"
+          url="https://github.com/superfly/flyctl/releases/download/v${FLYCTL_VERSION}/${tarball}"
+          curl -fsSL -o "$tarball" "$url"
+          echo "${FLYCTL_SHA256}  ${tarball}" | sha256sum --strict -c -
+          bin_dir="$HOME/.fly/bin"
+          mkdir -p "$bin_dir"
+          tar -xzf "$tarball" -C "$bin_dir" flyctl
+          chmod +x "$bin_dir/flyctl"
+          ln -sfn "$bin_dir/flyctl" "$bin_dir/fly"
+          echo "$bin_dir" >> "$GITHUB_PATH"
+          "$bin_dir/flyctl" version
 
       - name: Deploy to Fly.io
         run: |
