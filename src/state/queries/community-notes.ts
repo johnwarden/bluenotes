@@ -9,6 +9,7 @@ import {
   updateNoteShadow,
   useNoteShadow,
 } from '#/state/cache/community-notes-shadow'
+import {communityNotesProposalsQueryKey} from '#/state/queries/community-notes-batch'
 import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 
 export interface CommunityNoteView extends CommunityNote {
@@ -37,7 +38,7 @@ export function useProposalsQuery(
   const queryClient = useQueryClient()
 
   const query = useQuery<CommunityNote[]>({
-    queryKey: ['community-notes-proposals', subjectUri, status],
+    queryKey: communityNotesProposalsQueryKey(subjectUri, status),
     queryFn: async () => {
       const response = await apilib.getProposals(auth, subjectUri, {
         status,

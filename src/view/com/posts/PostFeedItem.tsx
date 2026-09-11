@@ -21,6 +21,11 @@ import {
 } from '#/state/cache/post-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useProposalsQuery} from '#/state/queries/community-notes'
+import {
+  shouldDisableWidgetProposalsFetch,
+  shouldEnablePerPostProposalsQuery,
+  useCommunityNotesBatchFallbackForUri,
+} from '#/state/queries/community-notes-batch'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
@@ -540,9 +545,15 @@ let PostContent = ({
         ? 'needs_more_ratings'
         : undefined
 
-  const shouldQueryNotes = communityNotesFeedMode
-    ? false
-    : noteStatus !== undefined
+  const batchPrefetchFailedForUri = useCommunityNotesBatchFallbackForUri(
+    post.uri,
+  )
+  const shouldQueryNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
 
   const notesQuery = useProposalsQuery(
     post.uri,
@@ -638,7 +649,10 @@ let PostContent = ({
             communityNotesFeedMode === 'rated_helpful'
           }
           parentHover={_hover}
-          disableFetch={!!communityNotesFeedMode}
+          disableFetch={shouldDisableWidgetProposalsFetch({
+            communityNotesFeedMode,
+            batchPrefetchFailedForUri,
+          })}
         />
       )}
       {!communityNotesFeedMode && (
