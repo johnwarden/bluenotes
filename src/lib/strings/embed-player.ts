@@ -4,13 +4,33 @@ import {IS_WEB} from '#/env'
 
 const {height: SCREEN_HEIGHT} = Dimensions.get('window')
 
-const IFRAME_HOST = IS_WEB
-  ? window.location.host === 'localhost:8100'
-    ? 'http://localhost:8100'
-    : 'https://bsky.app'
-  : __DEV__ && !process.env.JEST_WORKER_ID
-    ? 'http://localhost:8100'
-    : 'https://bsky.app'
+/**
+ * Host for YouTube iframe player pages.
+ *
+ * Web uses the current origin so Blue Notes is not framed from bsky.app,
+ * which sends `X-Frame-Options: SAMEORIGIN`. Local web (including
+ * `localhost:8100`) therefore stays same-origin automatically.
+ *
+ * Native WebViews load the URI as a top-level document, so they keep the
+ * Bluesky production host, or `localhost:8100` in local native dev.
+ */
+function getIframeHost(): string {
+  if (IS_WEB) {
+    return window.location.origin
+  }
+  if (__DEV__ && !process.env.JEST_WORKER_ID) {
+    return 'http://localhost:8100'
+  }
+  return 'https://bsky.app'
+}
+
+/**
+ * Twitch requires the embedding page hostname in `parent=`.
+ * Web uses the current hostname; native WebViews use localhost.
+ */
+function getTwitchParentHostname(): string {
+  return IS_WEB ? window.location.hostname : 'localhost'
+}
 
 export const embedPlayerSources = [
   'youtube',
@@ -139,7 +159,7 @@ export function parseEmbedPlayerFromUrl(
       return {
         type: 'youtube_video',
         source: 'youtube',
-        playerUri: `${IFRAME_HOST}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
+        playerUri: `${getIframeHost()}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
       }
     }
   }
@@ -165,7 +185,7 @@ export function parseEmbedPlayerFromUrl(
         type: isShorts ? 'youtube_short' : 'youtube_video',
         source: isShorts ? 'youtubeShorts' : 'youtube',
         hideDetails: isShorts ? true : undefined,
-        playerUri: `${IFRAME_HOST}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
+        playerUri: `${getIframeHost()}/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
       }
     }
   }
@@ -176,7 +196,7 @@ export function parseEmbedPlayerFromUrl(
     urlp.hostname === 'www.twitch.tv' ||
     urlp.hostname === 'm.twitch.tv'
   ) {
-    const parent = IS_WEB ? window.location.hostname : 'localhost'
+    const parent = getTwitchParentHostname()
 
     const [__, channelOrVideo, clipOrId, id] = urlp.pathname.split('/')
 
