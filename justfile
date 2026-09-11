@@ -27,6 +27,11 @@ deps:
 	pnpm install --frozen-lockfile
 	cd bskyembed && pnpm install --frozen-lockfile
 
+# Scan the social-app lock document (last YAML doc in root pnpm-lock.yaml).
+# Findings are advisory; coverage (thousands of packages, not 19) is the gate.
+osv-scan *args:
+	python3 scripts/osv-scan-app-lock.py scan {{args}}
+
 bskyweb:
 	cd bskyweb/; go mod tidy; go build -v -tags timetzdata -o bskyweb ./cmd/bskyweb; ./bskyweb serve --appview-host=https://public.api.bsky.app
 

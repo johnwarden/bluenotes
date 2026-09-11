@@ -120,6 +120,7 @@ selenium/.pytest_cache/
 selenium/__pycache__/
 selenium/**/__pycache__/
 selenium/artifacts/
+scripts/__pycache__/
 
 # Oxlint
 .oxlintcache

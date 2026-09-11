@@ -1,0 +1,67 @@
+# Scan the social-app pnpm lock document (issue #48).
+#
+# Root pnpm-lock.yaml is two YAML documents. osv-scanner v2 reads only the
+# first (~19 package-manager packages). This workflow extracts the last
+# document out-of-tree and scans that copy so the social-app tree is visible.
+#
+# Findings are advisory. Coverage (thousands of packages, not 19) is the gate.
+# Vulnerability triage is tracked separately (issue #43).
+name: OSV-Scanner
+
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches:
+      - bluenotes-rebrand
+      - community-notes-feature
+      - tooling
+
+concurrency:
+  group: '${{ github.workflow }}-${{ github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scan-app-lock:
+    name: Scan social-app lock document
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Test YAML document split
+        run: python3 scripts/osv-scan-app-lock.py selftest
+
+      - name: Assert last document is the app lock
+        run: python3 scripts/osv-scan-app-lock.py coverage --out-dir "$RUNNER_TEMP/osv-app-lock"
+
+      - name: Install osv-scanner
+        env:
+          OSV_SCANNER_VERSION: v2.5.1
+          OSV_SCANNER_SHA256: f9f25499a2c8cc367b3af45df2ea7eeca7fbccceab9c35079968f4b3652194be
+        run: |
+          set -euo pipefail
+          curl -sSfL -o "$RUNNER_TEMP/osv-scanner" \
+            "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  $RUNNER_TEMP/osv-scanner" | sha256sum -c -
+          sudo install -m 0755 "$RUNNER_TEMP/osv-scanner" /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Scan extracted app lock
+        run: |
+          python3 scripts/osv-scan-app-lock.py scan \
+            --compare-naive \
+            --out-dir "$RUNNER_TEMP/osv-app-lock"
+
+      - name: Upload app-lock scan artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: osv-app-lock-scan
+          path: ${{ runner.temp }}/osv-app-lock/
+          if-no-files-found: warn
