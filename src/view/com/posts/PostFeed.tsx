@@ -34,6 +34,7 @@ import {listenPostCreated} from '#/state/events'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useTrendingSettings} from '#/state/preferences/trending'
 import {STALE} from '#/state/queries'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   type AuthorFilter,
   type FeedDescriptor,
@@ -259,6 +260,9 @@ let PostFeed = ({
   const {t: l} = useLingui()
   const queryClient = useQueryClient()
   const {currentAccount, hasSession} = useSession()
+  const communityNotesAuth = useCommunityNotesAuth()
+  const communityNotesAuthRef = useRef(communityNotesAuth)
+  communityNotesAuthRef.current = communityNotesAuth
   const initialNumToRender = useInitialNumToRender()
   const feedFeedback = useFeedFeedbackContext()
   const [isPTRing, setIsPTRing] = useState(false)
@@ -401,7 +405,13 @@ let PostFeed = ({
     }
   }, [pollInterval, checkForNew])
 
-  // Community Notes: batch prefetch proposals for the newest page
+  /*
+   * Community Notes: batch prefetch proposals for the newest page.
+   * Auth is read from a ref so a new object each render does not cancel
+   * an in-flight prefetch. Signed-in sessions must mint/send Bearer
+   * (#41); passing null forced a soft-anon omit while the avatar stayed
+   * signed in.
+   */
   const latestPageFetchedAt = data?.pages?.[data.pages.length - 1]?.fetchedAt
   const cnInFlightRef = useRef<Map<string, Set<string>>>(new Map())
   useEffect(() => {
@@ -440,9 +450,13 @@ let PostFeed = ({
       try {
         const batches = chunk(toFetch, 30)
         for (const batch of batches) {
-          const res = await apilib.getProposals(null, batch, {
-            status: communityNotesFeedMode,
-          })
+          const res = await apilib.getProposals(
+            communityNotesAuthRef.current,
+            batch,
+            {
+              status: communityNotesFeedMode,
+            },
+          )
           if (canceled) return
 
           const byTarget = new Map<
