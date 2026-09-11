@@ -1,5 +1,14 @@
 import {afterEach, beforeEach, describe, expect, it, jest} from '@jest/globals'
 
+/*
+ * community-notes.ts imports COMMUNITY_NOTES_SERVICE from constants, which
+ * pulls expo-constants. Mock the service URL so this suite does not depend
+ * on native Expo modules (pre-existing requireOptionalNativeModule gap).
+ */
+jest.mock('#/lib/constants', () => ({
+  COMMUNITY_NOTES_SERVICE: () => 'https://api.bluenotes.social',
+}))
+
 import {getProposals, propose, vote} from '../community-notes'
 import {
   COMMUNITY_NOTES_FEED_GENERATOR_DID,
@@ -551,19 +560,21 @@ describe('fetchWithAgentAuth', () => {
   })
 
   it('requireAuth does not mint when getConfig audience has drifted', async () => {
-    globalThis.fetch = jest.fn((input: RequestInfo | URL): Promise<Response> => {
-      const url = requestUrl(input)
-      if (url.includes(NOTES_LXM.getConfig)) {
-        return Promise.resolve(
-          jsonResponse({
-            version: '1',
-            labelerDid: 'did:plc:labeler',
-            feedGeneratorDid: ATTACKER_DID,
-          }),
-        )
-      }
-      return Promise.resolve(jsonResponse({}, 500))
-    })
+    globalThis.fetch = jest.fn(
+      (input: RequestInfo | URL): Promise<Response> => {
+        const url = requestUrl(input)
+        if (url.includes(NOTES_LXM.getConfig)) {
+          return Promise.resolve(
+            jsonResponse({
+              version: '1',
+              labelerDid: 'did:plc:labeler',
+              feedGeneratorDid: ATTACKER_DID,
+            }),
+          )
+        }
+        return Promise.resolve(jsonResponse({}, 500))
+      },
+    )
     const getServiceAuth = jest.fn((params: ServiceAuthParams) =>
       Promise.resolve({data: {token: `${SERVICE_JWT}:${params.aud}`}}),
     )
