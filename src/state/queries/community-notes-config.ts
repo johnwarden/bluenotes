@@ -25,19 +25,23 @@ function serviceUrlOf(agent: ServiceAuthAgent): string {
 
 /**
  * 1.133 replacement for `useAgent()` used by notes XRPC helpers.
- * Password sessions expose `accessJwt`. After merge with rebrand,
- * OAuth sessions set `isOauthSession` and mint via `pdsClient`.
+ * Password sessions expose `accessJwt` and mint via `pdsClient`.
+ * Signed-in OAuth (empty persisted `accessJwt`, or an explicit
+ * `isOauthSession` flag after the rebrand merge) also mints via
+ * `pdsClient` so getProposals can send Bearer (#41).
  */
 export function useCommunityNotesAuth(): ServiceAuthAgent {
-  const {currentAccount} = useSession()
+  const {currentAccount, hasSession} = useSession()
   const pdsClient = useMaybePdsClient()
+  const accessJwt = currentAccount?.accessJwt
+  const hasPasswordJwt = typeof accessJwt === 'string' && accessJwt.length > 0
   return {
     service: currentAccount?.service ?? DEFAULT_SERVICE,
-    session: {accessJwt: currentAccount?.accessJwt},
+    session: {accessJwt},
     pdsClient: (pdsClient ?? undefined) as ServiceAuthPdsClient | undefined,
     isOauthSession: Boolean(
       (currentAccount as {isOauthSession?: boolean} | undefined)
-        ?.isOauthSession,
+        ?.isOauthSession || (hasSession && !hasPasswordJwt),
     ),
   }
 }

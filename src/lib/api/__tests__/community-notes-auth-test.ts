@@ -11,6 +11,7 @@ jest.mock('#/lib/constants', () => ({
 
 import {getProposals, propose, vote} from '../community-notes'
 import {
+  canMintNotesServiceAuth,
   COMMUNITY_NOTES_FEED_GENERATOR_DID,
   fetchWithAgentAuth,
   getNotesServiceAudience,
@@ -64,6 +65,28 @@ function passwordAgent(accessJwt: string): ServiceAuthAgent {
   return {
     service: {toString: () => 'https://bsky.social'},
     session: {accessJwt},
+  }
+}
+
+function pdsClientAgent(opts?: {
+  token?: string
+  accessJwt?: string
+  isOauthSession?: boolean
+  fail?: boolean
+}): ServiceAuthAgent {
+  const call = jest.fn((_method: unknown, params: ServiceAuthParams) => {
+    if (opts?.fail) {
+      return Promise.reject(new Error('PDS getServiceAuth failed'))
+    }
+    return Promise.resolve({
+      token: opts?.token ?? `${SERVICE_JWT}:${params.aud}:${params.lxm}`,
+    })
+  })
+  return {
+    service: {toString: () => 'https://bsky.social'},
+    session: {accessJwt: opts?.accessJwt ?? ''},
+    isOauthSession: opts?.isOauthSession,
+    pdsClient: {call},
   }
 }
 
@@ -155,6 +178,34 @@ function lastNotesXrpcCall(fetchMock: jest.Mock) {
   const [url, init] = notesCalls[notesCalls.length - 1]
   return {url, init, headers: new Headers(init?.headers)}
 }
+
+describe('canMintNotesServiceAuth', () => {
+  it('is true for pdsClient.call or Agent getServiceAuth', () => {
+    expect(
+      canMintNotesServiceAuth({
+        pdsClient: {call: () => Promise.resolve({token: SERVICE_JWT})},
+      }),
+    ).toBe(true)
+    expect(
+      canMintNotesServiceAuth({
+        com: {
+          atproto: {
+            server: {
+              getServiceAuth: () =>
+                Promise.resolve({data: {token: SERVICE_JWT}}),
+            },
+          },
+        },
+      }),
+    ).toBe(true)
+  })
+
+  it('is false for a session-only or null agent', () => {
+    expect(canMintNotesServiceAuth(null)).toBe(false)
+    expect(canMintNotesServiceAuth({session: {accessJwt: 'jwt'}})).toBe(false)
+    expect(canMintNotesServiceAuth({session: {accessJwt: ''}})).toBe(false)
+  })
+})
 
 describe('getPasswordAccessJwt', () => {
   it('returns undefined for a missing or empty access token', () => {
@@ -305,6 +356,30 @@ describe('mintNotesServiceAuth', () => {
       mintNotesServiceAuth(agent, {aud: NOTES_DID, lxm: NOTES_LXM.propose}),
     ).resolves.toBe(SERVICE_JWT)
     expect(getServiceAuth).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefers 1.133 pdsClient.call over the Agent namespace', async () => {
+    const getServiceAuth = jest.fn(() =>
+      Promise.resolve({data: {token: 'namespace-jwt'}}),
+    )
+    const call = jest.fn((_method: unknown, params: ServiceAuthParams) => {
+      expect(params.aud).toBe(NOTES_DID)
+      expect(params.lxm).toBe(NOTES_LXM.getProposals)
+      return Promise.resolve({token: SERVICE_JWT})
+    })
+    const agent: ServiceAuthAgent = {
+      pdsClient: {call},
+      com: {atproto: {server: {getServiceAuth}}},
+    }
+
+    await expect(
+      mintNotesServiceAuth(agent, {
+        aud: NOTES_DID,
+        lxm: NOTES_LXM.getProposals,
+      }),
+    ).resolves.toBe(SERVICE_JWT)
+    expect(call).toHaveBeenCalledTimes(1)
+    expect(getServiceAuth).not.toHaveBeenCalled()
   })
 
   it('throws when getServiceAuth is missing', async () => {
@@ -518,7 +593,7 @@ describe('fetchWithAgentAuth', () => {
     expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
   })
 
-  it('getProposals falls back to soft-anon when service-auth mint fails', async () => {
+  it('getProposals omits Authorization on documented hard mint failure (#41)', async () => {
     const getServiceAuth = jest.fn(() =>
       Promise.reject(new Error('PDS getServiceAuth failed')),
     )
@@ -598,6 +673,61 @@ describe('fetchWithAgentAuth', () => {
       ([url]) => requestUrl(url as RequestInfo | URL).includes(NOTES_LXM.vote),
     )
     expect(voteCalls).toHaveLength(0)
+  })
+
+  it('getProposals mints via 1.133 pdsClient when signed in with empty accessJwt (#41)', async () => {
+    const agent = pdsClientAgent({
+      accessJwt: '',
+      isOauthSession: true,
+      token: SERVICE_JWT,
+    })
+
+    await fetchWithAgentAuth(
+      agent,
+      NOTES_GET,
+      {method: 'GET'},
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
+
+    expect(agent?.pdsClient?.call).toHaveBeenCalledTimes(1)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.get('Authorization') === 'Bearer ').toBe(false)
+  })
+
+  it('getProposals prefers service-auth mint for a password session with pdsClient (#41)', async () => {
+    const agent = pdsClientAgent({
+      accessJwt: 'password-jwt',
+      token: SERVICE_JWT,
+    })
+
+    await fetchWithAgentAuth(
+      agent,
+      NOTES_GET,
+      {method: 'GET'},
+      {lxm: NOTES_LXM.getProposals, requireAuth: false},
+    )
+
+    expect(agent?.pdsClient?.call).toHaveBeenCalledTimes(1)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.get('Authorization')).not.toBe('Bearer password-jwt')
+  })
+
+  it('omits Authorization for a truly unsigned agent (null)', async () => {
+    await fetchWithAgentAuth(
+      null,
+      NOTES_GET,
+      {method: 'GET'},
+      {
+        lxm: NOTES_LXM.getProposals,
+        requireAuth: false,
+      },
+    )
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.has('Authorization')).toBe(false)
+    expect(headers.get('Authorization') === 'Bearer ').toBe(false)
   })
 })
 
@@ -783,5 +913,43 @@ describe('community notes API auth', () => {
       aud,
       lxm: NOTES_LXM.propose,
     })
+  })
+
+  it('getProposals mints service-auth for useCommunityNotesAuth OAuth shape (#41)', async () => {
+    const agent = pdsClientAgent({
+      accessJwt: '',
+      isOauthSession: true,
+      token: SERVICE_JWT,
+    })
+
+    await getProposals(agent, NOTES_POST_URI)
+
+    expect(agent?.pdsClient?.call).toHaveBeenCalledTimes(1)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.has('DPoP')).toBe(false)
+  })
+
+  it('getProposals(null) omits Authorization (unsigned feed / logged-out)', async () => {
+    await getProposals(null, NOTES_POST_URI)
+
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    const header = headers.get('Authorization')
+    expect(header).toBeNull()
+    expect(header === 'Bearer ' || header === 'Bearer').toBe(false)
+  })
+
+  it('getProposals prefers pdsClient mint over password accessJwt (#41)', async () => {
+    const agent = pdsClientAgent({
+      accessJwt: 'password-jwt',
+      token: SERVICE_JWT,
+    })
+
+    await getProposals(agent, NOTES_POST_URI)
+
+    expect(agent?.pdsClient?.call).toHaveBeenCalledTimes(1)
+    const {headers} = lastNotesXrpcCall(globalThis.fetch as jest.Mock)
+    expect(headers.get('Authorization')).toBe(`Bearer ${SERVICE_JWT}`)
+    expect(headers.get('Authorization')).not.toBe('Bearer password-jwt')
   })
 })

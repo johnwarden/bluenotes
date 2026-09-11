@@ -83,9 +83,13 @@ export type FetchNotesAuthOptions = {
    */
   lxm?: string
   /**
-   * `true` for propose/vote: OAuth must mint a service-auth JWT.
-   * `false` for getProposals: mint when signed-in OAuth (viewer
-   * context); if minting fails, omit Authorization (soft-anon).
+   * `true` for propose/vote: a signed-in session must send a Bearer
+   * (OAuth mints; password may use `accessJwt`). Mint failure throws.
+   * `false` for getProposals: when a session is present, prefer minting
+   * service-auth and sending `Authorization: Bearer <jwt>`. Omit the
+   * header only when the session is truly unsigned, or on a documented
+   * hard mint failure (public note text can still load). Never send an
+   * empty Bearer.
    */
   requireAuth?: boolean
 }
@@ -110,6 +114,17 @@ export function getOauthSessionFromAgent(
 
 export function isOauthNotesAgent(agent: ServiceAuthAgent): boolean {
   return Boolean(agent?.oauthSession || agent?.isOauthSession)
+}
+
+/**
+ * True when the agent can mint `com.atproto.server.getServiceAuth`
+ * (1.133 `pdsClient.call` or the Agent XRPC namespace).
+ */
+export function canMintNotesServiceAuth(agent: ServiceAuthAgent): boolean {
+  if (agent?.pdsClient && typeof agent.pdsClient.call === 'function') {
+    return true
+  }
+  return typeof agent?.com?.atproto?.server?.getServiceAuth === 'function'
 }
 
 /**
@@ -279,6 +294,9 @@ function fetchWithBearer(
   init: RequestInit,
   token: string,
 ): Promise<Response> {
+  if (typeof token !== 'string' || token.length === 0) {
+    throw new Error('Refusing to send empty Authorization Bearer')
+  }
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${token}`)
   return fetch(url, {...init, headers})
@@ -303,14 +321,20 @@ function fetchOmittingAuthorization(
  *   and send `Authorization: Bearer <service-auth jwt>`. Never send
  *   empty-JWKS OAuth DPoP to notes (`OAuthSession.fetchHandler` against
  *   the notes URL). Never replay a notes-bound DPoP proof to the PDS.
- * - Password: `Authorization: Bearer <accessJwt>` when the JWT is present.
- * - Soft-anon (no oauthSession, no password JWT): omit `Authorization`.
- *   Never send an empty Bearer header — the notes service treats that
- *   as a hard 401.
+ * - Password: prefer service-auth mint on getProposals when `pdsClient`
+ *   (or Agent `getServiceAuth`) is present; otherwise
+ *   `Authorization: Bearer <accessJwt>`.
+ * - Soft-anon (no session, no password JWT, no mint capability): omit
+ *   `Authorization`. Never send an empty Bearer header - the notes
+ *   service treats that as a hard 401.
  *
- * Soft-gate for signed-in note bodies: service-auth. Interim: omit
- * Authorization on getProposals only (`requireAuth: false`) if minting
- * fails. propose/vote (`requireAuth: true`) must mint.
+ * Soft-gate for signed-in note bodies: service-auth. getProposals
+ * (`requireAuth: false`) prefers minting whenever a session can
+ * (OAuth, 1.133 `pdsClient`, or Agent namespace). Hard mint failure
+ * omits Authorization so public note text can still load - that
+ * fallback is only for mint failure or a truly unsigned agent
+ * (`null`, empty `accessJwt`, no oauth / pdsClient). propose/vote
+ * (`requireAuth: true`) must send a Bearer; mint failure throws.
  */
 export async function fetchWithAgentAuth(
   agent: ServiceAuthAgent,
@@ -319,10 +343,20 @@ export async function fetchWithAgentAuth(
   options: FetchNotesAuthOptions = {},
 ): Promise<Response> {
   const requireAuth = options.requireAuth === true
+  const accessJwt = getPasswordAccessJwt(agent)
+  const oauth = isOauthNotesAgent(agent)
+  const canMint = canMintNotesServiceAuth(agent)
 
-  // Signed-in OAuth: service-auth Bearer. Do not DPoP the notes URL
-  // and do not fall through to leftover password `accessJwt`.
-  if (isOauthNotesAgent(agent)) {
+  /*
+   * Prefer service-auth when a session is present and we can mint:
+   * OAuth always; getProposals whenever pdsClient / getServiceAuth
+   * exists; writes when there is no password JWT. Do not DPoP the
+   * notes URL. Do not send leftover password `accessJwt` on OAuth.
+   */
+  const preferMint =
+    oauth || (canMint && !requireAuth) || (canMint && !accessJwt)
+
+  if (preferMint) {
     try {
       const token = await mintNotesServiceAuthForUrl(agent, url, options.lxm)
       return fetchWithBearer(url, init, token)
@@ -330,11 +364,11 @@ export async function fetchWithAgentAuth(
       if (requireAuth) {
         throw error
       }
+      // Documented hard mint failure (#41): omit, never empty Bearer.
       return fetchOmittingAuthorization(url, init)
     }
   }
 
-  const accessJwt = getPasswordAccessJwt(agent)
   if (accessJwt) {
     return fetchWithBearer(url, init, accessJwt)
   }
