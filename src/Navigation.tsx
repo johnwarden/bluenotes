@@ -30,7 +30,7 @@ import {
 } from '#/lib/hooks/useNotificationHandler'
 import {useWebScrollRestoration} from '#/lib/hooks/useWebScrollRestoration'
 import {useCallOnce} from '#/lib/once'
-import {getStateFromPath} from '#/lib/routes/get-state-from-path'
+import {getStateFromPath as getNavigationStateFromPath} from '#/lib/routes/get-state-from-path'
 import {getCurrentRoute} from '#/lib/routes/helpers'
 import {
   type AllNavigatorParams,
@@ -875,7 +875,9 @@ const LINKING = {
     return route.build((node.params || {}) as RouteParams)
   },
 
-  getStateFromPath,
+  getStateFromPath(path: string) {
+    return getNavigationStateFromPath(path, {isNative: IS_NATIVE})
+  },
 } satisfies LinkingOptions<AllNavigatorParams>
 
 let didHandlePushNotificationEntry = false

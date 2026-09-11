@@ -1,8 +1,13 @@
-import {IS_NATIVE} from '#/env'
 import {buildStateObject} from '#/lib/routes/helpers'
 import {type RouteParams} from '#/lib/routes/types'
-import {CHAT_INVITE_CODE_REGEX} from '#/lib/strings/url-helpers'
 import {router} from '#/routes'
+
+/*
+ * Duplicated from `#/lib/strings/url-helpers` so this module stays free of
+ * `#/env` / expo-constants (those break Jest in this web-only environment).
+ * Keep in sync with CHAT_INVITE_CODE_REGEX.
+ */
+const CHAT_INVITE_CODE_REGEX = /^\/chat\/([a-zA-Z0-9]{7,10})$/
 
 /**
  * Default Community Notes tab when a deep link omits `:tab`
@@ -28,7 +33,7 @@ function resolveRouteParams(
  */
 export function getStateFromPath(
   path: string,
-  {isNative = IS_NATIVE}: {isNative?: boolean} = {},
+  {isNative}: {isNative: boolean},
 ) {
   const [name, rawParams] = router.matchPath(path)
   const params = resolveRouteParams(name, rawParams)
