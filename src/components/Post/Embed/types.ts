@@ -17,9 +17,11 @@ export type CommonProps = {
   isWithinQuote?: boolean
   allowNestedQuotes?: boolean
   /**
-   * The post that contains this embed. Used for analytics on photo embed
-   * events (post:photoEmbed:*). When the embed has no owning post (e.g.
-   * composer previews), leave this undefined and no events will be emitted.
+   * The post that contains this embed (the outer/parent post). Used for
+   * analytics on photo embed events (post:photoEmbed:*). This is never the
+   * quoted record; QuoteEmbed must read `embed.view` (or `quotedPost` for
+   * embed-less previews). When the embed has no owning post (e.g. composer
+   * previews), leave this undefined and no events will be emitted.
    */
   post?: app.bsky.feed.defs.PostView
   feedDescriptor?: string

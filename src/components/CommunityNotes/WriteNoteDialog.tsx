@@ -261,7 +261,7 @@ export function WriteNoteDialog({control, postUri}: WriteNoteDialogProps) {
               {/* Post Preview Section */}
               {post && (
                 <View style={[a.mb_lg]}>
-                  <QuoteEmbed post={post} hideCommunityNotes={true} />
+                  <QuoteEmbed quotedPost={post} hideCommunityNotes={true} />
                 </View>
               )}
 

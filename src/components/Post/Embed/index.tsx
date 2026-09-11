@@ -40,6 +40,7 @@ import {ModeratedFeedEmbed} from './FeedEmbed'
 import {ImageEmbed} from './ImageEmbed'
 import {ModeratedListEmbed} from './ListEmbed'
 import {PostPlaceholder as PostPlaceholderText} from './PostPlaceholder'
+import {resolveQuotePostView} from './resolveQuotePostView'
 import {type CommonProps, type EmbedProps, PostEmbedViewContext} from './types'
 import {VideoEmbed} from './VideoEmbed'
 
@@ -254,7 +255,7 @@ export function PostDetachedEmbed({
  */
 export function QuoteEmbed({
   embed,
-  post,
+  quotedPost,
   onOpen,
   style,
   linkDisabled,
@@ -264,26 +265,20 @@ export function QuoteEmbed({
   hideCommunityNotes = false,
 }: Omit<CommonProps, 'viewContext'> & {
   embed?: EmbedType<'post'>
-  post?: app.bsky.feed.defs.PostView
+  /**
+   * Full PostView for embed-less previews (Write Note dialog). Never pass the
+   * containing/outer post here; feed and thread callers must use `embed`.
+   */
+  quotedPost?: app.bsky.feed.defs.PostView
   viewContext?: PostEmbedViewContext
   linkDisabled?: boolean
   hideCommunityNotes?: boolean
 }) {
   const moderationOpts = useModerationOpts()
-  const quote = useMemo<$Typed<app.bsky.feed.defs.PostView>>(() => {
-    if (post) {
-      return {
-        ...post,
-        $type: 'app.bsky.feed.defs#postView',
-      }
-    }
-    return {
-      ...embed!.view,
-      $type: 'app.bsky.feed.defs#postView',
-      record: embed!.view.value,
-      embed: embed!.view.embeds?.[0],
-    }
-  }, [post, embed])
+  const quote = useMemo<$Typed<app.bsky.feed.defs.PostView>>(
+    () => resolveQuotePostView({embed, quotedPost}),
+    [embed, quotedPost],
+  )
   const moderation = useMemo(() => {
     return moderationOpts ? moderatePost(quote, moderationOpts) : undefined
   }, [quote, moderationOpts])
