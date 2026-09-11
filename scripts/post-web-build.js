@@ -1,6 +1,8 @@
 const path = require('path')
 const fs = require('fs')
 
+const {absolutizeHtmlAssetPaths} = require('./absolutize-web-asset-paths')
+
 const projectRoot = path.join(__dirname, '..')
 const templateFile = path.join(
   projectRoot,
@@ -46,3 +48,19 @@ function copyFiles(sourceDir, targetDir) {
 copyFiles('web-build/static/js', 'bskyweb/static/js')
 copyFiles('web-build/static/css', 'bskyweb/static/css')
 copyFiles('web-build/static/media', 'bskyweb/static/media')
+
+/*
+ * Belt-and-suspenders for local `serve web-build` deep links: rewrite any
+ * remaining relative `static/…` hrefs in the exported index.html. Production
+ * bskyweb uses scripts.html with `{{ staticCDNHost }}/static/…` and is not
+ * affected.
+ */
+const indexHtmlPath = path.join(projectRoot, 'web-build/index.html')
+if (fs.existsSync(indexHtmlPath)) {
+  const indexHtml = fs.readFileSync(indexHtmlPath, 'utf8')
+  const rewritten = absolutizeHtmlAssetPaths(indexHtml)
+  if (rewritten !== indexHtml) {
+    fs.writeFileSync(indexHtmlPath, rewritten)
+    console.log('Rewrote relative static/ asset paths in web-build/index.html')
+  }
+}

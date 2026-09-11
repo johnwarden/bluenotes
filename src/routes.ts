@@ -36,7 +36,12 @@ export const router = new Router<AllNavigatableRoutes>({
   PostThread: '/profile/:name/post/:rkey',
   PostLikedBy: '/profile/:name/post/:rkey/liked-by',
   CommunityNotesRating: '/profile/:name/post/:rkey/community-notes',
-  CommunityNotes: '/community-notes/:tab',
+  /*
+   * `:tab` first so matchName/build keeps `/community-notes/feeds` (etc).
+   * Bare `/community-notes` is accepted for hard-refresh / shared links and
+   * defaults to the feeds tab in getStateFromPath.
+   */
+  CommunityNotes: ['/community-notes/:tab', '/community-notes'],
   PostRepostedBy: '/profile/:name/post/:rkey/reposted-by',
   PostQuotes: '/profile/:name/post/:rkey/quotes',
   CustomFeed: '/profile/:name/feed/:rkey',
