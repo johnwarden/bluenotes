@@ -22,15 +22,14 @@ describe('Community Notes deep-link routes', () => {
   })
 
   it('matches a bare /community-notes path', () => {
-    expect(router.matchPath('/community-notes')).toEqual([
-      'CommunityNotes',
-      {},
-    ])
+    expect(router.matchPath('/community-notes')).toEqual(['CommunityNotes', {}])
   })
 
   it('matches the per-post rating path', () => {
     expect(
-      router.matchPath('/profile/alice.test/post/3kbeuduu7m22v/community-notes'),
+      router.matchPath(
+        '/profile/alice.test/post/3kbeuduu7m22v/community-notes',
+      ),
     ).toEqual([
       'CommunityNotesRating',
       {name: 'alice.test', rkey: '3kbeuduu7m22v'},
@@ -54,26 +53,24 @@ describe('Community Notes deep-link routes', () => {
       getStateFromPath('/community-notes/needs_your_help', {isNative: false}),
     ).toEqual({
       index: 0,
-      routes: [
-        {name: 'CommunityNotes', params: {tab: 'needs_your_help'}},
-      ],
+      routes: [{name: 'CommunityNotes', params: {tab: 'needs_your_help'}}],
     })
   })
 
   it('boots CommunityNotesTab on native instead of a missing HomeTab screen', () => {
-    expect(getStateFromPath('/community-notes/feeds', {isNative: true})).toEqual(
-      {
-        index: 0,
-        routes: [
-          {
-            name: 'CommunityNotesTab',
-            state: {
-              index: 0,
-              routes: [{name: 'CommunityNotes', params: {tab: 'feeds'}}],
-            },
+    expect(
+      getStateFromPath('/community-notes/feeds', {isNative: true}),
+    ).toEqual({
+      index: 0,
+      routes: [
+        {
+          name: 'CommunityNotesTab',
+          state: {
+            index: 0,
+            routes: [{name: 'CommunityNotes', params: {tab: 'feeds'}}],
           },
-        ],
-      },
-    )
+        },
+      ],
+    })
   })
 })

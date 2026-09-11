@@ -15,10 +15,7 @@ const CHAT_INVITE_CODE_REGEX = /^\/chat\/([a-zA-Z0-9]{7,10})$/
  */
 const DEFAULT_COMMUNITY_NOTES_TAB = 'feeds'
 
-function resolveRouteParams(
-  name: string,
-  params: RouteParams,
-): RouteParams {
+function resolveRouteParams(name: string, params: RouteParams): RouteParams {
   if (name === 'CommunityNotes' && !params.tab) {
     return {...params, tab: DEFAULT_COMMUNITY_NOTES_TAB}
   }
