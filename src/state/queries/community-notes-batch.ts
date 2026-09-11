@@ -7,17 +7,14 @@ import {type CommunityNote} from '#/lib/community-notes/types'
 export const COMMUNITY_NOTES_PROPOSALS_QUERY_ROOT = 'community-notes-proposals'
 
 export type CommunityNotesProposalStatus =
-  | 'needs_more_ratings'
-  | 'rated_helpful'
-  | 'rated_not_helpful'
+  'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
 
 export type CommunityNotesFeedMode = 'rated_helpful' | 'needs_more_ratings'
 
 type ViewerRatingRow = {
   noteUri: string
   viewerRating:
-    | NonNullable<apilib.CommunityNoteAPIResponse['viewer']>['rating']
-    | undefined
+    NonNullable<apilib.CommunityNoteAPIResponse['viewer']>['rating'] | undefined
 }
 
 type NotesWithViewerRatings = CommunityNote[] & {

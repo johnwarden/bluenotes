@@ -10,6 +10,40 @@ import {
   shouldEnablePerPostProposalsQuery,
 } from '../community-notes-batch'
 
+/*
+ * The notes API module pulls Expo native constants. Mock the mapper so this
+ * suite can run without requireOptionalNativeModule.
+ */
+jest.mock('#/lib/api/community-notes', () => ({
+  mapProposalApiResponseToCommunityNote: (apiNote: {
+    uri: string
+    cid: string
+    targetUri: string
+    val: string
+    note?: string
+    cts: string
+    status: 'needs_more_ratings' | 'rated_helpful' | 'rated_not_helpful'
+    author: {aid: string; pseudonym: string}
+  }) => ({
+    $type: 'social.pmsky.proposal',
+    typ: 'label',
+    subject: {uri: apiNote.targetUri, cid: apiNote.cid},
+    label: apiNote.val,
+    text: apiNote.note,
+    createdAt: apiNote.cts,
+    noteId: apiNote.uri.split('/').pop() || apiNote.uri,
+    status: apiNote.status,
+    uri: apiNote.uri,
+    author: {
+      aid: apiNote.author.aid,
+      pseudonym: apiNote.author.pseudonym,
+      writingImpact: 0,
+      ratingImpact: 0,
+      profileUrl: '#',
+    },
+  }),
+}))
+
 const POST_A = 'at://did:plc:alice/app.bsky.feed.post/aaa'
 const POST_B = 'at://did:plc:bob/app.bsky.feed.post/bbb'
 const POST_C = 'at://did:plc:carol/app.bsky.feed.post/ccc'
@@ -129,16 +163,16 @@ describe('batch cache write and fallback collection', () => {
       proposals: [createApiNote(POST_A, noteText)],
     })
 
-    const notesA = queryClient.getQueryData<
-      Array<{text: string}>
-    >(communityNotesProposalsQueryKey(POST_A, 'rated_helpful'))
-    const notesB = queryClient.getQueryData<
-      Array<{text: string}>
-    >(communityNotesProposalsQueryKey(POST_B, 'rated_helpful'))
+    const notesA = queryClient.getQueryData<Array<{text: string}>>(
+      communityNotesProposalsQueryKey(POST_A, 'rated_helpful'),
+    )
+    const notesB = queryClient.getQueryData<Array<{text: string}>>(
+      communityNotesProposalsQueryKey(POST_B, 'rated_helpful'),
+    )
 
     expect(notesA).toHaveLength(1)
     expect(notesA?.[0].text).toBe(noteText)
-    expect(notesB).toEqual([])
+    expect(notesB).toHaveLength(0)
     expect(
       collectUrisMissingProposalsCache({
         queryClient,
@@ -155,7 +189,10 @@ describe('batch cache write and fallback collection', () => {
       subjectUris: [POST_A],
       status: 'rated_helpful',
       proposals: [
-        createApiNote(POST_A, 'Readers added context they thought people might want to know.'),
+        createApiNote(
+          POST_A,
+          'Readers added context they thought people might want to know.',
+        ),
       ],
     })
 
