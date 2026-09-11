@@ -1,21 +1,17 @@
+import {
+  COMMUNITY_NOTES_LABELER_DID,
+  getCurrentCommunityNotesLabelerDid,
+} from '#/lib/community-notes/labeler-did'
 import {dangerousGetPostShadow} from '#/state/cache/post-shadow'
 import {type app, type com} from '#/lexicons'
 
-// Community Notes label values
-export const COMMUNITY_NOTES_LABELS = {
-  NOTE: 'annotation',
-  PROPOSED_NOTE: 'proposed-annotation',
-} as const
-
-export type CommunityNotesLabelValue =
-  (typeof COMMUNITY_NOTES_LABELS)[keyof typeof COMMUNITY_NOTES_LABELS]
-
-// Community Notes labeler DID (will be environment-specific)
-export const COMMUNITY_NOTES_LABELER_DID = {
-  PROD: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-  STAGING: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-  DEV: 'did:plc:57fl6zy4wmpuknwpgtjqkvlz',
-} as const
+export {
+  COMMUNITY_NOTES_LABELER_DID,
+  getCommunityNotesLabelerDid,
+  getCurrentCommunityNotesLabelerDid,
+  isPinnedCommunityNotesLabelerDid,
+  updateCommunityNotesLabelerDid,
+} from '#/lib/community-notes/labeler-did'
 
 /**
  * Notes service DID used as `com.atproto.server.getServiceAuth` aud.
@@ -25,16 +21,14 @@ export const COMMUNITY_NOTES_LABELER_DID = {
  */
 export {COMMUNITY_NOTES_FEED_GENERATOR_DID} from '#/lib/api/community-notes-auth'
 
-// Dynamic labeler DID management
-let currentLabelerDid: string | null = null // null means no labeler configured
+// Community Notes label values
+export const COMMUNITY_NOTES_LABELS = {
+  NOTE: 'annotation',
+  PROPOSED_NOTE: 'proposed-annotation',
+} as const
 
-export function updateCommunityNotesLabelerDid(did: string | null) {
-  currentLabelerDid = did
-}
-
-export function getCurrentCommunityNotesLabelerDid(): string | null {
-  return currentLabelerDid
-}
+export type CommunityNotesLabelValue =
+  (typeof COMMUNITY_NOTES_LABELS)[keyof typeof COMMUNITY_NOTES_LABELS]
 
 /**
  * Check if a post has a specific Community Notes label
@@ -109,12 +103,4 @@ function isCommunityNotesLabeler(labelerDid: string): boolean {
   return (Object.values(COMMUNITY_NOTES_LABELER_DID) as string[]).includes(
     labelerDid,
   )
-}
-
-/**
- * Get the current environment's Community Notes labeler DID
- * @deprecated Use getCurrentCommunityNotesLabelerDid() instead
- */
-export function getCommunityNotesLabelerDid(): string | null {
-  return getCurrentCommunityNotesLabelerDid()
 }
