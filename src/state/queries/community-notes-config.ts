@@ -41,7 +41,8 @@ export function useCommunityNotesAuth(): ServiceAuthAgent {
     pdsClient: (pdsClient ?? undefined) as ServiceAuthPdsClient | undefined,
     isOauthSession: Boolean(
       (currentAccount as {isOauthSession?: boolean} | undefined)
-        ?.isOauthSession || (hasSession && !hasPasswordJwt),
+        ?.isOauthSession ||
+      (hasSession && !hasPasswordJwt),
     ),
   }
 }
