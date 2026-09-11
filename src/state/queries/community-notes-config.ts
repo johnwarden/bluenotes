@@ -4,9 +4,16 @@ import {
   type ServiceAuthAgent,
   type ServiceAuthPdsClient,
 } from '#/lib/api/community-notes-auth'
+import {
+  type CommunityNotesConfig,
+  isCommunityNotesLabelerDidError,
+  parseCommunityNotesConfig,
+} from '#/lib/community-notes/config'
 import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
 import {STALE} from '#/state/queries'
 import {useMaybePdsClient, useSession} from '#/state/session'
+
+export type {CommunityNotesConfig}
 
 function serviceUrlOf(agent: ServiceAuthAgent): string {
   const service = agent?.service
@@ -35,15 +42,6 @@ export function useCommunityNotesAuth(): ServiceAuthAgent {
   }
 }
 
-export interface CommunityNotesConfig {
-  version: string
-  labelerDid: string
-  feedGeneratorDid: string
-  feeds?: {
-    uri: string
-  }[]
-}
-
 const RQKEY_ROOT = 'community-notes-config'
 export const RQKEY = () => [RQKEY_ROOT]
 
@@ -68,28 +66,7 @@ export function useCommunityNotesConfig() {
         )
       }
 
-      const config: unknown = await configResponse.json()
-      if (!config || typeof config !== 'object') {
-        throw new Error('Invalid Community Notes config response')
-      }
-      const rec = config as Record<string, unknown>
-      const {version, labelerDid, feedGeneratorDid, feeds} = rec
-      if (
-        typeof version !== 'string' ||
-        typeof labelerDid !== 'string' ||
-        typeof feedGeneratorDid !== 'string'
-      ) {
-        throw new Error('Invalid Community Notes config response')
-      }
-
-      return {
-        version,
-        labelerDid,
-        feedGeneratorDid,
-        ...(Array.isArray(feeds)
-          ? {feeds: feeds as CommunityNotesConfig['feeds']}
-          : {}),
-      }
+      return parseCommunityNotesConfig(await configResponse.json())
     },
     // Config rarely changes - keep it fresh for the entire session
     staleTime: Infinity, // Never becomes stale during session
@@ -98,6 +75,10 @@ export function useCommunityNotesConfig() {
     refetchOnMount: false, // Don't refetch on component remount
     refetchOnReconnect: false, // Don't refetch on network reconnect
     retry: (failureCount, error) => {
+      // Don't retry a refused labelerDid - the pin will not change.
+      if (isCommunityNotesLabelerDidError(error)) {
+        return false
+      }
       // Don't retry if the endpoint doesn't exist (404) or is not implemented (501)
       if (error.message.includes('404') || error.message.includes('501')) {
         return false

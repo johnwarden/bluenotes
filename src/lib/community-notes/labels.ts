@@ -25,6 +25,20 @@ export const COMMUNITY_NOTES_LABELER_DID = {
  */
 export {COMMUNITY_NOTES_FEED_GENERATOR_DID} from '#/lib/api/community-notes-auth'
 
+const PINNED_COMMUNITY_NOTES_LABELER_DIDS: readonly string[] = Object.values(
+  COMMUNITY_NOTES_LABELER_DID,
+)
+
+/**
+ * True when `did` has a `did:` prefix and equals a pinned
+ * `COMMUNITY_NOTES_LABELER_DID` value.
+ */
+export function isPinnedCommunityNotesLabelerDid(did: string): boolean {
+  return (
+    did.startsWith('did:') && PINNED_COMMUNITY_NOTES_LABELER_DIDS.includes(did)
+  )
+}
+
 // Dynamic labeler DID management
 let currentLabelerDid: string | null = null // null means no labeler configured
 
