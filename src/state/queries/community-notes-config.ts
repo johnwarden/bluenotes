@@ -6,8 +6,8 @@ import {
 } from '#/lib/api/community-notes-auth'
 import {
   type CommunityNotesConfig,
-  isCommunityNotesLabelerDidError,
   parseCommunityNotesConfig,
+  shouldRetryCommunityNotesConfig,
 } from '#/lib/community-notes/config'
 import {COMMUNITY_NOTES_SERVICE, DEFAULT_SERVICE} from '#/lib/constants'
 import {STALE} from '#/state/queries'
@@ -74,18 +74,7 @@ export function useCommunityNotesConfig() {
     refetchOnWindowFocus: false, // Don't refetch on tab focus
     refetchOnMount: false, // Don't refetch on component remount
     refetchOnReconnect: false, // Don't refetch on network reconnect
-    retry: (failureCount, error) => {
-      // Don't retry a refused labelerDid - the pin will not change.
-      if (isCommunityNotesLabelerDidError(error)) {
-        return false
-      }
-      // Don't retry if the endpoint doesn't exist (404) or is not implemented (501)
-      if (error.message.includes('404') || error.message.includes('501')) {
-        return false
-      }
-      // Retry up to 3 times for other errors
-      return failureCount < 3
-    },
+    retry: shouldRetryCommunityNotesConfig,
     retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   })
 }

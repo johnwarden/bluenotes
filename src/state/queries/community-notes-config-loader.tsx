@@ -4,7 +4,7 @@ import {
   applyCommunityNotesLabelerDidFromConfig,
   isCommunityNotesLabelerDidError,
 } from '#/lib/community-notes/config'
-import {updateCommunityNotesLabelerDid} from '#/lib/community-notes/labels'
+import {updateCommunityNotesLabelerDid} from '#/lib/community-notes/labeler-did'
 import {logger} from '#/logger'
 import {useCommunityNotesConfig} from '#/state/queries/community-notes-config'
 import {configureAdditionalModerationAuthorities} from '#/state/session/additional-moderation-authorities'
@@ -24,10 +24,9 @@ export function CommunityNotesConfigLoader() {
         communityNotesConfig.labelerDid,
       )
       if (!applied) {
-        logger.warn(
-          '[CommunityNotes] Refusing unpinned getConfig.labelerDid',
-          {labelerDid: communityNotesConfig.labelerDid},
-        )
+        logger.warn('[CommunityNotes] Refusing unpinned getConfig.labelerDid', {
+          labelerDid: communityNotesConfig.labelerDid,
+        })
         return
       }
 

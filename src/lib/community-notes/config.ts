@@ -1,7 +1,7 @@
 import {
   isPinnedCommunityNotesLabelerDid,
   updateCommunityNotesLabelerDid,
-} from '#/lib/community-notes/labels'
+} from '#/lib/community-notes/labeler-did'
 
 export interface CommunityNotesConfig {
   version: string
@@ -49,9 +49,7 @@ export function parseCommunityNotesConfig(
     throw new Error('Invalid Community Notes config response')
   }
   if (!labelerDid.startsWith('did:')) {
-    throw new CommunityNotesLabelerDidError(
-      'getConfig.labelerDid is not a DID',
-    )
+    throw new CommunityNotesLabelerDidError('getConfig.labelerDid is not a DID')
   }
   if (!isPinnedCommunityNotesLabelerDid(labelerDid)) {
     throw new CommunityNotesLabelerDidError(
@@ -79,4 +77,22 @@ export function applyCommunityNotesLabelerDidFromConfig(did: string): boolean {
   }
   updateCommunityNotesLabelerDid(did)
   return true
+}
+
+/**
+ * Retry policy for `useCommunityNotesConfig`. Pin/DID rejects and missing
+ * endpoints are terminal; other failures retry up to three times.
+ */
+export function shouldRetryCommunityNotesConfig(
+  failureCount: number,
+  error: unknown,
+): boolean {
+  if (isCommunityNotesLabelerDidError(error)) {
+    return false
+  }
+  const message = error instanceof Error ? error.message : ''
+  if (message.includes('404') || message.includes('501')) {
+    return false
+  }
+  return failureCount < 3
 }

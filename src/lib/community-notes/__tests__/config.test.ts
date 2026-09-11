@@ -2,13 +2,14 @@ import {
   applyCommunityNotesLabelerDidFromConfig,
   CommunityNotesLabelerDidError,
   parseCommunityNotesConfig,
+  shouldRetryCommunityNotesConfig,
 } from '../config'
 import {
   COMMUNITY_NOTES_LABELER_DID,
   getCurrentCommunityNotesLabelerDid,
   isPinnedCommunityNotesLabelerDid,
   updateCommunityNotesLabelerDid,
-} from '../labels'
+} from '../labeler-did'
 
 const PINNED_LABELER_DID = COMMUNITY_NOTES_LABELER_DID.PROD
 const ATTACKER_LABELER_DID = 'did:plc:attacker'
@@ -50,12 +51,12 @@ describe('parseCommunityNotesConfig', () => {
   })
 
   it('throws when labelerDid is not a DID', () => {
-    expect(() =>
-      parseCommunityNotesConfig(validConfig('not-a-did')),
-    ).toThrow(CommunityNotesLabelerDidError)
-    expect(() =>
-      parseCommunityNotesConfig(validConfig('not-a-did')),
-    ).toThrow(/not a DID/)
+    expect(() => parseCommunityNotesConfig(validConfig('not-a-did'))).toThrow(
+      CommunityNotesLabelerDidError,
+    )
+    expect(() => parseCommunityNotesConfig(validConfig('not-a-did'))).toThrow(
+      /not a DID/,
+    )
     expect(() => parseCommunityNotesConfig(validConfig(''))).toThrow(
       /not a DID/,
     )
@@ -101,10 +102,35 @@ describe('applyCommunityNotesLabelerDidFromConfig', () => {
   it('installs the pinned labeler DID', () => {
     updateCommunityNotesLabelerDid(null)
 
-    const applied =
-      applyCommunityNotesLabelerDidFromConfig(PINNED_LABELER_DID)
+    const applied = applyCommunityNotesLabelerDidFromConfig(PINNED_LABELER_DID)
 
     expect(applied).toBe(true)
     expect(getCurrentCommunityNotesLabelerDid()).toBe(PINNED_LABELER_DID)
+  })
+})
+
+describe('shouldRetryCommunityNotesConfig', () => {
+  it('does not retry a refused labelerDid', () => {
+    expect(
+      shouldRetryCommunityNotesConfig(
+        0,
+        new CommunityNotesLabelerDidError('getConfig.labelerDid is not a DID'),
+      ),
+    ).toBe(false)
+  })
+
+  it('does not retry missing endpoints', () => {
+    expect(
+      shouldRetryCommunityNotesConfig(
+        0,
+        new Error('Failed to fetch Community Notes config: 404'),
+      ),
+    ).toBe(false)
+  })
+
+  it('retries other failures up to three times', () => {
+    expect(shouldRetryCommunityNotesConfig(0, new Error('timeout'))).toBe(true)
+    expect(shouldRetryCommunityNotesConfig(2, new Error('timeout'))).toBe(true)
+    expect(shouldRetryCommunityNotesConfig(3, new Error('timeout'))).toBe(false)
   })
 })

@@ -5,7 +5,7 @@ import {
   COMMUNITY_NOTES_LABELER_DID,
   getCurrentCommunityNotesLabelerDid,
   updateCommunityNotesLabelerDid,
-} from '#/lib/community-notes/labels'
+} from '#/lib/community-notes/labeler-did'
 import {configureAdditionalModerationAuthorities} from '#/state/session/additional-moderation-authorities'
 import {useCommunityNotesConfig} from '../community-notes-config'
 import {CommunityNotesConfigLoader} from '../community-notes-config-loader'
@@ -25,9 +25,7 @@ jest.mock('#/logger', () => ({
 const PINNED_LABELER_DID = COMMUNITY_NOTES_LABELER_DID.PROD
 const ATTACKER_LABELER_DID = 'did:plc:attacker'
 
-function mockConfig(
-  value: ReturnType<typeof useCommunityNotesConfig>,
-) {
+function mockConfig(value: ReturnType<typeof useCommunityNotesConfig>) {
   jest.mocked(useCommunityNotesConfig).mockReturnValue(value)
 }
 
