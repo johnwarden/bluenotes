@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/subtle"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -48,6 +47,8 @@ type Server struct {
 	chatXrpcc    *xrpc.Client
 	cfg          *Config
 
+	// Used for /ipcc and geolocation HTTPS lookups. Default TLS verification
+	// must stay enabled.
 	ipccClient http.Client
 
 	// sitemapClient is used for fetching sitemaps from the appview. It has
@@ -146,13 +147,7 @@ func serve(cctx *cli.Context) error {
 			ipccHost:      ipccHost,
 			staticCDNHost: staticCDNHost,
 		},
-		ipccClient: http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
-				},
-			},
-		},
+		ipccClient: http.Client{},
 		sitemapClient: http.Client{
 			Transport: &http.Transport{
 				MaxIdleConns:        100,
