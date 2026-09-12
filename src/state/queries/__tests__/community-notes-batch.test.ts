@@ -6,6 +6,8 @@ import {
   collectUrisMissingProposalsCache,
   communityNotesProposalsQueryKey,
   mergeFallbackUris,
+  proposalStatusesForFeed,
+  resolveInlineNoteDisplayMode,
   shouldDisableWidgetProposalsFetch,
   shouldEnablePerPostProposalsQuery,
 } from '../community-notes-batch'
@@ -88,7 +90,7 @@ describe('shouldEnablePerPostProposalsQuery', () => {
     ).toBe(true)
   })
 
-  it('does not fetch when the post has no note status', () => {
+  it('does not fetch when the post has no note status and batch is still the source of truth', () => {
     expect(
       shouldEnablePerPostProposalsQuery({
         subjectUri: POST_A,
@@ -97,6 +99,17 @@ describe('shouldEnablePerPostProposalsQuery', () => {
         batchPrefetchFailedForUri: false,
       }),
     ).toBe(false)
+  })
+
+  it('re-enables per-post fetch on home when batch misses an unlabeled URI', () => {
+    expect(
+      shouldEnablePerPostProposalsQuery({
+        subjectUri: POST_A,
+        noteStatus: undefined,
+        communityNotesFeedMode: undefined,
+        batchPrefetchFailedForUri: true,
+      }),
+    ).toBe(true)
   })
 
   it('disables per-post fetch on CN feeds while batch prefetch is the source of truth', () => {
@@ -141,13 +154,105 @@ describe('shouldDisableWidgetProposalsFetch', () => {
     ).toBe(false)
   })
 
-  it('never disables the widget fetch outside CN feeds', () => {
+  it('does not disable the widget fetch when the feed is not using batch prefetch', () => {
     expect(
       shouldDisableWidgetProposalsFetch({
         communityNotesFeedMode: undefined,
         batchPrefetchFailedForUri: false,
       }),
     ).toBe(false)
+  })
+
+  it('disables the widget fetch on home while feed batch prefetch is the source of truth', () => {
+    expect(
+      shouldDisableWidgetProposalsFetch({
+        communityNotesFeedMode: undefined,
+        batchPrefetchFailedForUri: false,
+        usesFeedBatchPrefetch: true,
+      }),
+    ).toBe(true)
+  })
+
+  it('re-enables the home widget fetch after batch failure so note.text can load', () => {
+    expect(
+      shouldDisableWidgetProposalsFetch({
+        communityNotesFeedMode: undefined,
+        batchPrefetchFailedForUri: true,
+        usesFeedBatchPrefetch: true,
+      }),
+    ).toBe(false)
+  })
+})
+
+describe('proposalStatusesForFeed', () => {
+  it('prefetches only the CN tab status', () => {
+    expect(proposalStatusesForFeed('rated_helpful')).toEqual(['rated_helpful'])
+    expect(proposalStatusesForFeed('needs_more_ratings')).toEqual([
+      'needs_more_ratings',
+    ])
+  })
+
+  it('prefetches helpful and proposed on Home / Discover / Following', () => {
+    expect(proposalStatusesForFeed(undefined)).toEqual([
+      'rated_helpful',
+      'needs_more_ratings',
+    ])
+  })
+})
+
+describe('resolveInlineNoteDisplayMode', () => {
+  it('keeps CN tab mode even when the card has no labels yet', () => {
+    expect(
+      resolveInlineNoteDisplayMode({
+        communityNotesFeedMode: 'needs_more_ratings',
+        hasHelpfulNotes: false,
+        hasProposedNotes: false,
+      }),
+    ).toBe('needs_more_ratings')
+  })
+
+  it('uses cached helpful note.text on home when AppView omitted labels', () => {
+    expect(
+      resolveInlineNoteDisplayMode({
+        hasHelpfulNotes: false,
+        hasProposedNotes: false,
+        helpfulNoteCount: 1,
+        proposedNoteCount: 0,
+      }),
+    ).toBe('rated_helpful')
+  })
+
+  it('uses cached proposed note.text on home when AppView omitted labels', () => {
+    expect(
+      resolveInlineNoteDisplayMode({
+        hasHelpfulNotes: false,
+        hasProposedNotes: false,
+        helpfulNoteCount: 0,
+        proposedNoteCount: 1,
+      }),
+    ).toBe('needs_more_ratings')
+  })
+
+  it('prefers helpful chrome when both labels and caches are present', () => {
+    expect(
+      resolveInlineNoteDisplayMode({
+        hasHelpfulNotes: true,
+        hasProposedNotes: true,
+        helpfulNoteCount: 1,
+        proposedNoteCount: 1,
+      }),
+    ).toBe('rated_helpful')
+  })
+
+  it('does not invent chrome when home batch wrote empty caches and there are no labels', () => {
+    expect(
+      resolveInlineNoteDisplayMode({
+        hasHelpfulNotes: false,
+        hasProposedNotes: false,
+        helpfulNoteCount: 0,
+        proposedNoteCount: 0,
+      }),
+    ).toBeUndefined()
   })
 })
 
@@ -220,6 +325,38 @@ describe('batch cache write and fallback collection', () => {
         batchPrefetchFailedForUri: missing.includes(POST_A),
       }),
     ).toBe(false)
+  })
+
+  it('lets an unlabeled home card resolve helpful chrome from the batch cache', () => {
+    const queryClient = createQueryClient()
+    const noteText = 'The Foreign Office is responsible for all costs.'
+
+    cacheGetProposalsBatch({
+      queryClient,
+      subjectUris: [POST_A],
+      status: 'rated_helpful',
+      proposals: [createApiNote(POST_A, noteText)],
+    })
+
+    const cached = queryClient.getQueryData<Array<{text: string}>>(
+      communityNotesProposalsQueryKey(POST_A, 'rated_helpful'),
+    )
+
+    expect(cached?.[0].text).toBe(noteText)
+    expect(
+      resolveInlineNoteDisplayMode({
+        hasHelpfulNotes: false,
+        hasProposedNotes: false,
+        helpfulNoteCount: cached?.length ?? 0,
+        proposedNoteCount: 0,
+      }),
+    ).toBe('rated_helpful')
+    expect(
+      shouldDisableWidgetProposalsFetch({
+        batchPrefetchFailedForUri: false,
+        usesFeedBatchPrefetch: true,
+      }),
+    ).toBe(true)
   })
 
   it('does not invent empty cache entries on failure, so per-post can still load bodies', () => {

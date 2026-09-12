@@ -34,14 +34,15 @@ import {listenPostCreated} from '#/state/events'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useTrendingSettings} from '#/state/preferences/trending'
 import {STALE} from '#/state/queries'
-import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   cacheGetProposalsBatch,
   collectUrisMissingProposalsCache,
   CommunityNotesBatchFallbackUrisContext,
   communityNotesProposalsQueryKey,
   mergeFallbackUris,
+  proposalStatusesForFeed,
 } from '#/state/queries/community-notes-batch'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   type AuthorFilter,
   type FeedDescriptor,
@@ -413,12 +414,12 @@ let PostFeed = ({
   }, [pollInterval, checkForNew])
 
   /*
-   * Community Notes: batch prefetch proposals for the newest page.
-   * Auth is read from a ref so a new object each render does not cancel
-   * an in-flight prefetch. Signed-in sessions must mint/send Bearer
-   * (#41); passing null forced a soft-anon omit while the avatar stayed
-   * signed in. If the batch fails, mark uncached URIs so per-post
-   * getProposals can still load note.text (#42).
+   * Community Notes: batch prefetch proposals for the newest page on
+   * every PostFeed (CN tabs and Home / Discover / Following). Auth is
+   * read from a ref so a new object each render does not cancel an
+   * in-flight prefetch. Signed-in sessions must mint/send Bearer (#41).
+   * If a status batch fails, mark uncached URIs so per-post getProposals
+   * can still load note.text (#42 / home).
    */
   const latestPageFetchedAt = data?.pages?.[data.pages.length - 1]?.fetchedAt
   const cnInFlightRef = useRef<Map<string, Set<string>>>(new Map())
@@ -426,7 +427,6 @@ let PostFeed = ({
     ReadonlySet<string>
   >(() => new Set())
   useEffect(() => {
-    if (!communityNotesFeedMode) return
     const latestPage = data?.pages?.[data.pages.length - 1]
     if (!latestPage) return
 
@@ -437,14 +437,21 @@ let PostFeed = ({
           .filter(Boolean),
       ),
     )
+    if (uris.length === 0) return
 
-    const inFlightSet =
-      cnInFlightRef.current.get(communityNotesFeedMode) ?? new Set<string>()
-    const toFetch = uris.filter(uri => {
-      const key = communityNotesProposalsQueryKey(uri, communityNotesFeedMode)
-      return !queryClient.getQueryData(key) && !inFlightSet.has(uri)
-    })
-    if (toFetch.length === 0) return
+    const statuses = proposalStatusesForFeed(communityNotesFeedMode)
+    const work = statuses
+      .map(status => {
+        const inFlightSet =
+          cnInFlightRef.current.get(status) ?? new Set<string>()
+        const toFetch = uris.filter(uri => {
+          const key = communityNotesProposalsQueryKey(uri, status)
+          return !queryClient.getQueryData(key) && !inFlightSet.has(uri)
+        })
+        return {status, inFlightSet, toFetch}
+      })
+      .filter(item => item.toFetch.length > 0)
+    if (work.length === 0) return
 
     const chunk = <T,>(arr: T[], size: number) => {
       const out: T[][] = []
@@ -455,45 +462,44 @@ let PostFeed = ({
 
     let canceled = false
     const run = async () => {
-      for (const uri of toFetch) inFlightSet.add(uri)
-      cnInFlightRef.current.set(communityNotesFeedMode, inFlightSet)
+      for (const {status, inFlightSet, toFetch} of work) {
+        for (const uri of toFetch) inFlightSet.add(uri)
+        cnInFlightRef.current.set(status, inFlightSet)
 
-      try {
-        const batches = chunk(toFetch, 30)
-        for (const batch of batches) {
-          const res = await apilib.getProposals(
-            communityNotesAuthRef.current,
-            batch,
-            {
-              status: communityNotesFeedMode,
-            },
-          )
+        try {
+          const batches = chunk(toFetch, 30)
+          for (const batch of batches) {
+            const res = await apilib.getProposals(
+              communityNotesAuthRef.current,
+              batch,
+              {status},
+            )
+            if (canceled) return
+
+            cacheGetProposalsBatch({
+              queryClient,
+              subjectUris: batch,
+              status,
+              proposals: res.proposals,
+            })
+          }
+        } catch (err) {
           if (canceled) return
-
-          cacheGetProposalsBatch({
+          logger.warn('Batch proposal fetch failed', {err, status})
+          const missing = collectUrisMissingProposalsCache({
             queryClient,
-            subjectUris: batch,
-            status: communityNotesFeedMode,
-            proposals: res.proposals,
+            subjectUris: toFetch,
+            status,
           })
+          setCnBatchFallbackUris(prev => mergeFallbackUris(prev, missing))
+        } finally {
+          for (const uri of toFetch) inFlightSet.delete(uri)
+          if (inFlightSet.size === 0) cnInFlightRef.current.delete(status)
         }
-      } finally {
-        for (const uri of toFetch) inFlightSet.delete(uri)
-        if (inFlightSet.size === 0)
-          cnInFlightRef.current.delete(communityNotesFeedMode)
       }
     }
 
-    run().catch(err => {
-      if (canceled) return
-      logger.warn('Batch proposal fetch failed', {err})
-      const missing = collectUrisMissingProposalsCache({
-        queryClient,
-        subjectUris: toFetch,
-        status: communityNotesFeedMode,
-      })
-      setCnBatchFallbackUris(prev => mergeFallbackUris(prev, missing))
-    })
+    void run()
 
     return () => {
       canceled = true

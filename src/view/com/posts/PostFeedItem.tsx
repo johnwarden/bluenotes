@@ -22,6 +22,7 @@ import {
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useProposalsQuery} from '#/state/queries/community-notes'
 import {
+  resolveInlineNoteDisplayMode,
   shouldDisableWidgetProposalsFetch,
   shouldEnablePerPostProposalsQuery,
   useCommunityNotesBatchFallbackForUri,
@@ -537,11 +538,13 @@ let PostContent = ({
     setLimitLines(false)
   }, [setLimitLines])
 
+  const postHasHelpfulNotes = hasHelpfulNotes(post)
+  const postHasProposedNotes = hasProposedNotes(post)
   const noteStatus = communityNotesFeedMode
     ? communityNotesFeedMode
-    : hasHelpfulNotes(post)
+    : postHasHelpfulNotes
       ? 'rated_helpful'
-      : hasProposedNotes(post)
+      : postHasProposedNotes
         ? 'needs_more_ratings'
         : undefined
 
@@ -554,12 +557,38 @@ let PostContent = ({
     communityNotesFeedMode,
     batchPrefetchFailedForUri,
   })
+  const shouldQueryHelpfulNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus: postHasHelpfulNotes ? 'rated_helpful' : undefined,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
+  const shouldQueryProposedNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus: postHasProposedNotes ? 'needs_more_ratings' : undefined,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
 
   const notesQuery = useProposalsQuery(
     post.uri,
     noteStatus || 'rated_helpful',
     {enabled: shouldQueryNotes},
   )
+  const helpfulNotesQuery = useProposalsQuery(post.uri, 'rated_helpful', {
+    enabled: !communityNotesFeedMode && shouldQueryHelpfulNotes,
+  })
+  const proposedNotesQuery = useProposalsQuery(post.uri, 'needs_more_ratings', {
+    enabled: !communityNotesFeedMode && shouldQueryProposedNotes,
+  })
+
+  const displayMode = resolveInlineNoteDisplayMode({
+    communityNotesFeedMode,
+    hasHelpfulNotes: postHasHelpfulNotes,
+    hasProposedNotes: postHasProposedNotes,
+    helpfulNoteCount: helpfulNotesQuery.data?.length ?? 0,
+    proposedNoteCount: proposedNotesQuery.data?.length ?? 0,
+  })
 
   const isWaitingForBatch =
     communityNotesFeedMode && !shouldQueryNotes && !notesQuery.data
@@ -638,24 +667,21 @@ let PostContent = ({
           />
         </View>
       ) : null}
-      {(hasHelpfulNotes(post) ||
-        (communityNotesFeedMode && hasProposedNotes(post))) && (
+      {displayMode && (
         <CommunityNoteWidget
           post={post}
-          displayMode={communityNotesFeedMode || 'rated_helpful'}
+          displayMode={displayMode}
           showRatingPrompt={true}
-          showDisclaimer={
-            !communityNotesFeedMode ||
-            communityNotesFeedMode === 'rated_helpful'
-          }
+          showDisclaimer={displayMode === 'rated_helpful'}
           parentHover={_hover}
           disableFetch={shouldDisableWidgetProposalsFetch({
             communityNotesFeedMode,
             batchPrefetchFailedForUri,
+            usesFeedBatchPrefetch: true,
           })}
         />
       )}
-      {!communityNotesFeedMode && (
+      {!communityNotesFeedMode && displayMode !== 'needs_more_ratings' && (
         <RateCommunityNotesPrompt post={post} parentHover={_hover} />
       )}
     </ContentHider>
