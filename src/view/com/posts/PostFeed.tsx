@@ -34,7 +34,6 @@ import {listenPostCreated} from '#/state/events'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useTrendingSettings} from '#/state/preferences/trending'
 import {STALE} from '#/state/queries'
-import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   cacheGetProposalsBatch,
   collectUrisMissingProposalsCache,
@@ -43,6 +42,7 @@ import {
   mergeFallbackUris,
   proposalStatusesForFeed,
 } from '#/state/queries/community-notes-batch'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   type AuthorFilter,
   type FeedDescriptor,
