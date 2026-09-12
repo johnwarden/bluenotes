@@ -19,8 +19,13 @@ export function isPinnedCommunityNotesLabelerDid(did: string): boolean {
   )
 }
 
-// Dynamic labeler DID management
-let currentLabelerDid: string | null = null // null means no labeler configured
+/*
+ * Seed the pinned DID so the first appview read (home timeline / Discover)
+ * already sends `atproto-accept-labelers`. Waiting for getConfig + a later
+ * useEffect left the first PostFeed query (staleTime: Infinity) without CN
+ * labels, so home cards never mounted CommunityNoteWidget.
+ */
+let currentLabelerDid: string | null = COMMUNITY_NOTES_LABELER_DID.PROD
 
 export function updateCommunityNotesLabelerDid(did: string | null) {
   currentLabelerDid = did

@@ -1,4 +1,4 @@
-import {type Client} from '@atproto/lex'
+import {Client} from '@atproto/lex'
 import {api} from '@bsky/sdk'
 import {beforeEach, describe, expect, it, jest} from '@jest/globals'
 
@@ -12,8 +12,15 @@ jest.mock('#/storage', () => ({
   },
 }))
 
+import {
+  COMMUNITY_NOTES_LABELER_DID,
+  updateCommunityNotesLabelerDid,
+} from '#/lib/community-notes/labeler-did'
 import {account} from '#/storage'
-import {configureGlobalAppLabelers} from '../additional-moderation-authorities'
+import {
+  configureAdditionalModerationAuthorities,
+  configureGlobalAppLabelers,
+} from '../additional-moderation-authorities'
 import {configureModerationForAccount} from '../moderation'
 import {makeAccount} from './mock-fetch'
 
@@ -41,5 +48,13 @@ describe('configureModerationForAccount', () => {
     expect(chatClient.setLabelers).toHaveBeenCalledWith([
       'did:plc:account-labeler',
     ])
+  })
+
+  it('puts the pinned CN labeler on Accept-Labelers even after the pin is cleared', () => {
+    updateCommunityNotesLabelerDid(null)
+    configureGlobalAppLabelers([api.moderation.did])
+    configureAdditionalModerationAuthorities()
+
+    expect(Client.appLabelers).toContain(COMMUNITY_NOTES_LABELER_DID.PROD)
   })
 })
