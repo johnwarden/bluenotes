@@ -39,8 +39,23 @@ export function communityNotesProposalsQueryKey(
 }
 
 /**
- * Per-post getProposals is the source of truth on regular feeds, and the
- * fallback on CN feeds when batch prefetch fails for that post.
+ * Statuses to batch-prefetch for a PostFeed page. CN tabs request one
+ * status; Home / Discover / Following request both so note.text can
+ * attach without waiting on per-post fetches.
+ */
+export function proposalStatusesForFeed(
+  communityNotesFeedMode?: CommunityNotesFeedMode,
+): CommunityNotesProposalStatus[] {
+  if (communityNotesFeedMode) {
+    return [communityNotesFeedMode]
+  }
+  return ['rated_helpful', 'needs_more_ratings']
+}
+
+/**
+ * Per-post getProposals is the source of truth on regular feeds when the
+ * post is labeled, and the fallback on every feed when batch prefetch
+ * misses that URI (including unlabeled home cards).
  */
 export function shouldEnablePerPostProposalsQuery({
   subjectUri,
@@ -53,27 +68,63 @@ export function shouldEnablePerPostProposalsQuery({
   communityNotesFeedMode?: CommunityNotesFeedMode
   batchPrefetchFailedForUri: boolean
 }): boolean {
-  if (!subjectUri || noteStatus === undefined) {
+  if (!subjectUri) {
     return false
   }
-  if (!communityNotesFeedMode) {
+  if (communityNotesFeedMode) {
+    return batchPrefetchFailedForUri
+  }
+  if (batchPrefetchFailedForUri) {
     return true
   }
-  return batchPrefetchFailedForUri
+  return noteStatus !== undefined
 }
 
 /**
- * Widgets on CN feeds skip their own fetch while batch prefetch is the
- * source of truth. After a batch miss/failure for that URI, fetch again.
+ * Widgets skip their own fetch while feed batch prefetch is the source of
+ * truth (CN tabs and main home feeds). After a batch miss/failure for
+ * that URI, fetch again so note.text can still load.
  */
 export function shouldDisableWidgetProposalsFetch({
   communityNotesFeedMode,
   batchPrefetchFailedForUri,
+  usesFeedBatchPrefetch = communityNotesFeedMode != null,
 }: {
   communityNotesFeedMode?: CommunityNotesFeedMode
   batchPrefetchFailedForUri: boolean
+  usesFeedBatchPrefetch?: boolean
 }): boolean {
-  return !!communityNotesFeedMode && !batchPrefetchFailedForUri
+  return usesFeedBatchPrefetch && !batchPrefetchFailedForUri
+}
+
+/**
+ * Inline widget mode for a feed card. Home prefers cached note.text so a
+ * post without AppView labels can still show the matching helpful /
+ * proposed chrome instead of label-only “Rate proposed” / “See all notes”.
+ */
+export function resolveInlineNoteDisplayMode({
+  communityNotesFeedMode,
+  hasHelpfulNotes,
+  hasProposedNotes,
+  helpfulNoteCount = 0,
+  proposedNoteCount = 0,
+}: {
+  communityNotesFeedMode?: CommunityNotesFeedMode
+  hasHelpfulNotes: boolean
+  hasProposedNotes: boolean
+  helpfulNoteCount?: number
+  proposedNoteCount?: number
+}): CommunityNotesFeedMode | undefined {
+  if (communityNotesFeedMode) {
+    return communityNotesFeedMode
+  }
+  if (helpfulNoteCount > 0 || hasHelpfulNotes) {
+    return 'rated_helpful'
+  }
+  if (proposedNoteCount > 0 || hasProposedNotes) {
+    return 'needs_more_ratings'
+  }
+  return undefined
 }
 
 export function collectUrisMissingProposalsCache({
