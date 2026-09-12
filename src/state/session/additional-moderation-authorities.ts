@@ -1,5 +1,9 @@
 import {Client} from '@atproto/lex'
 
+import {
+  COMMUNITY_NOTES_LABELER_DID,
+  getCommunityNotesLabelerDid,
+} from '#/lib/community-notes/labels'
 import {device} from '#/storage'
 
 export const BR_LABELER = 'did:plc:ekitcvx7uwnauoqy5oest3hm' // Brazil
@@ -84,10 +88,18 @@ export function configureAdditionalModerationAuthorities() {
 
   /*
    * Merge with whatever is already on the static rather than replacing it, so
-   * `switchToBskyAppLabeler`'s entry survives.
+   * `switchToBskyAppLabeler`'s entry survives. Always attach the pinned
+   * Community Notes labeler so home / Discover / Following hydrate `annotation`
+   * labels on the first request, not only after getConfig.
    */
+  const communityNotesLabelerDid =
+    getCommunityNotesLabelerDid() ?? COMMUNITY_NOTES_LABELER_DID.PROD
   const appLabelers = Array.from(
-    new Set<string>([...Client.appLabelers, ...additionalLabelers]),
+    new Set<string>([
+      ...Client.appLabelers,
+      ...additionalLabelers,
+      communityNotesLabelerDid,
+    ]),
   )
 
   configureGlobalAppLabelers(appLabelers)
