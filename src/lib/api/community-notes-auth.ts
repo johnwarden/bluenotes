@@ -1,6 +1,21 @@
 import {com} from '#/lexicons'
 
 /**
+ * Notes service DID used as `com.atproto.server.getServiceAuth` aud.
+ * `org.opencommunitynotes.getConfig.feedGeneratorDid` must match this pin
+ * (bare DID, or `did#serviceId`). Drift is rejected so a compromised notes
+ * host cannot mint a JWT for an attacker audience.
+ *
+ * Documented next to `COMMUNITY_NOTES_LABELER_DID` in
+ * `#/lib/community-notes/labels`.
+ */
+export const COMMUNITY_NOTES_FEED_GENERATOR_DID = {
+  PROD: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+  STAGING: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+  DEV: 'did:plc:jqzvhkz7gxovq55fa7ibs6px',
+} as const
+
+/**
  * Notes auth only needs fetchHandler. Avoid importing
  * `@atproto/oauth-client-browser` so this module can live on
  * community-notes-feature without that rebrand OAuth dependency.
@@ -68,9 +83,13 @@ export type FetchNotesAuthOptions = {
    */
   lxm?: string
   /**
-   * `true` for propose/vote: OAuth must mint a service-auth JWT.
-   * `false` for getProposals: mint when signed-in OAuth (viewer
-   * context); if minting fails, omit Authorization (soft-anon).
+   * `true` for propose/vote: a signed-in session must send a Bearer
+   * (OAuth mints; password may use `accessJwt`). Mint failure throws.
+   * `false` for getProposals: when a session is present, prefer minting
+   * service-auth and sending `Authorization: Bearer <jwt>`. Omit the
+   * header only when the session is truly unsigned, or on a documented
+   * hard mint failure (public note text can still load). Never send an
+   * empty Bearer.
    */
   requireAuth?: boolean
 }
@@ -95,6 +114,17 @@ export function getOauthSessionFromAgent(
 
 export function isOauthNotesAgent(agent: ServiceAuthAgent): boolean {
   return Boolean(agent?.oauthSession || agent?.isOauthSession)
+}
+
+/**
+ * True when the agent can mint `com.atproto.server.getServiceAuth`
+ * (1.133 `pdsClient.call` or the Agent XRPC namespace).
+ */
+export function canMintNotesServiceAuth(agent: ServiceAuthAgent): boolean {
+  if (agent?.pdsClient && typeof agent.pdsClient.call === 'function') {
+    return true
+  }
+  return typeof agent?.com?.atproto?.server?.getServiceAuth === 'function'
 }
 
 /**
@@ -126,11 +156,36 @@ export function notesServiceOriginFromUrl(url: string): string {
   return new URL(url).origin
 }
 
+const PINNED_NOTES_SERVICE_DIDS = new Set<string>(
+  Object.values(COMMUNITY_NOTES_FEED_GENERATOR_DID),
+)
+
+/**
+ * Bare DID from a getServiceAuth audience (`did` or `did#serviceId`).
+ */
+export function notesAudienceDid(aud: string): string {
+  const hash = aud.indexOf('#')
+  return hash === -1 ? aud : aud.slice(0, hash)
+}
+
+/**
+ * True when `aud` is the pinned notes service DID, optionally with a
+ * `#serviceId` fragment.
+ */
+export function isPinnedNotesServiceAudience(aud: string): boolean {
+  return (
+    typeof aud === 'string' &&
+    aud.startsWith('did:') &&
+    PINNED_NOTES_SERVICE_DIDS.has(notesAudienceDid(aud))
+  )
+}
+
 /**
  * Notes service DID used as `getServiceAuth.aud`.
  * `org.opencommunitynotes.getConfig.feedGeneratorDid` is a bare DID
  * (or `did#serviceId` if the service ever returns that form). Notes
- * accepts both.
+ * accepts both, but the DID must match `COMMUNITY_NOTES_FEED_GENERATOR_DID`.
+ * A well-formed attacker DID is rejected (audience drift).
  */
 export async function getNotesServiceAudience(
   notesUrl: string,
@@ -152,6 +207,11 @@ export async function getNotesServiceAudience(
   if (typeof aud !== 'string' || !aud.startsWith('did:')) {
     throw new Error('getConfig.feedGeneratorDid is not a DID')
   }
+  if (!isPinnedNotesServiceAudience(aud)) {
+    throw new Error(
+      'getConfig.feedGeneratorDid does not match the pinned notes service DID',
+    )
+  }
 
   notesAudienceCache.set(origin, {aud, fetchedAt: Date.now()})
   return aud
@@ -168,6 +228,12 @@ export async function mintNotesServiceAuth(
   agent: ServiceAuthAgent,
   params: ServiceAuthParams,
 ): Promise<string> {
+  if (!isPinnedNotesServiceAudience(params.aud)) {
+    throw new Error(
+      'getServiceAuth aud does not match the pinned notes service DID',
+    )
+  }
+
   const callParams = {
     aud: params.aud,
     lxm: params.lxm,
@@ -228,6 +294,9 @@ function fetchWithBearer(
   init: RequestInit,
   token: string,
 ): Promise<Response> {
+  if (typeof token !== 'string' || token.length === 0) {
+    throw new Error('Refusing to send empty Authorization Bearer')
+  }
   const headers = new Headers(init.headers)
   headers.set('Authorization', `Bearer ${token}`)
   return fetch(url, {...init, headers})
@@ -247,18 +316,25 @@ function fetchOmittingAuthorization(
  * (atproto-community-notes PR #9 / tip 6c7f08af):
  *
  * - OAuth (`OauthBskyAppAgent`): mint `com.atproto.server.getServiceAuth`
- *   at the PDS (`aud` = getConfig.feedGeneratorDid, `lxm` = this method)
+ *   at the PDS (`aud` = pinned notes DID confirmed by getConfig, `lxm` =
+ *   this method)
  *   and send `Authorization: Bearer <service-auth jwt>`. Never send
  *   empty-JWKS OAuth DPoP to notes (`OAuthSession.fetchHandler` against
  *   the notes URL). Never replay a notes-bound DPoP proof to the PDS.
- * - Password: `Authorization: Bearer <accessJwt>` when the JWT is present.
- * - Soft-anon (no oauthSession, no password JWT): omit `Authorization`.
- *   Never send an empty Bearer header — the notes service treats that
- *   as a hard 401.
+ * - Password: prefer service-auth mint on getProposals when `pdsClient`
+ *   (or Agent `getServiceAuth`) is present; otherwise
+ *   `Authorization: Bearer <accessJwt>`.
+ * - Soft-anon (no session, no password JWT, no mint capability): omit
+ *   `Authorization`. Never send an empty Bearer header - the notes
+ *   service treats that as a hard 401.
  *
- * Soft-gate for signed-in note bodies: service-auth. Interim: omit
- * Authorization on getProposals only (`requireAuth: false`) if minting
- * fails. propose/vote (`requireAuth: true`) must mint.
+ * Soft-gate for signed-in note bodies: service-auth. getProposals
+ * (`requireAuth: false`) prefers minting whenever a session can
+ * (OAuth, 1.133 `pdsClient`, or Agent namespace). Hard mint failure
+ * omits Authorization so public note text can still load - that
+ * fallback is only for mint failure or a truly unsigned agent
+ * (`null`, empty `accessJwt`, no oauth / pdsClient). propose/vote
+ * (`requireAuth: true`) must send a Bearer; mint failure throws.
  */
 export async function fetchWithAgentAuth(
   agent: ServiceAuthAgent,
@@ -267,10 +343,20 @@ export async function fetchWithAgentAuth(
   options: FetchNotesAuthOptions = {},
 ): Promise<Response> {
   const requireAuth = options.requireAuth === true
+  const accessJwt = getPasswordAccessJwt(agent)
+  const oauth = isOauthNotesAgent(agent)
+  const canMint = canMintNotesServiceAuth(agent)
 
-  // Signed-in OAuth: service-auth Bearer. Do not DPoP the notes URL
-  // and do not fall through to leftover password `accessJwt`.
-  if (isOauthNotesAgent(agent)) {
+  /*
+   * Prefer service-auth when a session is present and we can mint:
+   * OAuth always; getProposals whenever pdsClient / getServiceAuth
+   * exists; writes when there is no password JWT. Do not DPoP the
+   * notes URL. Do not send leftover password `accessJwt` on OAuth.
+   */
+  const preferMint =
+    oauth || (canMint && !requireAuth) || (canMint && !accessJwt)
+
+  if (preferMint) {
     try {
       const token = await mintNotesServiceAuthForUrl(agent, url, options.lxm)
       return fetchWithBearer(url, init, token)
@@ -278,11 +364,11 @@ export async function fetchWithAgentAuth(
       if (requireAuth) {
         throw error
       }
+      // Documented hard mint failure (#41): omit, never empty Bearer.
       return fetchOmittingAuthorization(url, init)
     }
   }
 
-  const accessJwt = getPasswordAccessJwt(agent)
   if (accessJwt) {
     return fetchWithBearer(url, init, accessJwt)
   }

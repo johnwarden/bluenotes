@@ -30,10 +30,12 @@ import {
 } from '#/lib/hooks/useNotificationHandler'
 import {useWebScrollRestoration} from '#/lib/hooks/useWebScrollRestoration'
 import {useCallOnce} from '#/lib/once'
-import {buildStateObject, getCurrentRoute} from '#/lib/routes/helpers'
+import {getStateFromPath as getNavigationStateFromPath} from '#/lib/routes/get-state-from-path'
+import {getCurrentRoute} from '#/lib/routes/helpers'
 import {
   type AllNavigatorParams,
   type BottomTabNavigatorParams,
+  type CommunityNotesTabNavigatorParams,
   type FlatNavigatorParams,
   type HomeTabNavigatorParams,
   type MessagesTabNavigatorParams,
@@ -44,7 +46,6 @@ import {
   type State,
 } from '#/lib/routes/types'
 import {bskyTitle} from '#/lib/strings/headings'
-import {CHAT_INVITE_CODE_REGEX} from '#/lib/strings/url-helpers'
 import {useUnreadNotifications} from '#/state/queries/notifications/unread'
 import {useSession} from '#/state/session'
 import {useLoggedOutViewControls} from '#/state/shell/logged-out'
@@ -76,6 +77,8 @@ import {TermsOfServiceScreen} from '#/view/screens/TermsOfService'
 import {BottomBar} from '#/view/shell/bottom-bar/BottomBar'
 import {createNativeStackNavigatorWithAuth} from '#/view/shell/createNativeStackNavigatorWithAuth'
 import {BookmarksScreen} from '#/screens/Bookmarks'
+import {CommunityNotesScreen} from '#/screens/CommunityNotes'
+import {RateNotesScreen} from '#/screens/CommunityNotes/RateNotesScreen'
 import {CustomFeedScreen} from '#/screens/CustomFeed'
 import {CustomFeedLikedByScreen} from '#/screens/CustomFeed/CustomFeedLikedBy'
 import {SharedPreferencesTesterScreen} from '#/screens/E2E/SharedPreferencesTesterScreen'
@@ -153,6 +156,8 @@ const navigationRef = createNavigationContainerRef<AllNavigatorParams>()
 
 const HomeTab = createNativeStackNavigatorWithAuth<HomeTabNavigatorParams>()
 const SearchTab = createNativeStackNavigatorWithAuth<SearchTabNavigatorParams>()
+const CommunityNotesTab =
+  createNativeStackNavigatorWithAuth<CommunityNotesTabNavigatorParams>()
 const NotificationsTab =
   createNativeStackNavigatorWithAuth<NotificationsTabNavigatorParams>()
 const MyProfileTab =
@@ -637,6 +642,14 @@ function commonScreens(Stack: typeof Flat, unreadCountLabel?: string) {
           gestureEnabled: false,
         }}
       />
+      <Stack.Screen
+        name="CommunityNotesRating"
+        getComponent={() => RateNotesScreen}
+        options={({route}) => ({
+          title: title(msg`Post by @${route.params.name}`),
+          requireAuth: true,
+        })}
+      />
     </>
   )
 }
@@ -666,6 +679,10 @@ function TabsNavigator({
       layout={layout}>
       <Tab.Screen name="HomeTab" getComponent={() => HomeTabNavigator} />
       <Tab.Screen name="SearchTab" getComponent={() => SearchTabNavigator} />
+      <Tab.Screen
+        name="CommunityNotesTab"
+        getComponent={() => CommunityNotesTabNavigator}
+      />
       <Tab.Screen
         name="MessagesTab"
         getComponent={() => MessagesTabNavigator}
@@ -731,6 +748,22 @@ function SearchTabNavigator() {
       <SearchTab.Screen name="Search" getComponent={() => SearchScreen} />
       {commonScreens(SearchTab as typeof Flat)}
     </SearchTab.Navigator>
+  )
+}
+
+function CommunityNotesTabNavigator() {
+  const t = useTheme()
+  return (
+    <CommunityNotesTab.Navigator
+      screenOptions={screenOptions(t)}
+      initialRouteName="CommunityNotes">
+      <CommunityNotesTab.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        initialParams={{tab: 'feeds'}}
+      />
+      {commonScreens(CommunityNotesTab as typeof Flat)}
+    </CommunityNotesTab.Navigator>
   )
 }
 
@@ -832,6 +865,13 @@ const FlatNavigator = ({
         getComponent={() => HomeScreen}
         options={{title: title(msg`Home`)}}
       />
+      <Flat.Screen
+        name="CommunityNotes"
+        getComponent={() => CommunityNotesScreen}
+        options={{
+          title: title(msg`Community Notes`),
+        }}
+      />
       {commonScreens(Flat, numUnread)}
     </Flat.Navigator>
   )
@@ -860,56 +900,7 @@ const LINKING = {
   },
 
   getStateFromPath(path: string) {
-    const [name, params] = router.matchPath(path)
-
-    // Any time we receive a url that starts with `intent/` we want to ignore it here. It will be handled in the
-    // intent handler hook. We should check for the trailing slash, because if there isn't one then it isn't a valid
-    // intent
-    // On web, there is no route state that's created by default, so we should initialize it as the home route. On
-    // native, since the home tab and the home screen are defined as initial routes, we don't need to return a state
-    // since it will be created by react-navigation.
-    if (path.includes('intent/')) {
-      if (IS_NATIVE) return
-      return buildStateObject('Flat', 'Home', params)
-    }
-
-    // Chat invite URLs (`/chat/:code`) are handled by `useIntentHandler`, which
-    // opens the GroupChatJoinDialog (or the logged-out join flow). Route the
-    // path to Home so the dialog overlays Home instead of NotFound. On native,
-    // react-navigation strips the `bluesky://` prefix and passes the path
-    // without a leading slash, so normalize before matching.
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`
-    if (CHAT_INVITE_CODE_REGEX.test(normalizedPath.split('?')[0])) {
-      if (IS_NATIVE) {
-        return buildStateObject('HomeTab', 'Home', params)
-      }
-      return buildStateObject('Flat', 'Home', params)
-    }
-
-    if (IS_NATIVE) {
-      if (name === 'Search') {
-        return buildStateObject('SearchTab', 'Search', params)
-      }
-      if (name === 'Notifications') {
-        return buildStateObject('NotificationsTab', 'Notifications', params)
-      }
-      if (name === 'Home') {
-        return buildStateObject('HomeTab', 'Home', params)
-      }
-      if (name === 'Messages') {
-        return buildStateObject('MessagesTab', 'Messages', params)
-      }
-      // if the path is something else, like a post, profile, or even settings, we need to initialize the home tab as pre-existing state otherwise the back button will not work
-      return buildStateObject('HomeTab', name, params, [
-        {
-          name: 'Home',
-          params: {},
-        },
-      ])
-    } else {
-      const res = buildStateObject('Flat', name, params)
-      return res
-    }
+    return getNavigationStateFromPath(path, {isNative: IS_NATIVE})
   },
 } satisfies LinkingOptions<AllNavigatorParams>
 

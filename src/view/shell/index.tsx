@@ -13,6 +13,7 @@ import {useOTAUpdateRecovery} from '#/lib/hooks/useOTAUpdates'
 import {useNotificationsRegistration} from '#/lib/notifications/notifications'
 import {isStateAtTabRoot} from '#/lib/routes/helpers'
 import {useDialogFullyExpandedCountContext} from '#/state/dialogs'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useSession} from '#/state/session'
 import {
   useIsDrawerOpen,
@@ -226,6 +227,7 @@ export function Shell() {
 
   return (
     <View testID="mobileShellView" style={[a.h_full, t.atoms.bg]}>
+      <CommunityNotesConfigLoader />
       <SystemBars
         hidden={{
           statusBar: false,
