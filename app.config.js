@@ -218,6 +218,8 @@ module.exports = function (_config) {
       },
       web: {
         favicon: './assets/favicon.png',
+        name: 'Bluenotes',
+        shortName: 'Bluenotes',
       },
       updates: {
         url: 'https://updates.bsky.app/manifest',
