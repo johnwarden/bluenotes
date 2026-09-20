@@ -1489,7 +1489,7 @@ func TestBuildPostJSONLD_VideoNameFallbackHandleInvalid(t *testing.T) {
 	out, _ := buildPostJSONLD(pv, nil, "u", "", hideEmbedLabels, hideReplyLabels)
 	main := unmarshalLD(t, out)["mainEntity"].(map[string]any)
 	video := main["video"].(map[string]any)
-	if video["name"] != "Video on Bluenotes" {
+	if video["name"] != "Video on Blue Notes" {
 		t.Errorf("name fallback = %v, want generic", video["name"])
 	}
 }

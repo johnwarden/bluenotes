@@ -23,6 +23,12 @@ var forbiddenProductBranding = []string{
 	"{% block head_title %}Bluesky",
 	"https://bsky.social\">bsky.social",
 	"<!-- Bluesky SVG -->",
+	`content="Bluenotes"`,
+	`content="Bluenotes Social"`,
+	" on Bluenotes",
+	"Learn more about Bluenotes",
+	"Join this group chat on Bluenotes",
+	"| Bluenotes Feed",
 }
 
 func readRepoFile(t *testing.T, rel string) string {
@@ -56,15 +62,15 @@ func TestBskywebTemplatesUseBluenotesProductBranding(t *testing.T) {
 
 	base := readRepoFile(t, "bskyweb/templates/base.html")
 	for _, want := range []string{
-		`content="Bluenotes"`,
-		`content="Bluenotes Social"`,
-		`name="apple-mobile-web-app-title" content="Bluenotes"`,
-		"Learn more about Bluenotes",
+		`content="Blue Notes"`,
+		`content="Blue Notes Social"`,
+		`name="apple-mobile-web-app-title" content="Blue Notes"`,
+		"Learn more about Blue Notes",
 		"https://bluenotes.social",
 		`viewBox="0 0 500 441"`,
 	} {
 		if !strings.Contains(base, want) {
-			t.Errorf("base.html missing Bluenotes branding %q", want)
+			t.Errorf("base.html missing Blue Notes branding %q", want)
 		}
 	}
 }
@@ -73,6 +79,7 @@ func TestWebIndexUsesBluenotesSplash(t *testing.T) {
 	content := readRepoFile(t, "web/index.html")
 	for _, needle := range []string{
 		`content="Bluesky"`,
+		`content="Bluenotes"`,
 		"<!-- Bluesky SVG -->",
 		`viewBox="0 0 64 57"`,
 	} {
@@ -81,13 +88,31 @@ func TestWebIndexUsesBluenotesSplash(t *testing.T) {
 		}
 	}
 	for _, want := range []string{
-		`name="application-name" content="Bluenotes"`,
-		`name="apple-mobile-web-app-title" content="Bluenotes"`,
+		`name="application-name" content="Blue Notes"`,
+		`name="apple-mobile-web-app-title" content="Blue Notes"`,
 		`viewBox="0 0 500 441"`,
 		"https://bluenotes.social",
 	} {
 		if !strings.Contains(content, want) {
-			t.Errorf("web/index.html missing Bluenotes splash branding %q", want)
+			t.Errorf("web/index.html missing Blue Notes splash branding %q", want)
 		}
+	}
+}
+
+func TestAppNameAndWebNameAreSpacedBlueNotes(t *testing.T) {
+	constants := readRepoFile(t, "src/lib/constants.ts")
+	if !strings.Contains(constants, `export const APP_NAME = 'Blue Notes'`) {
+		t.Error("APP_NAME must be the spaced display name 'Blue Notes'")
+	}
+	if strings.Contains(constants, `export const APP_NAME = 'Bluenotes'`) {
+		t.Error("APP_NAME still uses one-word Bluenotes")
+	}
+
+	config := readRepoFile(t, "app.config.js")
+	if !strings.Contains(config, `name: 'Blue Notes'`) {
+		t.Error("app.config.js web.name must be 'Blue Notes'")
+	}
+	if strings.Contains(config, `name: 'Bluenotes'`) {
+		t.Error("app.config.js still uses one-word Bluenotes")
 	}
 }
