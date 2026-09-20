@@ -93,6 +93,12 @@ Adding bitdrift is NOT required. You can keep `EXPO_PUBLIC_BITDRIFT_API_KEY=` in
 
 However, if you're a part of the Bluesky team and want to enable bitdrift, fill in `EXPO_PUBLIC_BITDRIFT_API_KEY` in your `.env` to enable bitdrift.
 
+### Configuring Statsig (Feature Flags)
+
+Statsig is disabled by default for offline development. You can keep `EXPO_PUBLIC_STATSIG_API_ENDPOINT=` in `.env` to work completely offline.
+
+If you need to test feature flags, set `EXPO_PUBLIC_STATSIG_API_ENDPOINT=https://events.bsky.app/v2` in your `.env` to enable Statsig with the production endpoint.
+
 ### Adding and Updating Locales
 
 - `pnpm intl:build` -> you will also need to run this anytime `./src/locale/{locale}/messages.po` change

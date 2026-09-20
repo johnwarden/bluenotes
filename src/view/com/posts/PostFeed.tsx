@@ -22,6 +22,7 @@ import {type RichText as RichTextType} from '@bsky/sdk/richtext'
 import {useLingui} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
+import * as apilib from '#/lib/api/community-notes'
 import {DISCOVER_FEED_URI, KNOWN_SHUTDOWN_FEEDS} from '#/lib/constants'
 import {useBottomBarOffset} from '#/lib/hooks/useBottomBarOffset'
 import {useInitialNumToRender} from '#/lib/hooks/useInitialNumToRender'
@@ -33,6 +34,15 @@ import {listenPostCreated} from '#/state/events'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
 import {useTrendingSettings} from '#/state/preferences/trending'
 import {STALE} from '#/state/queries'
+import {
+  cacheGetProposalsBatch,
+  collectUrisMissingProposalsCache,
+  CommunityNotesBatchFallbackUrisContext,
+  communityNotesProposalsQueryKey,
+  mergeFallbackUris,
+  proposalStatusesForFeed,
+} from '#/state/queries/community-notes-batch'
+import {useCommunityNotesAuth} from '#/state/queries/community-notes-config'
 import {
   type AuthorFilter,
   type FeedDescriptor,
@@ -224,6 +234,7 @@ let PostFeed = ({
   savedFeedConfig,
   initialNumToRender: initialNumToRenderOverride,
   isVideoFeed = false,
+  communityNotesFeedMode,
   ref,
 }: {
   feed: FeedDescriptor
@@ -249,6 +260,7 @@ let PostFeed = ({
   initialNumToRender?: number
   isVideoFeed?: boolean
   lastFetchDate?: () => number
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
   ref?: React.Ref<PostFeedRef>
 }): React.ReactNode => {
   const ax = useAnalytics()
@@ -256,6 +268,9 @@ let PostFeed = ({
   const {t: l} = useLingui()
   const queryClient = useQueryClient()
   const {currentAccount, hasSession} = useSession()
+  const communityNotesAuth = useCommunityNotesAuth()
+  const communityNotesAuthRef = useRef(communityNotesAuth)
+  communityNotesAuthRef.current = communityNotesAuth
   const initialNumToRender = useInitialNumToRender()
   const feedFeedback = useFeedFeedbackContext()
   const [isPTRing, setIsPTRing] = useState(false)
@@ -397,6 +412,99 @@ let PostFeed = ({
       cleanup2?.()
     }
   }, [pollInterval, checkForNew])
+
+  /*
+   * Community Notes: batch prefetch proposals for the newest page on
+   * every PostFeed (CN tabs and Home / Discover / Following). Auth is
+   * read from a ref so a new object each render does not cancel an
+   * in-flight prefetch. Signed-in sessions must mint/send Bearer (#41).
+   * If a status batch fails, mark uncached URIs so per-post getProposals
+   * can still load note.text (#42 / home).
+   */
+  const latestPageFetchedAt = data?.pages?.[data.pages.length - 1]?.fetchedAt
+  const cnInFlightRef = useRef<Map<string, Set<string>>>(new Map())
+  const [cnBatchFallbackUris, setCnBatchFallbackUris] = useState<
+    ReadonlySet<string>
+  >(() => new Set())
+  useEffect(() => {
+    const latestPage = data?.pages?.[data.pages.length - 1]
+    if (!latestPage) return
+
+    const uris = Array.from(
+      new Set(
+        latestPage.slices
+          .flatMap(s => s.items.map(i => i.post.uri))
+          .filter(Boolean),
+      ),
+    )
+    if (uris.length === 0) return
+
+    const statuses = proposalStatusesForFeed(communityNotesFeedMode)
+    const work = statuses
+      .map(status => {
+        const inFlightSet =
+          cnInFlightRef.current.get(status) ?? new Set<string>()
+        const toFetch = uris.filter(uri => {
+          const key = communityNotesProposalsQueryKey(uri, status)
+          return !queryClient.getQueryData(key) && !inFlightSet.has(uri)
+        })
+        return {status, inFlightSet, toFetch}
+      })
+      .filter(item => item.toFetch.length > 0)
+    if (work.length === 0) return
+
+    const chunk = <T,>(arr: T[], size: number) => {
+      const out: T[][] = []
+      for (let i = 0; i < arr.length; i += size)
+        out.push(arr.slice(i, i + size))
+      return out
+    }
+
+    let canceled = false
+    const run = async () => {
+      for (const {status, inFlightSet, toFetch} of work) {
+        for (const uri of toFetch) inFlightSet.add(uri)
+        cnInFlightRef.current.set(status, inFlightSet)
+
+        try {
+          const batches = chunk(toFetch, 30)
+          for (const batch of batches) {
+            const res = await apilib.getProposals(
+              communityNotesAuthRef.current,
+              batch,
+              {status},
+            )
+            if (canceled) return
+
+            cacheGetProposalsBatch({
+              queryClient,
+              subjectUris: batch,
+              status,
+              proposals: res.proposals,
+            })
+          }
+        } catch (err) {
+          if (canceled) return
+          logger.warn('Batch proposal fetch failed', {err, status})
+          const missing = collectUrisMissingProposalsCache({
+            queryClient,
+            subjectUris: toFetch,
+            status,
+          })
+          setCnBatchFallbackUris(prev => mergeFallbackUris(prev, missing))
+        } finally {
+          for (const uri of toFetch) inFlightSet.delete(uri)
+          if (inFlightSet.size === 0) cnInFlightRef.current.delete(status)
+        }
+      }
+    }
+
+    void run()
+
+    return () => {
+      canceled = true
+    }
+  }, [queryClient, communityNotesFeedMode, latestPageFetchedAt, data])
 
   const followProgressGuide = useProgressGuide('follow-10')
   const followAndLikeProgressGuide = useProgressGuide('like-10-and-follow-7')
@@ -890,6 +998,7 @@ let PostFeed = ({
             hideTopBorder={rowIndex === 0 && indexInSlice === 0}
             rootPost={slice.items[0].post}
             onShowLess={onPressShowLess}
+            communityNotesFeedMode={communityNotesFeedMode}
           />
         )
       } else if (row.type === 'sliceViewFullThread') {
@@ -944,6 +1053,7 @@ let PostFeed = ({
       feedCacheKey,
       onPressShowLess,
       t,
+      communityNotesFeedMode,
     ],
   )
 
@@ -1141,37 +1251,40 @@ let PostFeed = ({
   )
 
   return (
-    <View testID={testID} style={style}>
-      <List
-        testID={testID ? `${testID}-flatlist` : undefined}
-        ref={scrollElRef}
-        data={feedItems}
-        keyExtractor={(item: FeedRow) => item.key}
-        renderItem={renderItem}
-        ListFooterComponent={FeedFooter}
-        ListHeaderComponent={ListHeaderComponent}
-        refreshing={isPTRing}
-        onRefresh={() => void onRefresh()}
-        headerOffset={headerOffset}
-        progressViewOffset={progressViewOffset}
-        contentContainerStyle={{
-          minHeight: Dimensions.get('window').height * 1.5,
-        }}
-        onScrolledDownChange={handleScrolledDownChange}
-        onEndReached={() => void onEndReached()}
-        onEndReachedThreshold={2} // number of posts left to trigger load more
-        removeClippedSubviews={true}
-        extraData={extraData}
-        desktopFixedHeight={
-          desktopFixedHeightOffset ? desktopFixedHeightOffset : true
-        }
-        initialNumToRender={initialNumToRenderOverride ?? initialNumToRender}
-        windowSize={9}
-        maxToRenderPerBatch={IS_IOS ? 5 : 1}
-        updateCellsBatchingPeriod={40}
-        onItemSeen={onItemSeen}
-      />
-    </View>
+    <CommunityNotesBatchFallbackUrisContext.Provider
+      value={cnBatchFallbackUris}>
+      <View testID={testID} style={style}>
+        <List
+          testID={testID ? `${testID}-flatlist` : undefined}
+          ref={scrollElRef}
+          data={feedItems}
+          keyExtractor={(item: FeedRow) => item.key}
+          renderItem={renderItem}
+          ListFooterComponent={FeedFooter}
+          ListHeaderComponent={ListHeaderComponent}
+          refreshing={isPTRing}
+          onRefresh={() => void onRefresh()}
+          headerOffset={headerOffset}
+          progressViewOffset={progressViewOffset}
+          contentContainerStyle={{
+            minHeight: Dimensions.get('window').height * 1.5,
+          }}
+          onScrolledDownChange={handleScrolledDownChange}
+          onEndReached={() => void onEndReached()}
+          onEndReachedThreshold={2} // number of posts left to trigger load more
+          removeClippedSubviews={true}
+          extraData={extraData}
+          desktopFixedHeight={
+            desktopFixedHeightOffset ? desktopFixedHeightOffset : true
+          }
+          initialNumToRender={initialNumToRenderOverride ?? initialNumToRender}
+          windowSize={9}
+          maxToRenderPerBatch={IS_IOS ? 5 : 1}
+          updateCellsBatchingPeriod={40}
+          onItemSeen={onItemSeen}
+        />
+      </View>
+    </CommunityNotesBatchFallbackUrisContext.Provider>
   )
 }
 PostFeed = memo(PostFeed)

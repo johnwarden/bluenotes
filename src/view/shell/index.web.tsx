@@ -7,6 +7,7 @@ import {RemoveScrollBar} from 'react-remove-scroll-bar'
 
 import {useIntentHandler} from '#/lib/hooks/useIntentHandler'
 import {type NavigationProp} from '#/lib/routes/types'
+import {CommunityNotesConfigLoader} from '#/state/queries/community-notes-config-loader'
 import {useSession} from '#/state/session'
 import {useIsDrawerOpen, useSetDrawerOpen} from '#/state/shell'
 import {useCloseAllActiveElements} from '#/state/util'
@@ -168,6 +169,7 @@ export function Shell() {
         <Deactivated />
       ) : (
         <>
+          <CommunityNotesConfigLoader />
           {aa.state.error === 'account-data' ? (
             <DataUnavailableScreen />
           ) : aa.state.access === aa.Access.None ? (

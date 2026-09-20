@@ -30,6 +30,7 @@ import {
   REPLY_LINE_WIDTH,
 } from '#/screens/PostThread/const'
 import {atoms as a, useTheme} from '#/alf'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
 import {DebugFieldDisplay} from '#/components/DebugFieldDisplay'
 import {useInteractionState} from '#/components/hooks/useInteractionState'
 import {Trash_Stroke2_Corner0_Rounded as TrashIcon} from '#/components/icons/Trash'
@@ -316,6 +317,7 @@ const ThreadItemPostInner = memo(function ThreadItemPostInner({
                   }),
                 ]}
               />
+              <DebugLabels post={post} />
               <PostAlerts
                 post={post}
                 modui={moderation.ui('contentList')}
