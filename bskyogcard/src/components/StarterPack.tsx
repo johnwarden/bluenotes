@@ -149,7 +149,7 @@ export function StarterPack(props: {
             justifyContent: 'center',
             padding: '30px 30px 10px',
           }}>
-          on <Butterfly width="65" style={{margin: '-7px 10px 0'}} /> Bluenotes
+          on <Butterfly width="65" style={{margin: '-7px 10px 0'}} /> Blue Notes
         </div>
       </div>
     </div>

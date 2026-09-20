@@ -2,11 +2,11 @@
 
 {% block head_title %}
 {%- if postView -%}
-  @{{ postView.Author.Handle }} on Bluenotes
+  @{{ postView.Author.Handle }} on Blue Notes
 {%- elif requiresAuth and profileHandle -%}
-  @{{ profileHandle }} on Bluenotes
+  @{{ profileHandle }} on Blue Notes
 {%- else -%}
-  Bluenotes
+  Blue Notes
 {%- endif -%}
 {% endblock %}
 

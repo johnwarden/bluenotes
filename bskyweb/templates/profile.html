@@ -2,14 +2,14 @@
 
 {% block head_title %}
 {%- if profileView -%}
-  @{{ profileView.Handle }} on Bluenotes
+  @{{ profileView.Handle }} on Blue Notes
 {%- else -%}
-  Bluenotes
+  Blue Notes
 {%- endif -%}
 {% endblock %}
 
 {% block html_head_extra -%}
-  <meta property="og:site_name" content="Bluenotes Social">
+  <meta property="og:site_name" content="Blue Notes Social">
   <meta property="og:type" content="profile">
 {%- if requestURI %}
   {% if canonicalURL %}

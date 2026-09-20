@@ -2,15 +2,15 @@
 
 {% block head_title %}
 {%- if feedView -%}
-  {{ feedView.DisplayName }} by @{{ feedView.Creator.Handle }} | Bluenotes Feed
+  {{ feedView.DisplayName }} by @{{ feedView.Creator.Handle }} | Blue Notes Feed
 {%- else -%}
-  Bluenotes
+  Blue Notes
 {%- endif -%}
 {% endblock %}
 
 {% block html_head_extra -%}
 {%- if feedView -%}
-  <meta property="og:site_name" content="Bluenotes Social">
+  <meta property="og:site_name" content="Blue Notes Social">
   <meta property="og:type" content="website">
   {%- if requestURI %}
   <meta property="og:url" content="{{ requestURI }}">
