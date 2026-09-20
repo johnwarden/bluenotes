@@ -144,8 +144,48 @@ module.exports = async function (env, argv) {
       })
     }
   } else {
-    // Support static CDN for chunks
+    /*
+     * Keep `auto` so dynamically loaded chunks follow a CDN-hosted entry
+     * script (bskyweb injects `{{ staticCDNHost }}/static/js/…`). HTML
+     * script/link tags still need root-absolute `/static/…` hrefs so a
+     * deep link like `/community-notes/feeds` does not resolve
+     * `static/js/main.js` under the current path (HTML served as JS →
+     * splash hang). See scripts/absolutize-web-asset-paths.js.
+     */
     config.output.publicPath = 'auto'
+    const {
+      absolutizeHtmlAssetPaths,
+    } = require('./scripts/absolutize-web-asset-paths')
+    config.plugins.push({
+      apply(compiler) {
+        compiler.hooks.compilation.tap(
+          'AbsolutizeWebAssetPathsPlugin',
+          compilation => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'AbsolutizeWebAssetPathsPlugin',
+                stage:
+                  compiler.webpack.Compilation
+                    .PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
+              },
+              assets => {
+                for (const filename of Object.keys(assets)) {
+                  if (!filename.endsWith('.html')) continue
+                  const source = assets[filename].source().toString()
+                  const next = absolutizeHtmlAssetPaths(source)
+                  if (next !== source) {
+                    compilation.updateAsset(
+                      filename,
+                      new compiler.webpack.sources.RawSource(next),
+                    )
+                  }
+                }
+              },
+            )
+          },
+        )
+      },
+    })
   }
 
   if (GENERATE_STATS || OPEN_ANALYZER) {

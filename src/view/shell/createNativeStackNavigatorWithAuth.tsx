@@ -206,7 +206,9 @@ function NativeStackNavigator({
           ) : (
             <DesktopLeftNav routeName={activeRoute.name} />
           )}
-          {!isMobile && <DesktopRightNav routeName={activeRoute.name} />}
+          {!isMobile && activeRoute.name !== 'CommunityNotes' && (
+            <DesktopRightNav routeName={activeRoute.name} />
+          )}
         </>
       )}
 

@@ -35,6 +35,7 @@ import {
 import {DISCOVER_FEED_URI} from '#/lib/constants'
 import {logger} from '#/logger'
 import {STALE} from '#/state/queries'
+import {useCommunityNotesConfigReady} from '#/state/queries/community-notes-config'
 import {DEFAULT_LOGGED_OUT_PREFERENCES} from '#/state/queries/preferences/const'
 import {useAppviewClient, useSession} from '#/state/session'
 import * as userActionHistory from '#/state/userActionHistory'
@@ -147,8 +148,16 @@ export function usePostFeedQuery(
    * available for the remainder of the session, so this delay only affects cold
    * loads. -esb
    */
+  /**
+   * Wait for Community Notes config to load before fetching feeds.
+   * This ensures we always have the correct Atproto-Accept-Labelers header.
+   */
+  const isCommunityNotesConfigReady = useCommunityNotesConfigReady()
   const enabled =
-    opts?.enabled !== false && Boolean(moderationOpts) && Boolean(preferences)
+    opts?.enabled !== false &&
+    Boolean(moderationOpts) &&
+    Boolean(preferences) &&
+    isCommunityNotesConfigReady
   const userInterests = aggregateUserInterests(preferences)
   const followingPinnedIndex =
     preferences?.savedFeeds?.findIndex(

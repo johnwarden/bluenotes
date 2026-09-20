@@ -3,10 +3,12 @@ import {StyleSheet, View} from 'react-native'
 import {AtUri} from '@atproto/syntax'
 import {type ModerationDecision} from '@bsky/sdk/moderation'
 import {RichText as RichTextAPI} from '@bsky/sdk/richtext'
+import {useLingui} from '@lingui/react/macro'
 import {useQueryClient} from '@tanstack/react-query'
 
 import {type ReasonFeedSource} from '#/lib/api/feed/types'
 import {type FeedPostNumbering} from '#/lib/api/feed-manip'
+import {hasHelpfulNotes, hasProposedNotes} from '#/lib/community-notes/labels'
 import {MAX_POST_LINES} from '#/lib/constants'
 import {useOpenComposer} from '#/lib/hooks/useOpenComposer'
 import {usePalette} from '#/lib/hooks/usePalette'
@@ -18,6 +20,13 @@ import {
   usePostShadow,
 } from '#/state/cache/post-shadow'
 import {useFeedFeedbackContext} from '#/state/feed-feedback'
+import {useProposalsQuery} from '#/state/queries/community-notes'
+import {
+  resolveInlineNoteDisplayMode,
+  shouldDisableWidgetProposalsFetch,
+  shouldEnablePerPostProposalsQuery,
+  useCommunityNotesBatchFallbackForUri,
+} from '#/state/queries/community-notes-batch'
 import {unstableCacheProfileView} from '#/state/queries/profile'
 import {useSession} from '#/state/session'
 import {useMergedThreadgateHiddenReplies} from '#/state/threadgate-hidden-replies'
@@ -34,10 +43,15 @@ import {
   useHasThreadItemPostNumber,
 } from '#/screens/PostThread/components/ThreadItemPostNumber'
 import {atoms as a, select, useTheme} from '#/alf'
+import {CommunityNoteWidget} from '#/components/CommunityNotes/CommunityNoteWidget'
+import {DebugLabels} from '#/components/CommunityNotes/DebugLabels'
+import {RateProposedNotesPromptDefault as RateCommunityNotesPrompt} from '#/components/CommunityNotes/RateProposedNotesPrompt'
+import {ChevronRight_Stroke2_Corner0_Rounded as ChevronRightIcon} from '#/components/icons/Chevron'
 import {
   GalleryBleed,
   maybeApplyGalleryOffsetStyles,
 } from '#/components/images/Gallery'
+import {Link as NewLink} from '#/components/Link'
 import {ContentHider} from '#/components/moderation/ContentHider'
 import {PostAlerts} from '#/components/moderation/PostAlerts'
 import * as ReportDialogMetadataContext from '#/components/moderation/ReportDialog/ReportDialogMetadataContext'
@@ -52,6 +66,7 @@ import {PostControls} from '#/components/PostControls'
 import {DiscoverDebug} from '#/components/PostControls/DiscoverDebug'
 import {RichText} from '#/components/RichText'
 import {SubtleHover} from '#/components/SubtleHover'
+import {Text} from '#/components/Typography'
 import {Features, useAnalytics} from '#/analytics'
 import {useActorStatus} from '#/features/liveNow'
 import {app} from '#/lexicons'
@@ -78,6 +93,7 @@ interface FeedItemProps {
   hideTopBorder?: boolean
   isParentBlocked?: boolean
   isParentNotFound?: boolean
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }
 
 export function PostFeedItem({
@@ -98,6 +114,7 @@ export function PostFeedItem({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   post: app.bsky.feed.defs.PostView
   rootPost: app.bsky.feed.defs.PostView
@@ -137,6 +154,7 @@ export function PostFeedItem({
           isParentNotFound={isParentNotFound}
           rootPost={rootPost}
           onShowLess={onShowLess}
+          communityNotesFeedMode={communityNotesFeedMode}
         />
       </ReportDialogMetadataContext.Provider>
     )
@@ -163,6 +181,7 @@ let FeedItemInner = ({
   isParentNotFound,
   rootPost,
   onShowLess,
+  communityNotesFeedMode,
 }: FeedItemProps & {
   richText: RichTextAPI
   post: Shadow<app.bsky.feed.defs.PostView>
@@ -426,6 +445,7 @@ let FeedItemInner = ({
               postHref={href}
               onOpenAuthor={onOpenAuthor}
             />
+            <DebugLabels post={post} />
             {showReplyTo &&
               (parentAuthor || isParentBlocked || isParentNotFound) && (
                 <PostRepliedTo
@@ -444,6 +464,8 @@ let FeedItemInner = ({
               post={post}
               additionalPostAlerts={additionalPostAlerts}
               feedDescriptor={feedDescriptor}
+              hover={hover}
+              communityNotesFeedMode={communityNotesFeedMode}
             />
             <PostControls
               post={post}
@@ -457,6 +479,10 @@ let FeedItemInner = ({
               onShowLess={onShowLess}
               viaRepost={viaRepost}
             />
+            {communityNotesFeedMode &&
+              (hasHelpfulNotes(post) || hasProposedNotes(post)) && (
+                <SeeAllNotesLink post={post} />
+              )}
             <KnownLikers
               post={post}
               feature={Features.PostFeedKnownLikersEnable}
@@ -482,6 +508,8 @@ let PostContent = ({
   onOpenEmbed,
   additionalPostAlerts,
   feedDescriptor,
+  hover: _hover,
+  communityNotesFeedMode,
 }: {
   moderation: ModerationDecision
   richText: RichTextAPI
@@ -492,6 +520,8 @@ let PostContent = ({
   postNumbering: FeedPostNumbering | undefined
   additionalPostAlerts?: AppModerationCause[]
   feedDescriptor?: string
+  hover?: boolean
+  communityNotesFeedMode?: 'rated_helpful' | 'needs_more_ratings'
 }): React.ReactNode => {
   const [limitLines, setLimitLines] = useState(
     () => countLines(richText.text) >= MAX_POST_LINES,
@@ -507,6 +537,72 @@ let PostContent = ({
   const onPressShowMore = useCallback(() => {
     setLimitLines(false)
   }, [setLimitLines])
+
+  const postHasHelpfulNotes = hasHelpfulNotes(post)
+  const postHasProposedNotes = hasProposedNotes(post)
+  const noteStatus = communityNotesFeedMode
+    ? communityNotesFeedMode
+    : postHasHelpfulNotes
+      ? 'rated_helpful'
+      : postHasProposedNotes
+        ? 'needs_more_ratings'
+        : undefined
+
+  const batchPrefetchFailedForUri = useCommunityNotesBatchFallbackForUri(
+    post.uri,
+  )
+  const shouldQueryNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
+  const shouldQueryHelpfulNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus: postHasHelpfulNotes ? 'rated_helpful' : undefined,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
+  const shouldQueryProposedNotes = shouldEnablePerPostProposalsQuery({
+    subjectUri: post.uri,
+    noteStatus: postHasProposedNotes ? 'needs_more_ratings' : undefined,
+    communityNotesFeedMode,
+    batchPrefetchFailedForUri,
+  })
+
+  const notesQuery = useProposalsQuery(
+    post.uri,
+    noteStatus || 'rated_helpful',
+    {enabled: shouldQueryNotes},
+  )
+  const helpfulNotesQuery = useProposalsQuery(post.uri, 'rated_helpful', {
+    enabled: !communityNotesFeedMode && shouldQueryHelpfulNotes,
+  })
+  const proposedNotesQuery = useProposalsQuery(post.uri, 'needs_more_ratings', {
+    enabled: !communityNotesFeedMode && shouldQueryProposedNotes,
+  })
+
+  const displayMode = resolveInlineNoteDisplayMode({
+    communityNotesFeedMode,
+    hasHelpfulNotes: postHasHelpfulNotes,
+    hasProposedNotes: postHasProposedNotes,
+    helpfulNoteCount: helpfulNotesQuery.data?.length ?? 0,
+    proposedNoteCount: proposedNotesQuery.data?.length ?? 0,
+  })
+
+  const isWaitingForBatch =
+    communityNotesFeedMode && !shouldQueryNotes && !notesQuery.data
+
+  const shouldHidePost =
+    communityNotesFeedMode &&
+    noteStatus !== undefined &&
+    !notesQuery.isLoading &&
+    !isWaitingForBatch &&
+    (!notesQuery.data || notesQuery.data.length === 0)
+
+  if (shouldHidePost) {
+    return null
+  }
 
   return (
     <ContentHider
@@ -571,6 +667,23 @@ let PostContent = ({
           />
         </View>
       ) : null}
+      {displayMode && (
+        <CommunityNoteWidget
+          post={post}
+          displayMode={displayMode}
+          showRatingPrompt={true}
+          showDisclaimer={displayMode === 'rated_helpful'}
+          parentHover={_hover}
+          disableFetch={shouldDisableWidgetProposalsFetch({
+            communityNotesFeedMode,
+            batchPrefetchFailedForUri,
+            usesFeedBatchPrefetch: true,
+          })}
+        />
+      )}
+      {!communityNotesFeedMode && displayMode !== 'needs_more_ratings' && (
+        <RateCommunityNotesPrompt post={post} parentHover={_hover} />
+      )}
     </ContentHider>
   )
 }
@@ -613,3 +726,36 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
 })
+
+function SeeAllNotesLink({post}: {post: app.bsky.feed.defs.PostView}) {
+  const {t: l} = useLingui()
+  const t = useTheme()
+
+  return (
+    <View style={[a.mt_md]}>
+      <NewLink
+        to={`/profile/${post.author.handle}/post/${post.uri
+          .split('/')
+          .pop()}/community-notes`}
+        label={l`See all notes on this post`}
+        style={[a.flex_row, a.align_center, a.justify_between, a.py_md]}>
+        {({hovered}: {hovered: boolean}) => (
+          <>
+            <Text
+              style={[
+                a.text_md,
+                {color: t.palette.primary_500},
+                hovered && {textDecorationLine: 'underline'},
+              ]}>
+              {l`See all notes on this post`}
+            </Text>
+            <ChevronRightIcon
+              size="sm"
+              style={[{color: t.palette.primary_500}]}
+            />
+          </>
+        )}
+      </NewLink>
+    </View>
+  )
+}
