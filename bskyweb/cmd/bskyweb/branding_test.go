@@ -19,6 +19,7 @@ var forbiddenProductBranding = []string{
 	"Join this group chat on Bluesky",
 	"| Bluesky Feed",
 	" - Bluesky",
+	" — Bluesky",
 	"{%- block head_title -%}Bluesky",
 	"{% block head_title %}Bluesky",
 	"https://bsky.social\">bsky.social",
@@ -114,5 +115,18 @@ func TestAppNameAndWebNameAreSpacedBlueNotes(t *testing.T) {
 	}
 	if strings.Contains(config, `name: 'Bluenotes'`) {
 		t.Error("app.config.js still uses one-word Bluenotes")
+	}
+}
+
+func TestDocumentTitleUsesSpacedBlueNotes(t *testing.T) {
+	headings := readRepoFile(t, "src/lib/strings/headings.ts")
+	if !strings.Contains(headings, "APP_NAME") {
+		t.Error("bskyTitle must use APP_NAME so signed-in tab titles stay Blue Notes")
+	}
+	if strings.Contains(headings, "— Bluesky") {
+		t.Error("headings.ts still suffixes tab titles with Bluesky")
+	}
+	if strings.Contains(headings, "— Bluenotes") {
+		t.Error("headings.ts still suffixes tab titles with one-word Bluenotes")
 	}
 }
