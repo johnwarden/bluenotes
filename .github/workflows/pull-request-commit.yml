@@ -175,9 +175,12 @@ jobs:
         # fingerprint-native hardcodes `git rev-parse main` as the previous
         # commit. Map the PR base onto that local name so forks whose day-to-day
         # base is not `main` (this repo: tooling) are fingerprinted against the
-        # actual PR base, not the stale origin/main yarn tree.
-        run: git fetch origin ${{ github.base_ref }}:main --depth 100
+        # actual PR base, not the stale origin/main yarn tree. Pass the ref via
+        # env so zizmor does not treat it as template injection.
         if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch origin "${BASE_REF}:main" --depth 100
 
       - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
