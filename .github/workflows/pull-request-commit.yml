@@ -254,9 +254,11 @@ jobs:
   # the fork guard, but GitHub withholds repo secrets from Dependabot-triggered
   # runs. There is no OTA preview worth publishing for a dependency bump anyway.
   #
-  # Skip (do not fail) when EXPO_TOKEN is unset. GitHub withholds it from
-  # Dependabot, and some forks never configure it. An empty token used to fail
-  # at setup-expo-project instead of skipping the job.
+  # Skip (do not fail) when EXPO_TOKEN is unset. secrets is not allowed in
+  # jobs.<id>.if, so the token is copied into job env and the publish steps are
+  # gated on env.EXPO_TOKEN. That covers Dependabot and in-repo branches in a
+  # repo that has not configured the secret. An empty token used to fail at
+  # setup-expo-project instead.
   #
   # Gated on a clean fingerprint-native run: an OTA can only carry JS, so once
   # the native surface changes the published bundle no longer represents the PR
@@ -271,7 +273,6 @@ jobs:
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.type != 'Bot' &&
-      secrets.EXPO_TOKEN != '' &&
       needs.fingerprint-native.outputs.includes-changes != 'true'
     concurrency:
       group: pr-ota-${{ github.event.pull_request.number }}
@@ -279,25 +280,35 @@ jobs:
     permissions:
       id-token: write
       contents: read
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
     outputs:
       release-version: ${{ steps.env.outputs.release-version }}
       ios-build-number: ${{ steps.build-info.outputs.BSKY_IOS_BUILD_NUMBER }}
       android-build-number: ${{ steps.build-info.outputs.BSKY_ANDROID_VERSION_CODE }}
     steps:
+      - name: Skip denis OTA when EXPO_TOKEN is unset
+        if: env.EXPO_TOKEN == ''
+        run: echo "EXPO_TOKEN is unset; skipping denis PR OTA."
+
       - name: ⬇️ Checkout
+        if: env.EXPO_TOKEN != ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
       - name: 🛠️ Setup Expo project
+        if: env.EXPO_TOKEN != ''
         uses: ./.github/actions/setup-expo-project
         with:
           expo-token: ${{ secrets.EXPO_TOKEN }}
 
       - name: 🔤 Compile translations
+        if: env.EXPO_TOKEN != ''
         uses: ./.github/actions/compile-i18n
 
       - name: ✏️ Write environment variables
+        if: env.EXPO_TOKEN != ''
         id: env
         uses: ./.github/actions/write-env
         with:
@@ -309,6 +320,7 @@ jobs:
           expo-public-env: testflight
 
       - name: 🏗️ Create Bundle
+        if: env.EXPO_TOKEN != ''
         run: >
           SENTRY_AUTH_TOKEN=${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_RELEASE=${{ steps.env.outputs.release-version }}
@@ -316,6 +328,7 @@ jobs:
           pnpm export
 
       - name: ☁️ Configure AWS credentials (denis, PR-scoped)
+        if: env.EXPO_TOKEN != ''
         uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: arn:aws:iam::007404326489:role/denis-ci-publish-pr
@@ -344,6 +357,7 @@ jobs:
             }
 
       - name: ⬇️ Setup denis CLI
+        if: env.EXPO_TOKEN != ''
         uses: ./.github/actions/setup-denis
         with:
           release-tag: ${{ env.DENIS_RELEASE_TAG }}
@@ -351,10 +365,12 @@ jobs:
           private-key: ${{ secrets.SYNC_INTERNAL_PK }}
 
       - name: 🔢 Get native build numbers
+        if: env.EXPO_TOKEN != ''
         id: build-info
         run: bash scripts/setGitHubOutput.sh
 
       - name: 🚀 Publish OTA to denis (S3)
+        if: env.EXPO_TOKEN != ''
         run: pnpm use-build-number bash scripts/denisPublish.sh
         env:
           RUNTIME_VERSION: ''
@@ -366,6 +382,7 @@ jobs:
   comment-pr-ota:
     name: Comment PR OTA install link
     needs: publish-pr-ota
+    if: needs.publish-pr-ota.outputs.release-version != ''
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
