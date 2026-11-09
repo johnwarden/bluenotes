@@ -252,9 +252,11 @@ jobs:
   #
   # Bot authors are excluded: Dependabot pushes in-repo branches, so it passes
   # the fork guard, but GitHub withholds repo secrets from Dependabot-triggered
-  # runs. EXPO_TOKEN is then empty and the job fails at setup — a red check on
-  # every dependabot PR. There is no OTA preview worth publishing for a
-  # dependency bump anyway.
+  # runs. There is no OTA preview worth publishing for a dependency bump anyway.
+  #
+  # Skip (do not fail) when EXPO_TOKEN is unset. GitHub withholds it from
+  # Dependabot, and some forks never configure it. An empty token used to fail
+  # at setup-expo-project instead of skipping the job.
   #
   # Gated on a clean fingerprint-native run: an OTA can only carry JS, so once
   # the native surface changes the published bundle no longer represents the PR
@@ -269,6 +271,7 @@ jobs:
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.type != 'Bot' &&
+      secrets.EXPO_TOKEN != '' &&
       needs.fingerprint-native.outputs.includes-changes != 'true'
     concurrency:
       group: pr-ota-${{ github.event.pull_request.number }}
