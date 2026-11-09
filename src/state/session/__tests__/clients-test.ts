@@ -247,7 +247,12 @@ describe('buildChatClient', () => {
      * An exact match, not `toContain`: `Headers` comma-joins repeated entries
      * for the same name, so a second contributor would show up here.
      */
-    expect(headers.get('atproto-proxy')).toBe(CHAT_PROXY_SERVICE)
+    /*
+     * Headers.get() returns null when the name is absent. CHAT_PROXY_SERVICE is
+     * undefined when EXPO_PUBLIC_CHAT_PROXY_DID is unset (CI and local PDS), so
+     * coalesce to null to match Fetch Headers semantics.
+     */
+    expect(headers.get('atproto-proxy')).toBe(CHAT_PROXY_SERVICE ?? null)
     expect(headers.get('authorization')).toBe('Bearer access-jwt')
   })
 
